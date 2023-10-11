@@ -4,35 +4,31 @@ project(MyGameEngine)
 
 find_package(OpenGL REQUIRED)
 
-# TODO: fix FetchContent
-# include(FetchContent)
+if (APPLE)
+    include(FetchContent)
 
-# FetchContent_Declare(
-#     GLFW
-#     URL https://github.com/glfw/glfw/archive/master.zip
-# )
+    FetchContent_Declare(
+            GLFW
+            URL https://github.com/glfw/glfw/archive/master.zip
+        )
 
-# FetchContent_MakeAvailable(GLFW)
+    FetchContent_MakeAvailable(GLFW)
 
-# FetchContent_Declare(
-#     GLAD
-#     URL https://github.com/Dav1dde/glad/archive/master.zip
-# )
+    FetchContent_Declare(
+        GLAD
+        URL https://github.com/Dav1dde/glad/archive/master.zip
+    )
 
-# FetchContent_MakeAvailable(GLAD)
+    FetchContent_MakeAvailable(GLAD)
 
-# target_include_directories(MyGameEngine PRIVATE
-#     ${glfw_SOURCE_DIR}/include
-#     ${GLAD_SOURCE_DIR}/include
-# )
-
-find_package(PkgConfig REQUIRED)
-pkg_search_module(GLFW REQUIRED glfw3)
-
-add_subdirectory(lib/glad)
+else() # WSL
+    add_subdirectory(lib/glad)
+    find_package(glfw3 REQUIRED)
+endif()
 
 add_executable(MyGameEngine src/main.cpp src/GameObject.cpp src/GameManager.cpp)
-include_directories(include)
 
-target_link_libraries(MyGameEngine PRIVATE ${GLFW_LIBRARIES} ${OPENGL_LIBRARIES})
-target_link_libraries(MyGameEngine PRIVATE glad)
+include_directories(include)
+target_link_libraries(MyGameEngine PRIVATE glad glfw)
+
+target_link_libraries(MyGameEngine PRIVATE ${OPENGL_LIBRARIES})

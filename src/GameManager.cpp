@@ -1,9 +1,12 @@
 #include <GameManager.h>
+
 #include <iostream>
 #include <chrono>
-#include <GLFW/glfw3.h>
-#include <globals.h>
+
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+#include <globals.h>
 
 void process()
 {
@@ -40,6 +43,13 @@ int GameManager::Initialize()
     }
 
     glfwMakeContextCurrent(window);
+
+    // Initilize GLAD
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    }
+
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Configure OpenGL
