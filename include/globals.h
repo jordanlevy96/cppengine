@@ -1,0 +1,1 @@
+const int TARGET_FPS = 60;
