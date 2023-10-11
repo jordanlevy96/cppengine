@@ -45,7 +45,8 @@ int GameManager::Initialize()
     glfwMakeContextCurrent(window);
 
     // Initilize GLAD
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
         std::cerr << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
@@ -54,11 +55,11 @@ int GameManager::Initialize()
 
     // Configure OpenGL
     // TODO: deep dive into this config
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0.0, 800.0, 0.0, 600.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    // glMatrixMode(GL_PROJECTION);
+    // glLoadIdentity();
+    // glOrtho(0.0, 800.0, 0.0, 600.0, -1.0, 1.0);
+    // glMatrixMode(GL_MODELVIEW);
+    // glLoadIdentity();
 
     return 0;
 }

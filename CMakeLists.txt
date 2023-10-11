@@ -29,6 +29,6 @@ endif()
 add_executable(MyGameEngine src/main.cpp src/GameObject.cpp src/GameManager.cpp)
 
 include_directories(include)
-target_link_libraries(MyGameEngine PRIVATE glad glfw)
+target_link_libraries(MyGameEngine PRIVATE glad dl glfw)
 
 target_link_libraries(MyGameEngine PRIVATE ${OPENGL_LIBRARIES})
