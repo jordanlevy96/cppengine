@@ -18,6 +18,11 @@ void error_callback(int error, const char *description)
     fprintf(stderr, "Error %d: %s\n", error, description);
 }
 
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}  
+
 int GameManager::Initialize()
 {
     std::cout << "Init" << std::endl;
@@ -32,6 +37,10 @@ int GameManager::Initialize()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    #ifdef __APPLE__
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    #endif
 
     // Create a GLFW window
     window = glfwCreateWindow(800, 600, "My Game", nullptr, nullptr);
@@ -51,7 +60,11 @@ int GameManager::Initialize()
         return -1;
     }
 
-    glClear(GL_COLOR_BUFFER_BIT);
+    glViewport(0, 0, 800, 600);
+
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);  
+    
+    // glClear(GL_COLOR_BUFFER_BIT);
 
     // Configure OpenGL
     // TODO: deep dive into this config
@@ -62,6 +75,13 @@ int GameManager::Initialize()
     // glLoadIdentity();
 
     return 0;
+}
+
+// TODO: handler class
+void processInput(GLFWwindow *window)
+{
+    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
 }
 
 void GameManager::Run()
@@ -89,7 +109,12 @@ void GameManager::Run()
             loopTime -= frameTime;
         }
 
+        processInput(window);
+
         // render
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
