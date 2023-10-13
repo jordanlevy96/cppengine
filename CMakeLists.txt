@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 11)
 project(MyGameEngine)
 
+# Handle Dependencies
+
 find_package(OpenGL REQUIRED)
 
 if (APPLE)
@@ -26,8 +28,9 @@ else() # WSL
     find_package(glfw3 REQUIRED)
 endif()
 
-add_executable(MyGameEngine src/main.cpp src/GameObject.cpp src/GameManager.cpp)
-
+# Build Instructions
+file(GLOB_RECURSE SOURCES "src/*.cpp" "ext/glad/src/*.c")
+add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 include_directories(include)
 target_link_libraries(MyGameEngine PRIVATE glad dl glfw)
 

@@ -1,12 +1,9 @@
 #include <GameManager.h>
+#include <globals.h>
 
 #include <iostream>
 #include <chrono>
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
-#include <globals.h>
 
 const char *vertexShaderSource = "#version 330 core\n"
                                  "layout (location = 0) in vec3 aPos;\n"
@@ -27,57 +24,18 @@ void process()
     // do game logic
 }
 
-void error_callback(int error, const char *description)
+bool GameManager::Initialize()
 {
-    fprintf(stderr, "Error %d: %s\n", error, description);
-}
-
-void framebuffer_size_callback(GLFWwindow *window, int width, int height)
-{
-    glViewport(0, 0, width, height);
-}
-
-int GameManager::Initialize()
-{
-    std::cout << "Init" << std::endl;
-    glfwSetErrorCallback(error_callback);
-    // Initialize GLFW
-    if (!glfwInit())
-    {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
-        return -1;
+    windowManager = &WindowManager::GetInstance();
+    if (!windowManager->Initialize(800, 600)) {
+        std::cerr << "Failed to Initialize Window Manager" << std::endl;
+        return false;
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // other init goes here
 
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    // Create a GLFW window
-    window = glfwCreateWindow(800, 600, "My Game", nullptr, nullptr);
-    if (!window)
-    {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-    // Initilize GLAD
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        std::cerr << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-
-    glViewport(0, 0, 800, 600);
-
-    return 0;
+    std::cout << "Initialized GameManager" << std::endl;
+    return true;
 }
 
 // TODO: handler class
@@ -196,7 +154,7 @@ void GameManager::Run()
     unsigned int shaderProgram, VAO;
 
     helloTriangle(shaderProgram, VAO);
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(windowManager->window))
     {
         currentTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - previousTime).count();
@@ -210,11 +168,11 @@ void GameManager::Run()
             loopTime -= frameTime;
         }
 
-        processInput(window);
+        processInput(windowManager->window);
 
         render(shaderProgram, VAO);
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(windowManager->window);
         glfwPollEvents();
     }
 
