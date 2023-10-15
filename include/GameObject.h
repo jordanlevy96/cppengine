@@ -1,11 +1,10 @@
-#ifndef GAMEOBJECT_H
-#define GAMEOBJECT_H
+#pragma once
 
 class GameObject
 {
 public:
     // Constructor
-    GameObject(float x, float y, float width, float height);
+    GameObject(float x, float y, float width, float height, float *vertices, int numVertices, int vertexLength, char *shaderSrc);
 
     // Destructor
     ~GameObject();
@@ -14,7 +13,7 @@ public:
     virtual void Update(float deltaTime);
 
     // Render the game object
-    virtual void Render();
+    void Render();
 
 protected:
     // Position and size of the game object
@@ -22,6 +21,11 @@ protected:
     float y_;
     float width_;
     float height_;
-};
 
-#endif
+    float *vertices_;
+    int numVertices_;
+
+    unsigned int VAO;
+    unsigned int VBO;
+    unsigned int shader;
+};

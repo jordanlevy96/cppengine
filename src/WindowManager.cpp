@@ -30,9 +30,7 @@ bool WindowManager::Initialize(int const width, int const height)
 #endif
 
     // Create a windowed mode window and its OpenGL context.
-    std::cout << "???" << std::endl;
     window = glfwCreateWindow(width, height, "Game", nullptr, nullptr);
-    std::cout << "!!!" << std::endl;
     if (!window)
     {
         std::cerr << "Failed to create GLFW window" << std::endl;
@@ -52,7 +50,6 @@ bool WindowManager::Initialize(int const width, int const height)
     std::cout << "INIT - GLAD: SUCCESS" << std::endl;
 
     std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
-    std::cout << "GLSL isn't set up??" << std::endl;
     std::cout << "GLSL version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 
     // Set vsync
