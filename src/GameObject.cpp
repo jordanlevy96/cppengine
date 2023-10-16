@@ -5,13 +5,6 @@
 GameObject::GameObject(float x, float y, float width, float height, float *vertices, int numVertices, int vertexLength, char *shaderSrcFile)
     : x_(x), y_(y), width_(width), height_(height), vertices_(vertices), numVertices_(numVertices)
 {
-    for (int i = 0; i < numVertices_; i += 3)
-    {
-        std::cout << "Vertex " << i / 3 << ": (" << vertices_[i] << ", " << vertices_[i + 1] << ", " << vertices_[i + 2] << ")\n";
-    }
-    // Constructor code, if any
-    std::cout << "Init GameObject" << std::endl;
-
     ShaderProgramSource source = Renderer::ParseShader(shaderSrcFile);
     unsigned int vertexShader = Renderer::CompileShader(source.VertexSource, GL_VERTEX_SHADER);
     unsigned int fragmentShader = Renderer::CompileShader(source.FragmentSource, GL_FRAGMENT_SHADER);
@@ -45,5 +38,4 @@ void GameObject::Render()
 
 void GameObject::Update(float deltaTime)
 {
-    // Update logic, if any
 }

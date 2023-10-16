@@ -57,6 +57,11 @@ void GameManager::Run()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        // ensure window scaling is up to date
+        int width, height;
+        glfwGetFramebufferSize(windowManager->window, &width, &height);
+        glViewport(0, 0, width, height);
+
         currentTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - previousTime).count();
         previousTime = currentTime;
