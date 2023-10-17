@@ -96,10 +96,7 @@ unsigned int Renderer::LinkShaders(unsigned int vertexShader, unsigned int fragm
     return shaderProgram;
 }
 
-void Renderer::Render(unsigned int &shaderProgram, unsigned int &VAO)
+void Renderer::Render()
 {
-    glUseProgram(shaderProgram);
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    glBindVertexArray(0);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }

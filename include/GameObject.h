@@ -4,7 +4,7 @@ class GameObject
 {
 public:
     // Constructor
-    GameObject(float x, float y, float width, float height, float *vertices, int numVertices, int vertexLength, char *shaderSrc);
+    GameObject(float x, float y, float width, float height, float *vertices, int numVertices, int vertexLength, unsigned int *indices, int numIndices, char *shaderSrc);
 
     // Destructor
     ~GameObject();
@@ -27,5 +27,6 @@ protected:
 
     unsigned int VAO;
     unsigned int VBO;
+    unsigned int EBO;
     unsigned int shader;
 };

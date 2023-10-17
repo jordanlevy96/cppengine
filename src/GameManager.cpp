@@ -30,7 +30,10 @@ bool GameManager::Initialize()
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        std::cout << "User Closed with ESC" << std::endl;
         glfwSetWindowShouldClose(window, true);
+    }
 }
 
 void GameManager::Run()
@@ -46,11 +49,19 @@ void GameManager::Run()
     std::cout << "Starting main loop" << std::endl;
 
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.0f, 0.5f, 0.0f};
+        0.5f, 0.5f, 0.0f,   // top right 0
+        0.5f, -0.5f, 0.0f,  // bottom right 1
+        -0.5f, -0.5f, 0.0f, // bottom left 2
+        -0.5f, 0.5f, 0.0f   // top left 3
+    };
+    unsigned int indices[] = {
+        // note that we start from 0!
+        0, 1, 3, // first triangle
+        1, 2, 3  // second triangle
+    };
 
-    GameObject triangle = GameObject(0, 0, 0, 0, vertices, 3, 3, (char *)"../res/shaders/Basic.shader");
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    GameObject rectangle = GameObject(0, 0, 0, 0, vertices, 4, 3, indices, 6, (char *)"../res/shaders/Basic.shader");
     while (!glfwWindowShouldClose(windowManager->window))
     {
         // screen color
@@ -76,7 +87,7 @@ void GameManager::Run()
 
         processInput(windowManager->window);
 
-        triangle.Render();
+        rectangle.Render();
 
         glfwSwapBuffers(windowManager->window);
         glfwPollEvents();
