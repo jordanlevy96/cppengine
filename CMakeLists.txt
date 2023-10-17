@@ -33,6 +33,7 @@ file(GLOB_RECURSE SOURCES "src/*.cpp" "ext/glad/src/*.c")
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
 include_directories(include)
+# include_directories(external/headers)
 target_include_directories(MyGameEngine PRIVATE external/glm)
 
 target_link_libraries(MyGameEngine PRIVATE glad dl glfw)

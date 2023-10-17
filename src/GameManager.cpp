@@ -49,19 +49,25 @@ void GameManager::Run()
     std::cout << "Starting main loop" << std::endl;
 
     float vertices[] = {
-        0.5f, 0.5f, 0.0f,   // top right 0
-        0.5f, -0.5f, 0.0f,  // bottom right 1
-        -0.5f, -0.5f, 0.0f, // bottom left 2
-        -0.5f, 0.5f, 0.0f   // top left 3
+        // positions          // colors           // texture coords
+        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // top right
+        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
+        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
     };
+
+    int vertexCount = sizeof(vertices) / sizeof(float);
+
     unsigned int indices[] = {
         // note that we start from 0!
         0, 1, 3, // first triangle
         1, 2, 3  // second triangle
     };
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    GameObject rectangle = GameObject(0, 0, 0, 0, vertices, 4, 3, indices, 6, (char *)"../res/shaders/Basic.shader");
+    int indexCount = sizeof(indices) / sizeof(unsigned int);
+
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    GameObject rectangle = GameObject(0, 0, 0, 0, vertices, vertexCount, indices, indexCount, (char *)"../res/shaders/Basic.shader", (char *)"../res/textures/container.jpg");
     while (!glfwWindowShouldClose(windowManager->window))
     {
         // screen color

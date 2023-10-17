@@ -1,10 +1,18 @@
 #pragma once
+#include <glm/glm.hpp>
+#include <vector>
+struct Vertex
+{
+    glm::vec3 Position;
+    glm::vec3 Color;
+    glm::vec2 TexCoords;
+};
 
 class GameObject
 {
 public:
     // Constructor
-    GameObject(float x, float y, float width, float height, float *vertices, int numVertices, int vertexLength, unsigned int *indices, int numIndices, char *shaderSrc);
+    GameObject(float x, float y, float width, float height, float *vertices, int numVertices, unsigned int *indices, int numIndices, char *shaderSrc, char *textureSrcPath);
 
     // Destructor
     ~GameObject();
@@ -17,16 +25,17 @@ public:
 
 protected:
     // Position and size of the game object
-    float x_;
-    float y_;
-    float width_;
-    float height_;
+    float x;
+    float y;
+    float width;
+    float height;
 
-    float *vertices_;
-    int numVertices_;
+    std::vector<Vertex> vertices;
+    int numVertices;
 
     unsigned int VAO;
     unsigned int VBO;
     unsigned int EBO;
     unsigned int shader;
+    unsigned int texture;
 };
