@@ -95,6 +95,7 @@ void GameManager::Run()
 
         processInput(windowManager->window);
 
+        rectangle.Transform((float)glfwGetTime(), glm::vec3(1.5f), glm::vec3(0.5f, -0.5f, 0.0f));
         rectangle.Render();
 
         glfwSwapBuffers(windowManager->window);

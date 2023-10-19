@@ -1,6 +1,8 @@
 #include <GameObject.h>
 #include <Renderer.h>
 #include <stb_image.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 
@@ -72,6 +74,14 @@ GameObject::~GameObject()
     textures.clear();
 }
 
+void GameObject::Transform(float radians, glm::vec3 scale, glm::vec3 translate)
+{
+    transform = glm::mat4(1.0f);
+    transform = glm::translate(transform, translate);
+    transform = glm::rotate(transform, radians, glm::vec3(0.0, 0.0, 1.0));
+    transform = glm::scale(transform, scale);
+}
+
 void GameObject::Render()
 {
     glUseProgram(shader);
@@ -85,6 +95,8 @@ void GameObject::Render()
 
     glUniform1i(glGetUniformLocation(shader, "texture1"), 0);
     glUniform1i(glGetUniformLocation(shader, "texture2"), 1);
+
+    glUniformMatrix4fv(glGetUniformLocation(shader, "transform"), 1, GL_FALSE, glm::value_ptr(transform));
 
     glBindVertexArray(VAO);
     Renderer::Render();

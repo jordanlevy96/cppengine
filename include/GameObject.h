@@ -26,6 +26,8 @@ public:
 
     void AddTexture(const char *textureSrcPath, bool alpha);
 
+    void Transform(float radians, glm::vec3 scale, glm::vec3 transform);
+
 protected:
     // Position and size of the game object
     float x;
@@ -41,4 +43,5 @@ protected:
     unsigned int EBO;
     unsigned int shader;
     std::vector<unsigned int> textures;
+    glm::mat4 transform;
 };
