@@ -2,6 +2,8 @@
 
 #include <WindowManager.h>
 
+extern "C" void stbi_set_flip_vertically_on_load(bool flag);
+
 class GameManager
 {
 public:
@@ -21,6 +23,7 @@ public:
     //       before deleted status
 
     bool Initialize();
+    void Shutdown();
 
     void Run();
     WindowManager *windowManager;

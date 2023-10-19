@@ -21,6 +21,7 @@ bool GameManager::Initialize()
     }
 
     // other init goes here
+    stbi_set_flip_vertically_on_load(true);
 
     std::cout << "Initialized GameManager" << std::endl;
     return true;
@@ -59,7 +60,6 @@ void GameManager::Run()
     int vertexCount = sizeof(vertices) / sizeof(float);
 
     unsigned int indices[] = {
-        // note that we start from 0!
         0, 1, 3, // first triangle
         1, 2, 3  // second triangle
     };
@@ -67,7 +67,9 @@ void GameManager::Run()
     int indexCount = sizeof(indices) / sizeof(unsigned int);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    GameObject rectangle = GameObject(0, 0, 0, 0, vertices, vertexCount, indices, indexCount, (char *)"../res/shaders/Basic.shader", (char *)"../res/textures/container.jpg");
+    GameObject rectangle = GameObject(0, 0, 0, 0, vertices, vertexCount, indices, indexCount, (char *)"../res/shaders/Basic.shader");
+    rectangle.AddTexture("../res/textures/container.jpg", false);
+    rectangle.AddTexture("../res/textures/awesomeface.png", true);
     while (!glfwWindowShouldClose(windowManager->window))
     {
         // screen color
@@ -99,6 +101,9 @@ void GameManager::Run()
         glfwPollEvents();
     }
 
-    // clean up
-    glfwTerminate();
+    std::cout << "Exited main loop" << std::endl;
+}
+
+void GameManager::Shutdown() {
+    windowManager->shutdown();
 }

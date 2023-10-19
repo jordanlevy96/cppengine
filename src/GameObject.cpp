@@ -1,6 +1,6 @@
 #include <GameObject.h>
 #include <Renderer.h>
-#include <Texture.h>
+#include <stb_image.h>
 
 #include <iostream>
 
@@ -18,7 +18,7 @@ std::vector<Vertex> ParseVertices(const float *data, int vertexCount)
     return vertices;
 }
 
-GameObject::GameObject(float x_, float y_, float width_, float height_, float *vertices_, int numVertices_, unsigned int *indices, int numIndices, char *shaderSrcFile, char *textureSrcPath)
+GameObject::GameObject(float x_, float y_, float width_, float height_, float *vertices_, int numVertices_, unsigned int *indices, int numIndices, char *shaderSrcFile)
     : x(x_), y(y_), width(width_), height(height_), numVertices(numVertices_)
 {
     vertices = ParseVertices(vertices_, numVertices);
@@ -57,24 +57,70 @@ GameObject::GameObject(float x_, float y_, float width_, float height_, float *v
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glBindVertexArray(0);
-
-    Texture t = Texture(textureSrcPath);
-    texture = t.texture;
 }
 
 GameObject::~GameObject()
 {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
     glDeleteProgram(shader);
+    for (GLuint texture : textures)
+    {
+        glDeleteTextures(1, &texture);
+    }
+    textures.clear();
 }
 
 void GameObject::Render()
 {
     glUseProgram(shader);
-    glBindTexture(GL_TEXTURE_2D, texture);
+
+    GLenum gl_textures[] = {GL_TEXTURE0, GL_TEXTURE1};
+    for (int i = 0; i < textures.size(); i++)
+    {
+        glActiveTexture(gl_textures[i]);
+        glBindTexture(GL_TEXTURE_2D, textures[i]);
+    }
+
+    glUniform1i(glGetUniformLocation(shader, "texture1"), 0);
+    glUniform1i(glGetUniformLocation(shader, "texture2"), 1);
+
     glBindVertexArray(VAO);
     Renderer::Render();
+}
+
+static GLuint loadTexture(const char *filepath, bool alpha)
+{
+    GLuint texture;
+    int width, height, numChannels;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    unsigned char *data = stbi_load(filepath, &width, &height, &numChannels, 0);
+    GLenum format = alpha ? GL_RGBA : GL_RGB;
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+
+    return texture;
+}
+
+void GameObject::AddTexture(const char *textureSrcPath, bool alpha)
+{
+    textures.push_back(loadTexture(textureSrcPath, alpha));
 }
 
 void GameObject::Update(float deltaTime)

@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <vector>
+
 struct Vertex
 {
     glm::vec3 Position;
@@ -12,7 +13,7 @@ class GameObject
 {
 public:
     // Constructor
-    GameObject(float x, float y, float width, float height, float *vertices, int numVertices, unsigned int *indices, int numIndices, char *shaderSrc, char *textureSrcPath);
+    GameObject(float x, float y, float width, float height, float *vertices, int numVertices, unsigned int *indices, int numIndices, char *shaderSrc);
 
     // Destructor
     ~GameObject();
@@ -22,6 +23,8 @@ public:
 
     // Render the game object
     void Render();
+
+    void AddTexture(const char *textureSrcPath, bool alpha);
 
 protected:
     // Position and size of the game object
@@ -37,5 +40,5 @@ protected:
     unsigned int VBO;
     unsigned int EBO;
     unsigned int shader;
-    unsigned int texture;
+    std::vector<unsigned int> textures;
 };

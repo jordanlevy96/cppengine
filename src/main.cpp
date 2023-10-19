@@ -6,6 +6,7 @@ int main()
 
     gm.Initialize();
     gm.Run();
+    gm.Shutdown();
 
     return 0;
 }
