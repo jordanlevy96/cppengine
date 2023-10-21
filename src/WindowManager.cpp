@@ -6,8 +6,6 @@ void error_callback(int error, const char *description)
     fprintf(stderr, "Error %d: %s\n", error, description);
 }
 
-WindowManager *WindowManager::instance = nullptr;
-
 bool WindowManager::Initialize(int const width, int const height)
 {
     glfwSetErrorCallback(error_callback);
@@ -52,6 +50,9 @@ bool WindowManager::Initialize(int const width, int const height)
 
     glViewport(0, 0, width, height);
 
+    glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
+    glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
+
     glfwSetKeyCallback(window, key_callback);
     glfwSetMouseButtonCallback(window, mouse_callback);
     glfwSetFramebufferSizeCallback(window, resize_callback);
@@ -61,6 +62,7 @@ bool WindowManager::Initialize(int const width, int const height)
 
 void WindowManager::shutdown()
 {
+    delete callbacks;
     glfwDestroyWindow(window);
     glfwTerminate();
 }
@@ -68,10 +70,12 @@ void WindowManager::shutdown()
 void WindowManager::setEventCallbacks(EventCallbacks *callbacks_in)
 {
     callbacks = callbacks_in;
+    std::cout << "Callbacks set!" << std::endl;
 }
 
 void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
+    WindowManager *instance = &WindowManager::GetInstance();
     if (instance && instance->callbacks)
     {
         instance->callbacks->keyCallback(window, key, scancode, action, mods);
@@ -80,6 +84,7 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
 
 void WindowManager::mouse_callback(GLFWwindow *window, int button, int action, int mods)
 {
+    WindowManager *instance = &WindowManager::GetInstance();
     if (instance && instance->callbacks)
     {
         instance->callbacks->mouseCallback(window, button, action, mods);
@@ -88,6 +93,7 @@ void WindowManager::mouse_callback(GLFWwindow *window, int button, int action, i
 
 void WindowManager::resize_callback(GLFWwindow *window, int in_width, int in_height)
 {
+    WindowManager *instance = &WindowManager::GetInstance();
     if (instance && instance->callbacks)
     {
         instance->callbacks->resizeCallback(window, in_width, in_height);
