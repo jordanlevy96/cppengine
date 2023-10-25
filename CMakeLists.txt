@@ -23,17 +23,19 @@ if (APPLE)
 
     FetchContent_MakeAvailable(GLAD)
 
-else() # WSL
-    add_subdirectory(lib/glad)
+# elseif (WIN32) 
+    # add_subdirectory(/glad)
+else() 
+    add_subdirectory(external/glad)
     find_package(glfw3 REQUIRED)
 endif()
 
 # Build Instructions
-file(GLOB_RECURSE SOURCES "src/*.cpp" "ext/glad/src/*.c")
+file(GLOB_RECURSE SOURCES "src/*.cpp" "external/glad/src/*.c")
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
 include_directories(include)
-# include_directories(external/headers)
+include_directories(external/glad/include)
 target_include_directories(MyGameEngine PRIVATE external/glm)
 
 target_link_libraries(MyGameEngine PRIVATE glad dl glfw)
