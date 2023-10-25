@@ -42,7 +42,8 @@ bool GameManager::Initialize()
     // other init goes here
     stbi_set_flip_vertically_on_load(true);
 
-
+    cam = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
+    
     EventCallbacks *callbacks = new EventCallbacks(
         [](GLFWwindow *window, int key, int scancode, int action, int mods)
         {
@@ -61,19 +62,19 @@ bool GameManager::Initialize()
 
     std::cout << "Initialized GameManager" << std::endl;
     return true;
-    }
+}
 
 void GameManager::Run()
 {
+    std::cout << "Starting main loop" << std::endl;
+
     std::chrono::high_resolution_clock::time_point currentTime, previousTime;
     double frameTime, loopTime, delta;
 
-    std::cout << "Triggering main loop..." << std::endl;
     frameTime = 1.0 / TARGET_FPS;
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
-    std::cout << "Starting main loop" << std::endl;
 
     float vertices[] = {
         // positions          // colors           // texture coords
@@ -130,5 +131,6 @@ void GameManager::Run()
 }
 
 void GameManager::Shutdown() {
+    delete cam;
     windowManager->shutdown();
 }

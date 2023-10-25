@@ -22,7 +22,7 @@ public:
 
     void Run();
     WindowManager *windowManager;
-    Camera cam;
+    Camera *cam;
 
 private:
     GameManager(){};
