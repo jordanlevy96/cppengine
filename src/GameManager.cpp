@@ -1,6 +1,6 @@
 #include <GameManager.h>
-#include <GameObject.h>
-#include <Renderer.h>
+#include <GameObject3D.h>
+#include <Shader.h>
 #include <globals.h>
 
 #include <iostream>
@@ -13,11 +13,11 @@ void process()
 
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        {
-            std::cout << "User Closed with ESC" << std::endl;
-            glfwSetWindowShouldClose(window, GL_TRUE);
-        }
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    {
+        std::cout << "User Closed with ESC" << std::endl;
+        glfwSetWindowShouldClose(window, GL_TRUE);
+    }
 }
 
 void mouseCallback(GLFWwindow *window, int button, int action, int mods)
@@ -42,8 +42,9 @@ bool GameManager::Initialize()
     // other init goes here
     stbi_set_flip_vertically_on_load(true);
 
-    cam = new Camera(glm::vec3(0.0f, 0.0f, 3.0f));
-    
+    cam = new Camera(glm::vec3(0.0f, 0.0f, -3.0f));
+    cam->SetPerspective(45.0f, 800.0f, 600.0f);
+
     EventCallbacks *callbacks = new EventCallbacks(
         [](GLFWwindow *window, int key, int scancode, int action, int mods)
         {
@@ -75,7 +76,6 @@ void GameManager::Run()
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
-
     float vertices[] = {
         // positions          // colors           // texture coords
         0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // top right
@@ -94,9 +94,11 @@ void GameManager::Run()
     int indexCount = sizeof(indices) / sizeof(unsigned int);
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    GameObject rectangle = GameObject(0, 0, 0, 0, vertices, vertexCount, indices, indexCount, (char *)"../res/shaders/Basic.shader");
-    rectangle.AddTexture("../res/textures/container.jpg", false);
-    rectangle.AddTexture("../res/textures/awesomeface.png", true);
+    GameObject3D *rectangle = new GameObject3D(0, 0, 0, 0, vertices, vertexCount, indices, indexCount, (char *)"../res/shaders/Basic.shader");
+    objects.push_back(rectangle);
+    rectangle->Rotate(-55.0f, EulerAngles::ROLL);
+    rectangle->AddTexture("../res/textures/container.jpg", false);
+    rectangle->AddTexture("../res/textures/awesomeface.png", true);
     while (!glfwWindowShouldClose(windowManager->window))
     {
         // screen color
@@ -120,8 +122,8 @@ void GameManager::Run()
             loopTime -= frameTime;
         }
 
-        rectangle.Transform((float)glfwGetTime(), glm::vec3(1.5f), glm::vec3(0.5f, -0.5f, 0.0f));
-        rectangle.Render();
+        // rectangle.Transform((float)glfwGetTime(), glm::vec3(1.5f), glm::vec3(0.5f, -0.5f, 0.0f));
+        cam->RenderAll(objects);
 
         glfwSwapBuffers(windowManager->window);
         glfwPollEvents();
@@ -130,7 +132,13 @@ void GameManager::Run()
     std::cout << "Exited main loop" << std::endl;
 }
 
-void GameManager::Shutdown() {
+void GameManager::Shutdown()
+{
     delete cam;
+    for (GameObject *obj : objects)
+    {
+        delete obj;
+    }
+    objects.clear();
     windowManager->shutdown();
 }

@@ -1,4 +1,4 @@
-#include <Renderer.h>
+#include <Shader.h>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -7,7 +7,7 @@
 
 static const int ERR_LOG_SIZE = 512;
 
-ShaderProgramSource Renderer::ParseShader(const std::string &filepath)
+static ShaderProgramSource ParseShader(const std::string &filepath)
 {
     std::ifstream stream(filepath);
     if (!stream.is_open())
@@ -48,7 +48,7 @@ ShaderProgramSource Renderer::ParseShader(const std::string &filepath)
     return {ss[0].str(), ss[1].str()};
 }
 
-unsigned int Renderer::CompileShader(std::string source, int type)
+static unsigned int CompileShader(std::string source, int type)
 {
     unsigned int shader;
     const char *src = source.c_str();
@@ -71,32 +71,40 @@ unsigned int Renderer::CompileShader(std::string source, int type)
     return shader;
 }
 
-unsigned int Renderer::LinkShaders(unsigned int vertexShader, unsigned int fragmentShader)
+void Shader::LinkShaders(unsigned int vertexShader, unsigned int fragmentShader)
 {
-    unsigned int shaderProgram;
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
+    ID = glCreateProgram();
+    glAttachShader(ID, vertexShader);
+    glAttachShader(ID, fragmentShader);
+    glLinkProgram(ID);
 
     // check shader linking results
     int success;
     char infoLog[ERR_LOG_SIZE];
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    glGetProgramiv(ID, GL_LINK_STATUS, &success);
     if (!success)
     {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        glGetProgramInfoLog(ID, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::LINKING_FAILED\n"
                   << infoLog << std::endl;
     }
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
-
-    return shaderProgram;
 }
 
-void Renderer::Render()
+Shader::Shader(const char *filepath)
 {
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    std::cout << "Initializing Shader" << std::endl;
+    ShaderProgramSource source = ParseShader(filepath);
+    unsigned int vertexShader = CompileShader(source.VertexSource, GL_VERTEX_SHADER);
+    unsigned int fragmentShader = CompileShader(source.FragmentSource, GL_FRAGMENT_SHADER);
+    LinkShaders(vertexShader, fragmentShader);
+    std::cout << "Shader built with ID " << ID << std::endl;
+}
+
+Shader::~Shader()
+{
+    std::cout << "Destructing shader " << ID << std::endl;
+    glDeleteProgram(ID);
 }

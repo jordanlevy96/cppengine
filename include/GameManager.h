@@ -2,6 +2,9 @@
 
 #include <WindowManager.h>
 #include <Camera.h>
+#include <GameObject.h>
+
+#include <vector>
 
 extern "C" void stbi_set_flip_vertically_on_load(bool flag);
 
@@ -23,6 +26,7 @@ public:
     void Run();
     WindowManager *windowManager;
     Camera *cam;
+    std::vector<GameObject *> objects;
 
 private:
     GameManager(){};

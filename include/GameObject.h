@@ -1,5 +1,10 @@
 #pragma once
+
+#include <Shader.h>
+
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <vector>
 
 struct Vertex
@@ -16,7 +21,7 @@ public:
     GameObject(float x, float y, float width, float height, float *vertices, int numVertices, unsigned int *indices, int numIndices, char *shaderSrc);
 
     // Destructor
-    ~GameObject();
+    virtual ~GameObject();
 
     // Update the game object's state
     virtual void Update(float deltaTime);
@@ -26,7 +31,14 @@ public:
 
     void AddTexture(const char *textureSrcPath, bool alpha);
 
-    void Transform(float radians, glm::vec3 scale, glm::vec3 transform);
+    void Transform(float radians, glm::vec3 scale, glm::vec3 translate);
+
+    unsigned int VAO;
+    unsigned int VBO;
+    unsigned int EBO;
+    Shader *shader;
+    std::vector<unsigned int> textures;
+    glm::mat4 transform;
 
 protected:
     // Position and size of the game object
@@ -37,11 +49,4 @@ protected:
 
     std::vector<Vertex> vertices;
     int numVertices;
-
-    unsigned int VAO;
-    unsigned int VBO;
-    unsigned int EBO;
-    unsigned int shader;
-    std::vector<unsigned int> textures;
-    glm::mat4 transform;
 };

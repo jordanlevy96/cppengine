@@ -1,8 +1,8 @@
 #include <GameObject.h>
-#include <Renderer.h>
+#include <Shader.h>
 #include <stb_image.h>
+
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 
@@ -24,12 +24,8 @@ GameObject::GameObject(float x_, float y_, float width_, float height_, float *v
     : x(x_), y(y_), width(width_), height(height_), numVertices(numVertices_)
 {
     vertices = ParseVertices(vertices_, numVertices);
-
-    // Init Shader
-    ShaderProgramSource source = Renderer::ParseShader(shaderSrcFile);
-    unsigned int vertexShader = Renderer::CompileShader(source.VertexSource, GL_VERTEX_SHADER);
-    unsigned int fragmentShader = Renderer::CompileShader(source.FragmentSource, GL_FRAGMENT_SHADER);
-    shader = Renderer::LinkShaders(vertexShader, fragmentShader);
+    transform = glm::mat4(1.0f);
+    shader = new Shader(shaderSrcFile);
 
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -63,10 +59,11 @@ GameObject::GameObject(float x_, float y_, float width_, float height_, float *v
 
 GameObject::~GameObject()
 {
+    std::cout << "destructing game object" << std::endl;
+    delete shader;
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
-    glDeleteProgram(shader);
     for (GLuint texture : textures)
     {
         glDeleteTextures(1, &texture);
@@ -80,26 +77,6 @@ void GameObject::Transform(float radians, glm::vec3 scale, glm::vec3 translate)
     transform = glm::translate(transform, translate);
     transform = glm::rotate(transform, radians, glm::vec3(0.0, 0.0, 1.0));
     transform = glm::scale(transform, scale);
-}
-
-void GameObject::Render()
-{
-    glUseProgram(shader);
-
-    GLenum gl_textures[] = {GL_TEXTURE0, GL_TEXTURE1};
-    for (int i = 0; i < textures.size(); i++)
-    {
-        glActiveTexture(gl_textures[i]);
-        glBindTexture(GL_TEXTURE_2D, textures[i]);
-    }
-
-    glUniform1i(glGetUniformLocation(shader, "texture1"), 0);
-    glUniform1i(glGetUniformLocation(shader, "texture2"), 1);
-
-    glUniformMatrix4fv(glGetUniformLocation(shader, "transform"), 1, GL_FALSE, glm::value_ptr(transform));
-
-    glBindVertexArray(VAO);
-    Renderer::Render();
 }
 
 static GLuint loadTexture(const char *filepath, bool alpha)

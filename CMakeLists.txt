@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 11)
-project(MyGameEngine)
+project(cppengine)
+
+file(GLOB_RECURSE SOURCES "src/*.cpp" "external/glad/src/*.c" "include/*.h" "include/*.hpp")
+add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
 # Handle Dependencies
 
@@ -39,15 +42,12 @@ elseif(WIN32)
 else() # Linux
     add_subdirectory(external/glad)
     find_package(glfw3 REQUIRED)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dl -ldl)
 endif()
 
-# Build Instructions
-file(GLOB_RECURSE SOURCES "src/*.cpp" "external/glad/src/*.c" "include/*.h" "include/*.hpp")
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
 include_directories(include)
 include_directories(external/glad/include)
-target_include_directories(MyGameEngine PRIVATE external/glm)
-
-target_link_libraries(MyGameEngine PRIVATE glad glfw)
-target_link_libraries(MyGameEngine PRIVATE ${OPENGL_LIBRARIES})
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE external/glm)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad glfw)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})
