@@ -30,7 +30,6 @@ elseif(WIN32)
     add_subdirectory(external/glad)
     include(FetchContent)
 
-
 	# Specify where to get GLFW and what version to use
 	FetchContent_Declare(
 		GLFW
@@ -46,8 +45,7 @@ else() # Linux
 endif()
 
 
-include_directories(include)
-include_directories(external/glad/include)
+include_directories(include external/headers external/glad/include)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE external/glm)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad glfw)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})

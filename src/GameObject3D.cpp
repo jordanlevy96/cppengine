@@ -1,6 +1,6 @@
 #include <GameObject3D.h>
 
-GameObject3D::GameObject3D(float x, float y, float width, float height, float *vertices, int numVertices, unsigned int *indices, int numIndices, char *shaderSrc) : GameObject(x, y, width, height, vertices, numVertices, indices, numIndices, shaderSrc) {}
+GameObject3D::GameObject3D(const char *shaderSrc, const char *modelSrc) : GameObject(shaderSrc, modelSrc) {}
 
 void GameObject3D::Rotate(float degrees, EulerAngles dir)
 {

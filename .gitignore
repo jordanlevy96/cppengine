@@ -1,5 +1,7 @@
+**/.DS_Store
+
+# Build is different per OS
 build
-lib/**
 
 # Prerequisites
 *.d
@@ -8,7 +10,7 @@ lib/**
 *.slo
 *.lo
 *.o
-*.obj
+# *.obj Wavefront OBJs shouldn't be ignored, and any .obj build files from VS should stay in the build dir
 
 # Precompiled Headers
 *.gch

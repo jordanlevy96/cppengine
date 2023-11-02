@@ -17,6 +17,33 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
     {
         std::cout << "User Closed with ESC" << std::endl;
         glfwSetWindowShouldClose(window, GL_TRUE);
+        return;
+    }
+
+    GameManager &gm = GameManager::GetInstance();
+    if (key == GLFW_KEY_W)
+    {
+        gm.cam->Translate(glm::vec3(0.0f, 0.0f, 0.1f));
+    }
+    else if (key == GLFW_KEY_A)
+    {
+        gm.cam->Translate(glm::vec3(-0.1f, 0.0f, 0.0f));
+    }
+    else if (key == GLFW_KEY_S)
+    {
+        gm.cam->Translate(glm::vec3(0.0f, 0.0f, -0.1f));
+    }
+    else if (key == GLFW_KEY_D)
+    {
+        gm.cam->Translate(glm::vec3(0.1f, 0.0f, 0.0f));
+    }
+    else if (key == GLFW_KEY_Z)
+    {
+        gm.cam->Translate(glm::vec3(0.0f, -0.1f, 0.0f));
+    }
+    else if (key == GLFW_KEY_X)
+    {
+        gm.cam->Translate(glm::vec3(0.0f, 0.1f, 0.0f));
     }
 }
 
@@ -61,7 +88,6 @@ bool GameManager::Initialize()
 
     windowManager->setEventCallbacks(callbacks);
 
-    std::cout << "Initialized GameManager" << std::endl;
     return true;
 }
 
@@ -76,27 +102,10 @@ void GameManager::Run()
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
-    float vertices[] = {
-        // positions          // colors           // texture coords
-        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // top right
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
-    };
-
-    int vertexCount = sizeof(vertices) / sizeof(float);
-
-    unsigned int indices[] = {
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
-    };
-
-    int indexCount = sizeof(indices) / sizeof(unsigned int);
-
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    GameObject3D *rectangle = new GameObject3D(0, 0, 0, 0, vertices, vertexCount, indices, indexCount, (char *)"../res/shaders/Basic.shader");
+    GameObject3D *rectangle = new GameObject3D("../res/shaders/Basic.shader", "../res/models/bunny.obj");
     objects.push_back(rectangle);
-    rectangle->Rotate(-55.0f, EulerAngles::ROLL);
+    // rectangle->Rotate(-55.0f, EulerAngles::ROLL);
     rectangle->AddTexture("../res/textures/container.jpg", false);
     rectangle->AddTexture("../res/textures/awesomeface.png", true);
     while (!glfwWindowShouldClose(windowManager->window))
@@ -122,7 +131,6 @@ void GameManager::Run()
             loopTime -= frameTime;
         }
 
-        // rectangle.Transform((float)glfwGetTime(), glm::vec3(1.5f), glm::vec3(0.5f, -0.5f, 0.0f));
         cam->RenderAll(objects);
 
         glfwSwapBuffers(windowManager->window);

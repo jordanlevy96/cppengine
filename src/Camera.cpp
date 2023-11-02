@@ -26,10 +26,10 @@ void Camera::Render(GameObject *obj)
 
     GLenum gl_textures[] = {GL_TEXTURE0,
                             GL_TEXTURE1};
-    for (int i = 0; i < obj->textures.size(); i++)
+    for (int i = 0; i < obj->model->textures.size(); i++)
     {
         glActiveTexture(gl_textures[i]);
-        glBindTexture(GL_TEXTURE_2D, obj->textures[i]);
+        glBindTexture(GL_TEXTURE_2D, obj->model->textures[i]);
     }
 
     obj->shader->setInt("texture1", 0);
@@ -39,8 +39,37 @@ void Camera::Render(GameObject *obj)
     obj->shader->setMat4("view", View);
     obj->shader->setMat4("projection", Projection);
 
-    glBindVertexArray(obj->VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(obj->model->VAO);
+    glDrawElements(GL_TRIANGLES, obj->model->numVertices, GL_UNSIGNED_INT, 0);
 
     glUseProgram(0);
+}
+
+static glm::vec3 rotationAngle(EulerAngles dir)
+{
+    glm::vec3 rotationAngle;
+
+    switch (dir)
+    {
+    case EulerAngles::ROLL:
+        rotationAngle = glm::vec3(1.0f, 0.0f, 0.0f);
+        break;
+
+    case EulerAngles::YAW:
+        rotationAngle = glm::vec3(0.0f, 1.0f, 0.0f);
+        break;
+
+    case EulerAngles::PITCH:
+        rotationAngle = glm::vec3(0.0f, 0.0f, 1.0f);
+        break;
+    default:
+        rotationAngle = glm::vec3(0.0f); // don't rotate if EulerAngle is invalid
+    }
+
+    return rotationAngle;
+}
+
+void Camera::Translate(glm::vec3 translate)
+{
+    View = glm::translate(View, translate);
 }

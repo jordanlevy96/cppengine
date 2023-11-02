@@ -95,16 +95,13 @@ void Shader::LinkShaders(unsigned int vertexShader, unsigned int fragmentShader)
 
 Shader::Shader(const char *filepath)
 {
-    std::cout << "Initializing Shader" << std::endl;
     ShaderProgramSource source = ParseShader(filepath);
     unsigned int vertexShader = CompileShader(source.VertexSource, GL_VERTEX_SHADER);
     unsigned int fragmentShader = CompileShader(source.FragmentSource, GL_FRAGMENT_SHADER);
     LinkShaders(vertexShader, fragmentShader);
-    std::cout << "Shader built with ID " << ID << std::endl;
 }
 
 Shader::~Shader()
 {
-    std::cout << "Destructing shader " << ID << std::endl;
     glDeleteProgram(ID);
 }

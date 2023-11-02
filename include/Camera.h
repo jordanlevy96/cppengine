@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GameObject.h>
+#include <GameObject3D.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -22,4 +22,5 @@ public:
     void SetPerspective(float degrees, float width, float height);
     void Render(GameObject *obj);
     void RenderAll(std::vector<GameObject *> objects);
+    void Translate(glm::vec3 translate);
 };
