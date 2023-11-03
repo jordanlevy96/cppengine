@@ -14,19 +14,19 @@ void Model::ExtractIndices(std::vector<tinyobj::shape_t> shapes)
     for (tinyobj::shape_t shape : shapes)
     {
         const std::vector<tinyobj::index_t> &indices = shape.mesh.indices;
-        // const std::vector<int> &material_ids = shape.mesh.material_ids;
+        const std::vector<int> &material_ids = shape.mesh.material_ids;
 
         for (tinyobj::index_t index : indices)
         {
-            extractedIndices.Vertex.push_back(index.vertex_index);
-            extractedIndices.Normal.push_back(index.normal_index);
-            extractedIndices.Texture.push_back(index.texcoord_index);
-            std::cout << "Set " << index.vertex_index - 1 << " " << index.normal_index - 1 << " " << index.texcoord_index - 1 << std::endl;
+            int vval = index.vertex_index > 0 ? index.vertex_index : -1;
+            extractedIndices.Vertex.push_back(vval);
+            int nval = index.vertex_index > 0 ? index.vertex_index : -1;
+            extractedIndices.Normal.push_back(nval);
+            int tval = index.vertex_index > 0 ? index.vertex_index : -1;
+            extractedIndices.Texture.push_back(tval);
         }
     }
-
-    numVertices = extractedIndices.Vertex.size();
-    std::cout << "Set " << numVertices << " Vertices" << std::endl;
+    numVertices = extractedIndices.Vertex.size() / 3;
 }
 
 Model::Model(const char *modelSrc)
@@ -63,16 +63,16 @@ Model::Model(const char *modelSrc)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * extractedIndices.Vertex.size(), extractedIndices.Vertex.data(), GL_STATIC_DRAW);
 
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(tinyobj::attrib_t), (void *)0);
+    // position attribute (3 floats)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void *)0);
     glEnableVertexAttribArray(0);
 
-    // normal attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(tinyobj::attrib_t), (void *)(3 * sizeof(float)));
+    // normal attribute (3 floats)
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    // texture coord attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(tinyobj::attrib_t), (void *)(6 * sizeof(float)));
+    // texture coord attribute (2 floats)
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (void *)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);

@@ -102,6 +102,8 @@ void GameManager::Run()
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
+    glEnable(GL_DEPTH_TEST);
+    glFrontFace(GL_CW);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     GameObject3D *rectangle = new GameObject3D("../res/shaders/Basic.shader", "../res/models/bunny.obj");
     objects.push_back(rectangle);
@@ -112,7 +114,7 @@ void GameManager::Run()
     {
         // screen color
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // ensure window scaling is up to date
         int width, height;

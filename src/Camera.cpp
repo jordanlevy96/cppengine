@@ -24,16 +24,16 @@ void Camera::Render(GameObject *obj)
 {
     obj->shader->Use();
 
-    GLenum gl_textures[] = {GL_TEXTURE0,
-                            GL_TEXTURE1};
-    for (int i = 0; i < obj->model->textures.size(); i++)
-    {
-        glActiveTexture(gl_textures[i]);
-        glBindTexture(GL_TEXTURE_2D, obj->model->textures[i]);
-    }
+    // GLenum gl_textures[] = {GL_TEXTURE0,
+    //                         GL_TEXTURE1};
+    // for (int i = 0; i < obj->model->textures.size(); i++)
+    // {
+    //     glActiveTexture(gl_textures[i]);
+    //     glBindTexture(GL_TEXTURE_2D, obj->model->textures[i]);
+    // }
 
-    obj->shader->setInt("texture1", 0);
-    obj->shader->setInt("texture2", 1);
+    // obj->shader->setInt("texture1", 0);
+    // obj->shader->setInt("texture2", 1);
 
     obj->shader->setMat4("model", obj->transform);
     obj->shader->setMat4("view", View);
