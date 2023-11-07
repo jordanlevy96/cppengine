@@ -1,14 +1,10 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include <tiny_obj_loader.h>
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/gtx/hash.hpp"
 
-struct Indices
-{
-    std::vector<int> Vertex;
-    std::vector<int> Normal;
-    std::vector<int> Texture;
-};
+#include <tiny_obj_loader.h>
 
 class Model
 {
@@ -17,11 +13,13 @@ public:
     ~Model();
     void AddTexture(const char *textureSrc, bool alpha);
     unsigned int VAO;
-    int numVertices;
     std::vector<unsigned int> textures;
+    // std::vector<unsigned int> indices;
+    std::vector<float> vertices;
+    int numFaces = 0;
 
 private:
-    void ExtractIndices(std::vector<tinyobj::shape_t> shapes);
-    unsigned int VBO, EBO;
-    Indices extractedIndices;
+    // void ExtractIndices(std::vector<tinyobj::shape_t> shapes, tinyobj::attrib_t attrib);
+    // void InterleaveVertices(tinyobj::attrib_t attrib);
+    unsigned int VBO;
 };

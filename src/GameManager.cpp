@@ -47,15 +47,9 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
     }
 }
 
-void mouseCallback(GLFWwindow *window, int button, int action, int mods)
-{
-    // Your mouse callback implementation
-}
+void mouseCallback(GLFWwindow *window, int button, int action, int mods) {}
 
-void resizeCallback(GLFWwindow *window, int in_width, int in_height)
-{
-    // Your resize callback implementation
-}
+void resizeCallback(GLFWwindow *window, int in_width, int in_height) {}
 
 bool GameManager::Initialize()
 {
@@ -88,6 +82,9 @@ bool GameManager::Initialize()
 
     windowManager->setEventCallbacks(callbacks);
 
+    glEnable(GL_DEPTH_TEST);
+    glFrontFace(GL_CW);
+
     return true;
 }
 
@@ -102,8 +99,6 @@ void GameManager::Run()
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
-    glEnable(GL_DEPTH_TEST);
-    glFrontFace(GL_CW);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     GameObject3D *rectangle = new GameObject3D("../res/shaders/Basic.shader", "../res/models/bunny.obj");
     objects.push_back(rectangle);

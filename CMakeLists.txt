@@ -7,6 +7,7 @@ add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
 # Handle Dependencies
 
+set(OpenGL_GL_PREFERENCE "GLVND") # get latest version
 find_package(OpenGL REQUIRED)
 
 if (APPLE)

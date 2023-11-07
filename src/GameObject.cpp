@@ -15,7 +15,6 @@ GameObject::GameObject(const char *shaderSrcFile, const char *modelSrcFile)
 
 GameObject::~GameObject()
 {
-    std::cout << "destructing game object" << std::endl;
     delete shader;
     delete model;
 }
