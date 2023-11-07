@@ -27,7 +27,7 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
     }
     else if (key == GLFW_KEY_A)
     {
-        gm.cam->Translate(glm::vec3(-0.1f, 0.0f, 0.0f));
+        gm.cam->Translate(glm::vec3(0.1f, 0.0f, 0.0f));
     }
     else if (key == GLFW_KEY_S)
     {
@@ -35,15 +35,15 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
     }
     else if (key == GLFW_KEY_D)
     {
-        gm.cam->Translate(glm::vec3(0.1f, 0.0f, 0.0f));
+        gm.cam->Translate(glm::vec3(-0.1f, 0.0f, 0.0f));
     }
     else if (key == GLFW_KEY_Z)
     {
-        gm.cam->Translate(glm::vec3(0.0f, -0.1f, 0.0f));
+        gm.cam->Translate(glm::vec3(0.0f, -0.05f, 0.0f));
     }
     else if (key == GLFW_KEY_X)
     {
-        gm.cam->Translate(glm::vec3(0.0f, 0.1f, 0.0f));
+        gm.cam->Translate(glm::vec3(0.0f, 0.05f, 0.0f));
     }
 }
 
@@ -84,6 +84,7 @@ bool GameManager::Initialize()
 
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CW);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     return true;
 }
@@ -99,15 +100,27 @@ void GameManager::Run()
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    GameObject3D *rectangle = new GameObject3D("../res/shaders/Basic.shader", "../res/models/bunny.obj");
-    objects.push_back(rectangle);
-    // rectangle->Rotate(-55.0f, EulerAngles::ROLL);
-    rectangle->AddTexture("../res/textures/container.jpg", false);
-    rectangle->AddTexture("../res/textures/awesomeface.png", true);
+    /* --------- Object Declarations --------- */
+
+    // GameObject3D *bunny = new GameObject3D("../res/shaders/Basic.shader", "../res/models/xbunny.obj");
+    // objects.push_back(bunny);
+    // bunny->Scale(glm::vec3(2.0f));
+
+    GameObject3D *cube = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");
+    objects.push_back(cube);
+    cube->Scale(glm::vec3(0.2f));
+    cube->Translate(glm::vec3(-4.0f, -1.0f, 0.0f));
+    // cube->Rotate(-55.0f, EulerAngles::ROLL);
+    // cube->AddTexture("../res/textures/container.jpg", false);
+    // cube->AddTexture("../res/textures/awesomeface.png", true);
+
+    GameObject3D *light = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");
+    objects.push_back(light);
+    light->Scale(glm::vec3(0.3f));
+    light->Translate(glm::vec3(2.0f, 1.0f, 0.0f));
     while (!glfwWindowShouldClose(windowManager->window))
     {
-        // screen color
+        // background color
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

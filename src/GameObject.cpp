@@ -26,6 +26,16 @@ void GameObject::Transform(float radians, glm::vec3 scale, glm::vec3 translate)
     transform = glm::scale(transform, scale);
 }
 
+void GameObject::Translate(glm::vec3 translate)
+{
+    transform = glm::translate(transform, translate);
+}
+
+void GameObject::Scale(glm::vec3 scale)
+{
+    transform = glm::scale(transform, scale);
+}
+
 void GameObject::AddTexture(const char *textureSrcPath, bool alpha)
 {
     model->AddTexture(textureSrcPath, alpha);

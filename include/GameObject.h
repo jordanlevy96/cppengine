@@ -27,6 +27,9 @@ public:
     void AddTexture(const char *textureSrcPath, bool alpha);
     void Transform(float radians, glm::vec3 scale, glm::vec3 translate);
 
+    void Translate(glm::vec3 translate);
+    void Scale(glm::vec3 scale);
+
     Model *model;
     Shader *shader;
     std::vector<unsigned int> textures;

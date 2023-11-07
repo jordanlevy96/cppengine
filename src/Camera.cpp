@@ -40,7 +40,7 @@ void Camera::Render(GameObject *obj)
     obj->shader->setMat4("projection", Projection);
 
     glBindVertexArray(obj->model->VAO);
-    glDrawArrays(GL_TRIANGLES, 0, obj->model->numFaces * 3);
+    glDrawArrays(GL_TRIANGLES, 0, obj->model->vertices.size());
 
     glUseProgram(0);
 }
