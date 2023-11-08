@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Shader.h>
-#include <Model.h>
+#include <Mesh.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -18,7 +18,7 @@ struct Vertex
 class GameObject
 {
 public:
-    GameObject(const char *shaderSrc, const char *modelSrc);
+    GameObject(const char *shaderSrc, const char *meshSrc);
     virtual ~GameObject();
 
     virtual void Update(float deltaTime);
@@ -30,17 +30,8 @@ public:
     void Translate(glm::vec3 translate);
     void Scale(glm::vec3 scale);
 
-    Model *model;
+    Mesh *mesh;
     Shader *shader;
     std::vector<unsigned int> textures;
     glm::mat4 transform;
-
-protected:
-    float x;
-    float y;
-    float width;
-    float height;
-
-    std::vector<Vertex> vertices;
-    int numVertices;
 };

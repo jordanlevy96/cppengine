@@ -2,14 +2,14 @@
 #define TINYOBJLOADER_USE_CPP11
 #define TINYOBJLOADER_IMPLEMENTATION
 
-#include <Model.h>
+#include <Mesh.h>
 
 #include <stb_image.h>
 #include <glad/glad.h>
 
 #include <iostream>
 
-Model::Model(const char *modelSrc)
+Mesh::Mesh(const char *modelSrc)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -86,7 +86,7 @@ Model::Model(const char *modelSrc)
     glBindVertexArray(0);
 }
 
-Model::~Model()
+Mesh::~Mesh()
 {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
@@ -130,7 +130,7 @@ static GLuint loadTexture(const char *filepath, bool alpha)
     return texture;
 }
 
-void Model::AddTexture(const char *textureSrc, bool alpha)
+void Mesh::AddTexture(const char *textureSrc, bool alpha)
 {
     textures.push_back(loadTexture(textureSrc, alpha));
 }

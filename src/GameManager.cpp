@@ -102,14 +102,14 @@ void GameManager::Run()
 
     /* --------- Object Declarations --------- */
 
-    // GameObject3D *bunny = new GameObject3D("../res/shaders/Basic.shader", "../res/models/xbunny.obj");
-    // objects.push_back(bunny);
+    GameObject3D *bunny = new GameObject3D("../res/shaders/Basic.shader", "../res/models/xbunny.obj");
+    objects.push_back(bunny);
     // bunny->Scale(glm::vec3(2.0f));
 
-    GameObject3D *cube = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");
-    objects.push_back(cube);
-    cube->Scale(glm::vec3(0.2f));
-    cube->Translate(glm::vec3(-4.0f, -1.0f, 0.0f));
+    // GameObject3D *cube = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");
+    // objects.push_back(cube);
+    // cube->Scale(glm::vec3(0.2f));
+    // cube->Translate(glm::vec3(-4.0f, -1.0f, 0.0f));
     // cube->Rotate(-55.0f, EulerAngles::ROLL);
     // cube->AddTexture("../res/textures/container.jpg", false);
     // cube->AddTexture("../res/textures/awesomeface.png", true);

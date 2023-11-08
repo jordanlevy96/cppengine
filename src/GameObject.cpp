@@ -1,22 +1,22 @@
 #include <GameObject.h>
 #include <Shader.h>
-#include <Model.h>
+#include <Mesh.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
 
-GameObject::GameObject(const char *shaderSrcFile, const char *modelSrcFile)
+GameObject::GameObject(const char *shaderSrcFile, const char *meshSrcFile)
 {
     transform = glm::mat4(1.0f);
     shader = new Shader(shaderSrcFile);
-    model = new Model(modelSrcFile);
+    mesh = new Mesh(meshSrcFile);
 }
 
 GameObject::~GameObject()
 {
     delete shader;
-    delete model;
+    delete mesh;
 }
 
 void GameObject::Transform(float radians, glm::vec3 scale, glm::vec3 translate)
@@ -38,7 +38,7 @@ void GameObject::Scale(glm::vec3 scale)
 
 void GameObject::AddTexture(const char *textureSrcPath, bool alpha)
 {
-    model->AddTexture(textureSrcPath, alpha);
+    mesh->AddTexture(textureSrcPath, alpha);
 }
 
 void GameObject::Update(float deltaTime)

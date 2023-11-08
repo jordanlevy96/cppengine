@@ -6,11 +6,11 @@
 
 #include <tiny_obj_loader.h>
 
-class Model
+class Mesh
 {
 public:
-    Model(const char *modelSrc);
-    ~Model();
+    Mesh(const char *modelSrc);
+    ~Mesh();
     void AddTexture(const char *textureSrc, bool alpha);
     unsigned int VAO;
     std::vector<unsigned int> textures;
