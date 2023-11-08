@@ -27,6 +27,7 @@ public:
     WindowManager *windowManager;
     Camera *cam;
     std::vector<GameObject *> objects;
+    double delta = 0;
 
 private:
     GameManager(){};

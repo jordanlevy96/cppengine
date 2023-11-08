@@ -52,9 +52,11 @@ bool WindowManager::Initialize(int const width, int const height)
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
     glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwSetKeyCallback(window, key_callback);
-    glfwSetMouseButtonCallback(window, mouse_callback);
+    glfwSetMouseButtonCallback(window, click_callback);
+    glfwSetCursorPosCallback(window, cursorPos_callback);
     glfwSetFramebufferSizeCallback(window, resize_callback);
 
     return true;
@@ -66,6 +68,8 @@ void WindowManager::shutdown()
     glfwDestroyWindow(window);
     glfwTerminate();
 }
+
+// This weird callback setup allows me to use lambdas, i.e. define the callbacks at runtime
 
 void WindowManager::setEventCallbacks(EventCallbacks *callbacks_in)
 {
@@ -82,12 +86,21 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
     }
 }
 
-void WindowManager::mouse_callback(GLFWwindow *window, int button, int action, int mods)
+void WindowManager::click_callback(GLFWwindow *window, int button, int action, int mods)
 {
     WindowManager *instance = &WindowManager::GetInstance();
     if (instance && instance->callbacks)
     {
-        instance->callbacks->mouseCallback(window, button, action, mods);
+        instance->callbacks->clickCallback(window, button, action, mods);
+    }
+}
+
+void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double ypos)
+{
+    WindowManager *instance = &WindowManager::GetInstance();
+    if (instance && instance->callbacks)
+    {
+        instance->callbacks->cursorPosCallback(window, xpos, ypos);
     }
 }
 
