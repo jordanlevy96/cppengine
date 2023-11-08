@@ -4,14 +4,14 @@ This is an experimental project to explore C++ and OpenGL.
 
 ## Development Setup
 
-TODO: figure out Windows native build
-
-### Dependencies
+### External Dependencies
 
 - C++ Compiler (G++)
 - CMake
 - GLFW
 - GLAD
+- stb_image
+- tiny_obj_loader
 - GLM\*
 
 \*Set up with a git submodule; run `git submodule update --init --recursive` to initialize.

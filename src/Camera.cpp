@@ -1,15 +1,11 @@
 #include <Camera.h>
+#include <globals.h>
 
 #include <iostream>
 
-glm::mat4 Camera::process(double frametime)
+void Camera::SetPerspective(float fov, float width, float height)
 {
-    return glm::mat4(0.0f);
-}
-
-void Camera::SetPerspective(float degrees, float width, float height)
-{
-    Projection = glm::perspective(glm::radians(degrees), width / height, 0.1f, 100.0f); // TODO: settings for near and far
+    Projection = glm::perspective(glm::radians(fov), width / height, 0.1f, 100.0f); // TODO: settings for near and far
 }
 
 void Camera::RenderAll(std::vector<GameObject *> objects)
@@ -44,6 +40,7 @@ void Camera::Render(GameObject *obj)
     // Camera Handling
     View = glm::lookAt(pos, pos + front, up);
     obj->shader->setMat4("view", View);
+    SetPerspective(fov, WINDOW_WIDTH, WINDOW_HEIGHT);
     obj->shader->setMat4("projection", Projection);
 
     // Render!
@@ -81,12 +78,12 @@ static glm::vec3 rotationAngle(EulerAngles dir)
 
 void Camera::RotateByMouse(double xpos, double ypos)
 {
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
+    // if (firstMouse)
+    // {
+    //     lastX = xpos;
+    //     lastY = ypos;
+    //     firstMouse = false;
+    // }
 
     float xoffset = xpos - lastX;
     float yoffset = lastY - ypos;

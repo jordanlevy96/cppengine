@@ -11,7 +11,7 @@ void process()
     // do game logic
 }
 
-void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
@@ -43,15 +43,25 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
     }
 }
 
-void clickCallback(GLFWwindow *window, int button, int action, int mods) {}
+static void clickCallback(GLFWwindow *window, int button, int action, int mods) {}
 
-void cursorPosCallback(GLFWwindow *window, double xpos, double ypos)
+static void cursorPosCallback(GLFWwindow *window, double xpos, double ypos)
 {
     GameManager &gm = GameManager::GetInstance();
     gm.cam->RotateByMouse(xpos, ypos);
 }
 
-void resizeCallback(GLFWwindow *window, int in_width, int in_height) {}
+static void resizeCallback(GLFWwindow *window, int in_width, int in_height) {}
+
+static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
+{
+    Camera *cam = GameManager::GetInstance().cam;
+    cam->fov -= (float)yoffset;
+    if (cam->fov < 1.0f)
+        cam->fov = 1.0f;
+    if (cam->fov > 45.0f)
+        cam->fov = 45.0f;
+}
 
 bool GameManager::Initialize()
 {
@@ -67,8 +77,7 @@ bool GameManager::Initialize()
 
     glm::vec3 camStart = glm::vec3(0.0f, 0.0f, -5.0f);
 
-    cam = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, camStart);
-    cam->SetPerspective(45.0f, WINDOW_WIDTH, WINDOW_HEIGHT);
+    cam = new Camera(camStart, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     EventCallbacks *callbacks = new EventCallbacks(
         [](GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -86,13 +95,17 @@ bool GameManager::Initialize()
         [](GLFWwindow *window, int in_width, int in_height)
         {
             resizeCallback(window, in_width, in_height);
+        },
+        [](GLFWwindow *window, double xoffset, double yoffset)
+        {
+            scrollCallback(window, xoffset, yoffset);
         });
 
     windowManager->setEventCallbacks(callbacks);
 
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CW);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     return true;
 }
@@ -108,15 +121,6 @@ void GameManager::Run()
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
-    /* --------- Object Declarations --------- */
-    GameObject3D *bunny = new GameObject3D("../res/shaders/Basic.shader", "../res/models/xbunny.obj");
-    objects.push_back(bunny);
-
-    GameObject3D *cube = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");
-    objects.push_back(cube);
-    cube->Scale(glm::vec3(0.2f));
-    cube->Translate(glm::vec3(-4.0f, -1.0f, 0.0f));
-    cube->Rotate(-55.0f, EulerAngles::ROLL);
     // cube->AddTexture("../res/textures/container.jpg", false);
     // cube->AddTexture("../res/textures/awesomeface.png", true);
 
@@ -127,6 +131,17 @@ void GameManager::Run()
     // objects.push_back(light);
     // light->Scale(glm::vec3(0.3f));
     // light->Translate(glm::vec3(2.0f, 1.0f, 0.0f));
+
+    /* --------- Object Declarations --------- */
+    GameObject3D *bunny = new GameObject3D("../res/shaders/Basic.shader", "../res/models/xbunny.obj");
+    objects.push_back(bunny);
+
+    GameObject3D *cube = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");
+    cube->Scale(glm::vec3(0.2f));
+    cube->Translate(glm::vec3(-4.0f, -1.0f, 0.0f));
+    cube->Rotate(-55.0f, EulerAngles::ROLL);
+    objects.push_back(cube);
+
     while (!glfwWindowShouldClose(windowManager->window))
     {
         // background color

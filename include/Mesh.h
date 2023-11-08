@@ -1,7 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
+#define GLM_ENABLE_EXPERIMENTAL // allows vec3 in unordered_map
 #include "glm/gtx/hash.hpp"
 
 #include <tiny_obj_loader.h>

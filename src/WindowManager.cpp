@@ -58,6 +58,7 @@ bool WindowManager::Initialize(int const width, int const height)
     glfwSetMouseButtonCallback(window, click_callback);
     glfwSetCursorPosCallback(window, cursorPos_callback);
     glfwSetFramebufferSizeCallback(window, resize_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     return true;
 }
@@ -110,5 +111,14 @@ void WindowManager::resize_callback(GLFWwindow *window, int in_width, int in_hei
     if (instance && instance->callbacks)
     {
         instance->callbacks->resizeCallback(window, in_width, in_height);
+    }
+}
+
+void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+    WindowManager *instance = &WindowManager::GetInstance();
+    if (instance && instance->callbacks)
+    {
+        instance->callbacks->scrollCallback(window, xoffset, yoffset);
     }
 }

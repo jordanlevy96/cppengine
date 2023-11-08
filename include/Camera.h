@@ -18,23 +18,17 @@ enum CameraDirections
 class Camera
 {
 public:
-    glm::mat4 process(double frametime);
+    Camera(glm::vec3 start, float width, float height) : pos(start), lastX(width), lastY(height / 2){};
+    ~Camera(){};
     glm::mat4 View = glm::mat4(1.0f);
     glm::mat4 Projection = glm::mat4(1.0f);
-    Camera(float width, float height, glm::vec3 start)
-    {
-        lastX = width / 2;
-        lastY = height / 2;
-        pos = start;
-        // View = glm::translate(View, pos);
-    };
-    ~Camera(){};
-    void SetPerspective(float degrees, float width, float height);
+    void SetPerspective(float fov, float width, float height);
     void Render(GameObject *obj);
     void RenderAll(std::vector<GameObject *> objects);
     void Translate(glm::vec3 translate);
     void Move(CameraDirections dir, float deltaTime);
     void RotateByMouse(double xpos, double ypos);
+    float fov = 45.0f;
 
 private:
     glm::vec3 pos;
@@ -44,6 +38,5 @@ private:
 
     float yaw = 90.0f;
     float pitch = 0.0f;
-    float lastX, lastY;
-    float fov = 45.0f;
+    float lastX, lastY = 0.0f;
 };
