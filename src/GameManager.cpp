@@ -55,12 +55,19 @@ static void resizeCallback(GLFWwindow *window, int in_width, int in_height) {}
 
 static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
-    Camera *cam = GameManager::GetInstance().cam;
-    cam->fov -= (float)yoffset;
-    if (cam->fov < 1.0f)
-        cam->fov = 1.0f;
-    if (cam->fov > 45.0f)
-        cam->fov = 45.0f;
+    GameManager &gm = GameManager::GetInstance();
+
+    int width, height;
+    glfwGetWindowSize(gm.windowManager->window, &width, &height);
+
+    Camera *cam = gm.cam;
+    float fov = cam->fov - (float)yoffset;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 45.0f)
+        fov = 45.0f;
+
+    cam->SetPerspective(fov, width, height);
 }
 
 bool GameManager::Initialize()
@@ -72,12 +79,10 @@ bool GameManager::Initialize()
         return false;
     }
 
-    // other init goes here
     stbi_set_flip_vertically_on_load(true);
 
-    glm::vec3 camStart = glm::vec3(0.0f, 0.0f, -5.0f);
-
-    cam = new Camera(camStart, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glm::vec3 camStart = glm::vec3(0.0f, 0.0f, -10.0f);
+    cam = new Camera(camStart);
 
     EventCallbacks *callbacks = new EventCallbacks(
         [](GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -131,6 +136,8 @@ void GameManager::Run()
     // objects.push_back(light);
     // light->Scale(glm::vec3(0.3f));
     // light->Translate(glm::vec3(2.0f, 1.0f, 0.0f));
+
+    // cam->RotateByMouse(0, 0);
 
     /* --------- Object Declarations --------- */
     GameObject3D *bunny = new GameObject3D("../res/shaders/Basic.shader", "../res/models/xbunny.obj");

@@ -2,6 +2,8 @@
 
 #include <GameObject3D.h>
 
+#include <globals.h>
+
 #include <glm/glm.hpp>
 #include <glad/glad.h>
 
@@ -18,7 +20,7 @@ enum CameraDirections
 class Camera
 {
 public:
-    Camera(glm::vec3 start, float width, float height) : pos(start), lastX(width), lastY(height / 2){};
+    Camera(glm::vec3 start) : pos(start) { SetPerspective(fov, WINDOW_WIDTH, WINDOW_HEIGHT); };
     ~Camera(){};
     glm::mat4 View = glm::mat4(1.0f);
     glm::mat4 Projection = glm::mat4(1.0f);
@@ -36,7 +38,7 @@ private:
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     bool firstMouse = true;
 
-    float yaw = 90.0f;
+    float yaw = -90.0f;
     float pitch = 0.0f;
     float lastX, lastY = 0.0f;
 };

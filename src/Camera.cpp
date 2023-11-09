@@ -1,10 +1,10 @@
 #include <Camera.h>
-#include <globals.h>
 
 #include <iostream>
 
-void Camera::SetPerspective(float fov, float width, float height)
+void Camera::SetPerspective(float fovInDegrees, float width, float height)
 {
+    fov = fovInDegrees;
     Projection = glm::perspective(glm::radians(fov), width / height, 0.1f, 100.0f); // TODO: settings for near and far
 }
 
@@ -40,7 +40,6 @@ void Camera::Render(GameObject *obj)
     // Camera Handling
     View = glm::lookAt(pos, pos + front, up);
     obj->shader->setMat4("view", View);
-    SetPerspective(fov, WINDOW_WIDTH, WINDOW_HEIGHT);
     obj->shader->setMat4("projection", Projection);
 
     // Render!
