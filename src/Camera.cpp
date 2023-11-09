@@ -46,7 +46,9 @@ void Camera::Render(GameObject *obj)
     // Render!
 
     glBindVertexArray(obj->mesh->VAO);
-    glDrawArrays(GL_TRIANGLES, 0, obj->mesh->vertices.size());
+    // glDrawArrays(GL_TRIANGLES, 0, obj->mesh->vertices.size());
+
+    glDrawElements(GL_TRIANGLES, obj->mesh->indices.size(), GL_UNSIGNED_INT, 0);
 
     glBindVertexArray(0); // unbind VAO
     glUseProgram(0);      // unbind shader

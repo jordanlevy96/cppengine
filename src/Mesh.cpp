@@ -29,6 +29,8 @@ Mesh::Mesh(const char *modelSrc)
         }
     }
 
+    unsigned int i = 0;
+
     for (const auto &shape : shapes)
     {
         for (const auto &index : shape.mesh.indices)
@@ -58,16 +60,22 @@ Mesh::Mesh(const char *modelSrc)
             vertices.push_back(normal.z);
             // vertices.push_back(texCoord.x);
             // vertices.push_back(texCoord.y);
+
+            indices.push_back(i++);
         }
     }
 
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
 
     // position attribute (3 floats)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void *)0);

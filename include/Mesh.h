@@ -12,9 +12,10 @@ public:
     Mesh(const char *modelSrc);
     ~Mesh();
     void AddTexture(const char *textureSrc, bool alpha);
-    unsigned int VAO;
+    unsigned int VAO, EBO;
     std::vector<unsigned int> textures;
     std::vector<float> vertices;
+    std::vector<unsigned int> indices;
 
 private:
     unsigned int VBO;
