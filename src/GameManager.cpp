@@ -110,7 +110,7 @@ bool GameManager::Initialize()
 
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CW);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     return true;
 }
@@ -141,6 +141,7 @@ void GameManager::Run()
 
     /* --------- Object Declarations --------- */
     GameObject3D *bunny = new GameObject3D("../res/shaders/Basic.shader", "../res/models/xbunny.obj");
+    bunny->Scale(glm::vec3(3.0f));
     objects.push_back(bunny);
 
     GameObject3D *cube = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");

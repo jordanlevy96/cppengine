@@ -45,8 +45,6 @@ void Camera::Render(GameObject *obj)
     // Render!
 
     glBindVertexArray(obj->mesh->VAO);
-    // glDrawArrays(GL_TRIANGLES, 0, obj->mesh->vertices.size());
-
     glDrawElements(GL_TRIANGLES, obj->mesh->indices.size(), GL_UNSIGNED_INT, 0);
 
     glBindVertexArray(0); // unbind VAO
@@ -79,12 +77,14 @@ static glm::vec3 rotationAngle(EulerAngles dir)
 
 void Camera::RotateByMouse(double xpos, double ypos)
 {
-    // if (firstMouse)
-    // {
-    //     lastX = xpos;
-    //     lastY = ypos;
-    //     firstMouse = false;
-    // }
+    if (firstMouse)
+    {
+        std::cout << lastX << " " << xpos << std::endl;
+        std::cout << lastY << " " << ypos << std::endl;
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
 
     float xoffset = xpos - lastX;
     float yoffset = lastY - ypos;

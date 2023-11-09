@@ -34,11 +34,11 @@ public:
 
 private:
     glm::vec3 pos;
-    glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 front = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     bool firstMouse = true;
 
-    float yaw = -90.0f;
+    float yaw = 90.0f;
     float pitch = 0.0f;
     float lastX, lastY = 0.0f;
 };
