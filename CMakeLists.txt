@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 project(cppengine)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp" "external/glad/src/*.c" "include/*.h" "include/*.hpp")
@@ -9,6 +9,9 @@ add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
 set(OpenGL_GL_PREFERENCE "GLVND") # get latest version
 find_package(OpenGL REQUIRED)
+
+add_subdirectory(external/lua-cmake)
+add_subdirectory(external/sol2)
 
 if (APPLE)
     include(FetchContent)
@@ -46,7 +49,7 @@ else() # Linux
 endif()
 
 
-include_directories(include external/headers external/glad/include)
+include_directories(include external/headers external/glad/include external/sol2/include external/lua-cmake/upstream)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE external/glm)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad glfw)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad glfw lua sol2)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})

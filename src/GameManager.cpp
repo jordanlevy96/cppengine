@@ -1,6 +1,7 @@
 #include <GameManager.h>
 #include <GameObject3D.h>
 #include <Shader.h>
+#include <Script.h>
 #include <globals.h>
 
 #include <iostream>
@@ -111,6 +112,8 @@ bool GameManager::Initialize()
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CW);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    Script().Run((char *)"../res/scripts/hello.lua");
 
     return true;
 }

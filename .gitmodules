@@ -1,3 +1,9 @@
 [submodule "external/glm"]
 	path = external/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "external/lua-cmake"]
+	path = external/lua-cmake
+	url = https://github.com/lubgr/lua-cmake.git
+[submodule "external/sol2"]
+	path = external/sol2
+	url = https://github.com/ThePhD/sol2.git
