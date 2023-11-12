@@ -1,7 +1,7 @@
 #include <GameManager.h>
 #include <GameObject3D.h>
 #include <Shader.h>
-#include <Script.h>
+#include <UI.h>
 #include <globals.h>
 
 #include <iostream>
@@ -48,8 +48,13 @@ static void clickCallback(GLFWwindow *window, int button, int action, int mods) 
 
 static void cursorPosCallback(GLFWwindow *window, double xpos, double ypos)
 {
-    GameManager &gm = GameManager::GetInstance();
-    gm.cam->RotateByMouse(xpos, ypos);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS)
+    {
+        // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        GameManager &gm = GameManager::GetInstance();
+        gm.cam->RotateByMouse(xpos, ypos);
+        // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
 }
 
 static void resizeCallback(GLFWwindow *window, int in_width, int in_height) {}
@@ -113,8 +118,6 @@ bool GameManager::Initialize()
     glFrontFace(GL_CW);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    Script().Run((char *)"../res/scripts/hello.lua");
-
     return true;
 }
 
@@ -153,6 +156,8 @@ void GameManager::Run()
     cube->Rotate(-55.0f, EulerAngles::ROLL);
     objects.push_back(cube);
 
+    UI *ui = new UI(windowManager->window);
+
     while (!glfwWindowShouldClose(windowManager->window))
     {
         // background color
@@ -177,6 +182,7 @@ void GameManager::Run()
         }
 
         cam->RenderAll(objects);
+        ui->RenderWindow();
 
         glfwSwapBuffers(windowManager->window);
         glfwPollEvents();

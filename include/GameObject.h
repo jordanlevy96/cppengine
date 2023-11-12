@@ -21,9 +21,6 @@ public:
     GameObject(const char *shaderSrc, const char *meshSrc);
     virtual ~GameObject();
 
-    virtual void Update(float deltaTime);
-
-    void Render();
     void AddTexture(const char *textureSrcPath, bool alpha);
     void Transform(float radians, glm::vec3 scale, glm::vec3 translate);
 

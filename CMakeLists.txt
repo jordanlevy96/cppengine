@@ -2,9 +2,6 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
 project(cppengine)
 
-file(GLOB_RECURSE SOURCES "src/*.cpp" "external/glad/src/*.c" "include/*.h" "include/*.hpp")
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
-
 # Handle Dependencies
 
 set(OpenGL_GL_PREFERENCE "GLVND") # get latest version
@@ -48,8 +45,25 @@ else() # Linux
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dl -ldl)
 endif()
 
+file(GLOB_RECURSE SOURCES
+"src/*.cpp"
+"external/glad/src/*.c"
+# "external/Nuklear/src/*.c"
+"include/*.h"
+"include/*.hpp"
+)
+add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
-include_directories(include external/headers external/glad/include external/sol2/include external/lua-cmake/upstream)
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE external/glm)
+include_directories(
+    include
+    external/headers
+    external/glad/include
+    external/sol2/include
+    external/lua-cmake/upstream
+    external/Nuklear
+    external/Nuklear/src
+    external/Nuklear/demo/glfw_opengl3
+)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE external/glm external/Nuklear)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad glfw lua sol2)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})

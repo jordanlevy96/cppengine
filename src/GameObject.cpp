@@ -40,7 +40,3 @@ void GameObject::AddTexture(const char *textureSrcPath, bool alpha)
 {
     mesh->AddTexture(textureSrcPath, alpha);
 }
-
-void GameObject::Update(float deltaTime)
-{
-}
