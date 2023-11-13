@@ -29,6 +29,7 @@ make
 - stb_image†
 - tiny_obj_loader†
 - GLM‡
+- Dear ImGUI‡
 - Lua‡
   - lua-cmake‡
   - sol2‡
