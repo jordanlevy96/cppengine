@@ -27,7 +27,7 @@ public:
     void Run();
     WindowManager *windowManager;
     Camera *cam;
-    // UI *ui;
+    UI *ui;
     std::vector<GameObject *> objects;
     double delta = 0;
 
