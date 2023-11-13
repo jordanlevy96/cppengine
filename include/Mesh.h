@@ -4,6 +4,7 @@
 #define GLM_ENABLE_EXPERIMENTAL // allows vec3 in unordered_map
 #include "glm/gtx/hash.hpp"
 
+#include <stb_image.h>
 #include <tiny_obj_loader.h>
 
 class Mesh

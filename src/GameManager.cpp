@@ -151,16 +151,14 @@ void GameManager::Run()
     // light->Scale(glm::vec3(0.3f));
     // light->Translate(glm::vec3(2.0f, 1.0f, 0.0f));
 
-    // cam->RotateByMouse(0, 0);
-
     /* --------- Initial State --------- */
-    GameObject3D *bunny = new GameObject3D("../res/shaders/Basic.shader", "../res/models/xbunny.obj");
+    GameObject3D *bunny = new GameObject3D("../res/shaders/Lighting.shader", "../res/models/xbunny.obj");
     bunny->Scale(glm::vec3(3.0f));
     objects.push_back(bunny);
 
     GameObject3D *cube = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");
     cube->Scale(glm::vec3(0.2f));
-    cube->Translate(glm::vec3(-4.0f, -1.0f, 0.0f));
+    cube->Translate(glm::vec3(-4.0f, 6.0f, 10.0f));
     cube->Rotate(-55.0f, EulerAngles::ROLL);
     objects.push_back(cube);
 

@@ -7,7 +7,7 @@
 
 #include <vector>
 
-extern "C" void stbi_set_flip_vertically_on_load(bool flag);
+extern "C" void stbi_set_flip_vertically_on_load(int flag);
 
 class GameManager
 {
