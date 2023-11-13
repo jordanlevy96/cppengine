@@ -1,6 +1,7 @@
 #include <GameManager.h>
 #include <GameObject3D.h>
 #include <Shader.h>
+#include <Script.h>
 #include <globals.h>
 
 #include <iostream>
@@ -47,8 +48,16 @@ static void clickCallback(GLFWwindow *window, int button, int action, int mods) 
 
 static void cursorPosCallback(GLFWwindow *window, double xpos, double ypos)
 {
-    GameManager &gm = GameManager::GetInstance();
-    gm.cam->RotateByMouse(xpos, ypos);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        GameManager &gm = GameManager::GetInstance();
+        gm.cam->RotateByMouse(xpos, ypos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_RELEASE)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
 }
 
 static void resizeCallback(GLFWwindow *window, int in_width, int in_height) {}
@@ -78,6 +87,9 @@ bool GameManager::Initialize()
         std::cerr << "Failed to Initialize Window Manager" << std::endl;
         return false;
     }
+
+    ui = &UI::GetInstance();
+    ui->Initialize(windowManager->window);
 
     stbi_set_flip_vertically_on_load(true);
 
@@ -112,6 +124,8 @@ bool GameManager::Initialize()
     glFrontFace(GL_CW);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    Script().Run((char *)"../res/scripts/hello.lua");
+
     return true;
 }
 
@@ -139,7 +153,7 @@ void GameManager::Run()
 
     // cam->RotateByMouse(0, 0);
 
-    /* --------- Object Declarations --------- */
+    /* --------- Initial State --------- */
     GameObject3D *bunny = new GameObject3D("../res/shaders/Basic.shader", "../res/models/xbunny.obj");
     bunny->Scale(glm::vec3(3.0f));
     objects.push_back(bunny);
@@ -152,15 +166,16 @@ void GameManager::Run()
 
     while (!glfwWindowShouldClose(windowManager->window))
     {
-        // background color
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        /* ------------- Main Loop -------------
+            1. Process Game Logic
+            2. Render Pipeline
+            Render order:
+                1. Background
+                2. GameObjects
+                3. UI
+        */
 
-        // ensure window scaling is up to date
-        int width, height;
-        glfwGetFramebufferSize(windowManager->window, &width, &height);
-        glViewport(0, 0, width, height);
-
+        // Process
         currentTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - previousTime).count();
         previousTime = currentTime;
@@ -173,10 +188,25 @@ void GameManager::Run()
             loopTime -= frameTime;
         }
 
+        // ensure window scaling is up to date before running render pipeline
+        int width, height;
+        glfwGetFramebufferSize(windowManager->window, &width, &height);
+        glViewport(0, 0, width, height);
+
+        // 1. Background
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // 2. Game Objects
         cam->RenderAll(objects);
 
-        glfwSwapBuffers(windowManager->window);
+        // 3. UI
+        ui->RenderWindow();
+
         glfwPollEvents();
+        glfwSwapBuffers(windowManager->window);
+
+        // ui->RenderWindow();
     }
 
     std::cout << "Exited main loop" << std::endl;
@@ -185,6 +215,11 @@ void GameManager::Run()
 void GameManager::Shutdown()
 {
     delete cam;
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     for (GameObject *obj : objects)
     {
         delete obj;
