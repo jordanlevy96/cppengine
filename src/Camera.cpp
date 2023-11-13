@@ -79,8 +79,6 @@ void Camera::RotateByMouse(double xpos, double ypos)
 {
     if (firstMouse)
     {
-        std::cout << lastX << " " << xpos << std::endl;
-        std::cout << lastY << " " << ypos << std::endl;
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;

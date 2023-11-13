@@ -3,6 +3,7 @@
 #include <WindowManager.h>
 #include <Camera.h>
 #include <GameObject.h>
+#include <UI.h>
 
 #include <vector>
 
@@ -26,6 +27,7 @@ public:
     void Run();
     WindowManager *windowManager;
     Camera *cam;
+    // UI *ui;
     std::vector<GameObject *> objects;
     double delta = 0;
 

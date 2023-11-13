@@ -48,8 +48,16 @@ static void clickCallback(GLFWwindow *window, int button, int action, int mods) 
 
 static void cursorPosCallback(GLFWwindow *window, double xpos, double ypos)
 {
-    GameManager &gm = GameManager::GetInstance();
-    gm.cam->RotateByMouse(xpos, ypos);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        GameManager &gm = GameManager::GetInstance();
+        gm.cam->RotateByMouse(xpos, ypos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_RELEASE)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
 }
 
 static void resizeCallback(GLFWwindow *window, int in_width, int in_height) {}
@@ -79,6 +87,18 @@ bool GameManager::Initialize()
         std::cerr << "Failed to Initialize Window Manager" << std::endl;
         return false;
     }
+
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    if (!ImGui_ImplGlfw_InitForOpenGL(windowManager->window, true) ||
+        !ImGui_ImplOpenGL3_Init("#version 150"))
+    {
+        std::cerr << "ImGui initialization failed!" << std::endl;
+        return -1;
+    }
+
+    ImGui::StyleColorsDark();
 
     stbi_set_flip_vertically_on_load(true);
 
@@ -142,7 +162,7 @@ void GameManager::Run()
 
     // cam->RotateByMouse(0, 0);
 
-    /* --------- Object Declarations --------- */
+    /* --------- Initial State --------- */
     GameObject3D *bunny = new GameObject3D("../res/shaders/Basic.shader", "../res/models/xbunny.obj");
     bunny->Scale(glm::vec3(3.0f));
     objects.push_back(bunny);
@@ -153,17 +173,23 @@ void GameManager::Run()
     cube->Rotate(-55.0f, EulerAngles::ROLL);
     objects.push_back(cube);
 
+    ImGuiIO &io = ImGui::GetIO();
+    bool show_demo_window = true;
+    bool show_another_window = false;
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
     while (!glfwWindowShouldClose(windowManager->window))
     {
-        // background color
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        /* ------------- Main Loop -------------
+            1. Process Game Logic
+            2. Render Pipeline
+            Render order:
+                1. Background
+                2. GameObjects
+                3. UI
+        */
 
-        // ensure window scaling is up to date
-        int width, height;
-        glfwGetFramebufferSize(windowManager->window, &width, &height);
-        glViewport(0, 0, width, height);
-
+        // Process
         currentTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - previousTime).count();
         previousTime = currentTime;
@@ -176,10 +202,67 @@ void GameManager::Run()
             loopTime -= frameTime;
         }
 
+        // ensure window scaling is up to date before running render pipeline
+        int width, height;
+        glfwGetFramebufferSize(windowManager->window, &width, &height);
+        glViewport(0, 0, width, height);
+
+        // 1. Background
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // 2. Game Objects
         cam->RenderAll(objects);
 
-        glfwSwapBuffers(windowManager->window);
+        // 3. UI
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
+
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+        {
+            static float f = 0.0f;
+            static int counter = 0;
+
+            ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
+
+            ImGui::Text("This is some useful text.");          // Display some text (you can use a format strings too)
+            ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
+            ImGui::Checkbox("Another Window", &show_another_window);
+
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);             // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::ColorEdit3("clear color", (float *)&clear_color); // Edit 3 floats representing a color
+
+            if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
+
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            ImGui::End();
+        }
+
+        // 3. Show another simple window.
+        if (show_another_window)
+        {
+            ImGui::Begin("Another Window", &show_another_window); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Text("Hello from another window!");
+            if (ImGui::Button("Close Me"))
+                show_another_window = false;
+            ImGui::End();
+        }
+
+        ImGui::Render();
+
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         glfwPollEvents();
+        glfwSwapBuffers(windowManager->window);
+
+        // ui->RenderWindow();
     }
 
     std::cout << "Exited main loop" << std::endl;
@@ -188,6 +271,11 @@ void GameManager::Run()
 void GameManager::Shutdown()
 {
     delete cam;
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     for (GameObject *obj : objects)
     {
         delete obj;

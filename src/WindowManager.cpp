@@ -52,7 +52,6 @@ bool WindowManager::Initialize(int const width, int const height)
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
     glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwSetKeyCallback(window, key_callback);
     glfwSetMouseButtonCallback(window, click_callback);
