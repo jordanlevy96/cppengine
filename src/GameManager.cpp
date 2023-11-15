@@ -140,17 +140,6 @@ void GameManager::Run()
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
-    // cube->AddTexture("../res/textures/container.jpg", false);
-    // cube->AddTexture("../res/textures/awesomeface.png", true);
-
-    // bunny->Scale(glm::vec3(3.0f));
-    // bunny->Translate(glm::vec3(0.0f, -0.25f, 0.0f));
-
-    // GameObject3D *light = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");
-    // objects.push_back(light);
-    // light->Scale(glm::vec3(0.3f));
-    // light->Translate(glm::vec3(2.0f, 1.0f, 0.0f));
-
     /* --------- Initial State --------- */
     GameObject3D *bunny = new GameObject3D("../res/shaders/Lighting.shader", "../res/models/xbunny.obj");
     bunny->Scale(glm::vec3(3.0f));
@@ -160,6 +149,8 @@ void GameManager::Run()
     cube->Scale(glm::vec3(0.2f));
     cube->Translate(glm::vec3(-4.0f, 6.0f, 10.0f));
     cube->Rotate(-55.0f, EulerAngles::ROLL);
+    // cube->AddTexture("../res/textures/container.jpg", false);
+    // cube->AddTexture("../res/textures/awesomeface.png", true);
     objects.push_back(cube);
 
     while (!glfwWindowShouldClose(windowManager->window))
@@ -203,8 +194,6 @@ void GameManager::Run()
 
         glfwPollEvents();
         glfwSwapBuffers(windowManager->window);
-
-        // ui->RenderWindow();
     }
 
     std::cout << "Exited main loop" << std::endl;

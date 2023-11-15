@@ -1,4 +1,3 @@
-
 #define TINYOBJLOADER_USE_CPP11
 #define TINYOBJLOADER_IMPLEMENTATION
 
@@ -109,6 +108,57 @@ Mesh::~Mesh()
     textures.clear();
 }
 
+void Mesh::AddUniform(std::string name, Uniform u, UniformTypeMap type)
+{
+    UniformWrapper uw = {name, u};
+    uniforms[uw] = type;
+}
+
+void Mesh::SetUniforms(glm::mat4 transform, Shader *shader)
+{
+    shader->setMat4("model", transform);
+    for (std::pair<UniformWrapper, UniformTypeMap> pair : uniforms)
+    {
+        std::string name = pair.first.name;
+        Uniform u = pair.first.uniform;
+        UniformTypeMap type = pair.second;
+
+        switch (type)
+        {
+        case UniformTypeMap::b:
+            shader->setBool(name, std::get<bool>(u));
+            break;
+        case UniformTypeMap::i:
+            shader->setInt(name, std::get<int>(u));
+            break;
+        case UniformTypeMap::f:
+            shader->setFloat(name, std::get<float>(u));
+            break;
+        case UniformTypeMap::vec2:
+            shader->setVec2(name, std::get<glm::vec2>(u));
+            break;
+        case UniformTypeMap::vec3:
+            shader->setVec3(name, std::get<glm::vec3>(u));
+            break;
+        case UniformTypeMap::vec4:
+            shader->setVec4(name, std::get<glm::vec4>(u));
+            break;
+        case UniformTypeMap::mat2:
+            shader->setMat2(name, std::get<glm::mat2>(u));
+            break;
+        case UniformTypeMap::mat3:
+            shader->setMat3(name, std::get<glm::mat3>(u));
+            break;
+        case UniformTypeMap::mat4:
+            shader->setMat4(name, std::get<glm::mat4>(u));
+            break;
+        default:
+            std::cerr << "Invalid Uniform Type!" << std::endl;
+            break;
+        }
+    }
+}
+
 static GLuint loadTexture(const char *filepath, bool alpha)
 {
     GLuint texture;
@@ -131,7 +181,7 @@ static GLuint loadTexture(const char *filepath, bool alpha)
     }
     else
     {
-        std::cout << "Failed to load texture" << std::endl;
+        std::cerr << "Failed to load texture" << std::endl;
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);

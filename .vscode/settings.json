@@ -70,7 +70,8 @@
     "locale": "cpp",
     "mutex": "cpp",
     "stack": "cpp",
-    "strstream": "cpp"
+    "strstream": "cpp",
+    "variant": "cpp"
   },
   "nuxt.isNuxtApp": false
 }
