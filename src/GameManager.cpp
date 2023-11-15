@@ -12,6 +12,17 @@ void process()
     // do game logic
 }
 
+glm::vec3 GetPositionFromTransform(const glm::mat4 &modelMatrix)
+{
+    // Extract translation components from the model matrix
+    glm::vec3 position;
+    position.x = modelMatrix[3][0];
+    position.y = modelMatrix[3][1];
+    position.z = modelMatrix[3][2];
+
+    return position;
+}
+
 static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -143,6 +154,8 @@ void GameManager::Run()
     /* --------- Initial State --------- */
     GameObject3D *bunny = new GameObject3D("../res/shaders/Lighting.shader", "../res/models/xbunny.obj");
     bunny->Scale(glm::vec3(3.0f));
+    bunny->AddUniform("objectColor", glm::vec3(1.0f, 0.5f, 0.31f), UniformTypeMap::vec3);
+    bunny->AddUniform("lightColor", glm::vec3(1.0f), UniformTypeMap::vec3);
     objects.push_back(bunny);
 
     GameObject3D *cube = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");
@@ -152,6 +165,8 @@ void GameManager::Run()
     // cube->AddTexture("../res/textures/container.jpg", false);
     // cube->AddTexture("../res/textures/awesomeface.png", true);
     objects.push_back(cube);
+
+    bunny->AddUniform("lightPos", GetPositionFromTransform(cube->transform), UniformTypeMap::vec3);
 
     while (!glfwWindowShouldClose(windowManager->window))
     {
@@ -176,6 +191,8 @@ void GameManager::Run()
             process();
             loopTime -= frameTime;
         }
+
+        bunny->AddUniform("viewPos", cam->pos, UniformTypeMap::vec3);
 
         // ensure window scaling is up to date before running render pipeline
         int width, height;

@@ -31,9 +31,9 @@ public:
     void Move(CameraDirections dir, float deltaTime);
     void RotateByMouse(double xpos, double ypos);
     float fov = 45.0f;
+    glm::vec3 pos;
 
 private:
-    glm::vec3 pos;
     glm::vec3 front = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     bool firstMouse = true;

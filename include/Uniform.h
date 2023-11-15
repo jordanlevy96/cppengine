@@ -23,7 +23,7 @@ using Uniform = std::variant<bool, int, float, glm::vec2, glm::vec3, glm::vec4, 
 struct UniformWrapper
 {
     std::string name;
-    Uniform uniform;
+    UniformTypeMap type;
 };
 
 namespace std
@@ -40,5 +40,5 @@ namespace std
 
 inline bool operator==(const UniformWrapper &lhs, const UniformWrapper &rhs)
 {
-    return lhs.name == rhs.name && lhs.uniform == rhs.uniform;
+    return lhs.name == rhs.name; // this might cause problems if two uniforms have the same name and different types. But that would be dumb!
 }

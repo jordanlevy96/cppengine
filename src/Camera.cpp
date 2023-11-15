@@ -33,8 +33,7 @@ void Camera::Render(GameObject *obj)
     // obj->shader->setInt("texture1", 0);
     // obj->shader->setInt("texture2", 1);
 
-    // Other Uniforms
-    obj->mesh->SetUniforms(obj->transform, obj->shader);
+    obj->SetUniforms();
 
     // Camera Handling
     View = glm::lookAt(pos, pos + front, up);

@@ -2,18 +2,12 @@
 
 #include <Shader.h>
 #include <Mesh.h>
+#include <Uniform.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
-
-struct Vertex
-{
-    glm::vec3 Position;
-    glm::vec3 Color;
-    glm::vec2 TexCoords;
-};
 
 class GameObject
 {
@@ -30,8 +24,14 @@ public:
     void Translate(glm::vec3 translate);
     void Scale(glm::vec3 scale);
 
+    void AddUniform(std::string name, Uniform u, UniformTypeMap type);
+    void SetUniforms();
+
     Mesh *mesh;
     Shader *shader;
     std::vector<unsigned int> textures;
     glm::mat4 transform;
+
+private:
+    std::unordered_map<UniformWrapper, Uniform> uniforms;
 };
