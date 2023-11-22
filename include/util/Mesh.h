@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Shader.h>
-
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL // allows vec3 in unordered_map
 #include "glm/gtx/hash.hpp"
@@ -11,9 +9,9 @@
 class Mesh
 {
 public:
-    Mesh(const char *modelSrc);
+    Mesh(const std::string &filepath);
     ~Mesh();
-    void AddTexture(const char *textureSrc, bool alpha);
+    void AddTexture(const std::string &textureSrc, bool alpha);
     unsigned int VAO, EBO;
     std::vector<unsigned int> textures;
     std::vector<float> vertices;

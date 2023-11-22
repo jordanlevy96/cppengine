@@ -1,7 +1,7 @@
 #define TINYOBJLOADER_USE_CPP11
 #define TINYOBJLOADER_IMPLEMENTATION
 
-#include <Mesh.h>
+#include "util/Mesh.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -9,7 +9,7 @@
 
 #include <iostream>
 
-Mesh::Mesh(const char *modelSrc)
+Mesh::Mesh(const std::string &filepath)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -17,7 +17,7 @@ Mesh::Mesh(const char *modelSrc)
     std::string warn;
     std::string err;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, modelSrc))
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filepath.c_str()))
     {
         if (!warn.empty())
         {
@@ -108,7 +108,7 @@ Mesh::~Mesh()
     textures.clear();
 }
 
-static GLuint loadTexture(const char *filepath, bool alpha)
+static GLuint loadTexture(const std::string &filepath, bool alpha)
 {
     GLuint texture;
     int width, height, numChannels;
@@ -120,7 +120,7 @@ static GLuint loadTexture(const char *filepath, bool alpha)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-    unsigned char *data = stbi_load(filepath, &width, &height, &numChannels, 0);
+    unsigned char *data = stbi_load(filepath.c_str(), &width, &height, &numChannels, 0);
     GLenum format = alpha ? GL_RGBA : GL_RGB;
     if (data)
     {
@@ -138,7 +138,7 @@ static GLuint loadTexture(const char *filepath, bool alpha)
     return texture;
 }
 
-void Mesh::AddTexture(const char *textureSrc, bool alpha)
+void Mesh::AddTexture(const std::string &textureSrc, bool alpha)
 {
     textures.push_back(loadTexture(textureSrc, alpha));
 }

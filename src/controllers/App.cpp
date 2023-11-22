@@ -1,8 +1,4 @@
-#include <GameManager.h>
-#include <GameObject3D.h>
-#include <Shader.h>
-#include <Script.h>
-#include <globals.h>
+#include "controllers/App.h"
 
 #include <iostream>
 #include <chrono>
@@ -10,17 +6,6 @@
 void process()
 {
     // do game logic
-}
-
-glm::vec3 GetPositionFromTransform(const glm::mat4 &modelMatrix)
-{
-    // Extract translation components from the model matrix
-    glm::vec3 position;
-    position.x = modelMatrix[3][0];
-    position.y = modelMatrix[3][1];
-    position.z = modelMatrix[3][2];
-
-    return position;
 }
 
 static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -32,26 +17,26 @@ static void keyCallback(GLFWwindow *window, int key, int scancode, int action, i
         return;
     }
 
-    GameManager &gm = GameManager::GetInstance();
-    Camera *cam = gm.cam;
+    App &app = App::GetInstance();
+    Camera *cam = app.cam;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cam->Move(CameraDirections::FORWARD, gm.delta);
+        cam->Move(CameraDirections::FORWARD, app.delta);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cam->Move(CameraDirections::BACK, gm.delta);
+        cam->Move(CameraDirections::BACK, app.delta);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cam->Move(CameraDirections::LEFT, gm.delta);
+        cam->Move(CameraDirections::LEFT, app.delta);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cam->Move(CameraDirections::RIGHT, gm.delta);
+        cam->Move(CameraDirections::RIGHT, app.delta);
 
     // up and down
     if (key == GLFW_KEY_Z)
     {
-        gm.cam->Translate(glm::vec3(0.0f, -0.05f, 0.0f));
+        app.cam->Translate(glm::vec3(0.0f, -0.05f, 0.0f));
     }
     if (key == GLFW_KEY_X)
     {
-        gm.cam->Translate(glm::vec3(0.0f, 0.05f, 0.0f));
+        app.cam->Translate(glm::vec3(0.0f, 0.05f, 0.0f));
     }
 }
 
@@ -62,8 +47,8 @@ static void cursorPosCallback(GLFWwindow *window, double xpos, double ypos)
     if (glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS)
     {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        GameManager &gm = GameManager::GetInstance();
-        gm.cam->RotateByMouse(xpos, ypos);
+        App &app = App::GetInstance();
+        app.cam->RotateByMouse(xpos, ypos);
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_RELEASE)
     {
@@ -75,12 +60,12 @@ static void resizeCallback(GLFWwindow *window, int in_width, int in_height) {}
 
 static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
-    GameManager &gm = GameManager::GetInstance();
+    App &app = App::GetInstance();
 
     int width, height;
-    glfwGetWindowSize(gm.windowManager->window, &width, &height);
+    glfwGetWindowSize(app.windowManager->window, &width, &height);
 
-    Camera *cam = gm.cam;
+    Camera *cam = app.cam;
     float fov = cam->fov - (float)yoffset;
     if (fov < 1.0f)
         fov = 1.0f;
@@ -90,7 +75,7 @@ static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
     cam->SetPerspective(fov, width, height);
 }
 
-bool GameManager::Initialize()
+bool App::Initialize()
 {
     windowManager = &WindowManager::GetInstance();
     if (!windowManager->Initialize(800, 600))
@@ -104,8 +89,7 @@ bool GameManager::Initialize()
 
     stbi_set_flip_vertically_on_load(true);
 
-    glm::vec3 camStart = glm::vec3(0.0f, 0.0f, -10.0f);
-    cam = new Camera(camStart);
+    cam = new Camera();
 
     EventCallbacks *callbacks = new EventCallbacks(
         [](GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -135,12 +119,12 @@ bool GameManager::Initialize()
     glFrontFace(GL_CW);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    Script().Run((char *)"../res/scripts/hello.lua");
+    registry = &Registry::GetInstance();
 
     return true;
 }
 
-void GameManager::Run()
+void App::Run()
 {
     std::cout << "Starting main loop" << std::endl;
 
@@ -152,21 +136,25 @@ void GameManager::Run()
     loopTime = 0.0;
 
     /* --------- Initial State --------- */
-    GameObject3D *bunny = new GameObject3D("../res/shaders/Lighting.shader", "../res/models/xbunny.obj");
-    bunny->Scale(glm::vec3(3.0f));
-    bunny->AddUniform("objectColor", glm::vec3(1.0f, 0.5f, 0.31f), UniformTypeMap::vec3);
-    bunny->AddUniform("lightColor", glm::vec3(1.0f), UniformTypeMap::vec3);
-    objects.push_back(bunny);
+    // GameObject *bunny = new GameObject("../res/shaders/Lighting.shader", "../res/models/xbunny.obj");
+    // bunny->Scale(glm::vec3(3.0f));
+    // bunny->AddUniform("objectColor", glm::vec3(1.0f, 0.5f, 0.31f), UniformTypeMap::vec3);
+    // bunny->AddUniform("lightColor", glm::vec3(1.0f), UniformTypeMap::vec3);
+    // objects.push_back(bunny);
 
-    GameObject3D *cube = new GameObject3D("../res/shaders/Basic.shader", "../res/models/cube.obj");
-    cube->Scale(glm::vec3(0.2f));
-    cube->Translate(glm::vec3(-4.0f, 6.0f, 10.0f));
-    cube->Rotate(-55.0f, EulerAngles::ROLL);
-    // cube->AddTexture("../res/textures/container.jpg", false);
-    // cube->AddTexture("../res/textures/awesomeface.png", true);
-    objects.push_back(cube);
+    unsigned int bunny = registry->RegisterEntity("bunny");
+    Transform btrans = Transform();
+    btrans.scale = glm::vec3(3.0f);
+    RenderComponent rc = RenderComponent("../res/shaders/Lighting.shader", "../res/models/xbunny.obj");
+    registry->RegisterComponent(bunny, (Component *)&rc);
 
-    bunny->AddUniform("lightPos", GetPositionFromTransform(cube->transform), UniformTypeMap::vec3);
+    // GameObject *cube = new GameObject("../res/shaders/Basic.shader", "../res/models/cube.obj");
+    // cube->Scale(glm::vec3(0.2f));
+    // cube->Translate(glm::vec3(-4.0f, 6.0f, 10.0f));
+    // cube->Rotate(-55.0f, EulerAngles::ROLL);
+    // objects.push_back(cube);
+
+    // bunny->AddUniform("lightPos", GetPositionFromTransform(cube->transform), UniformTypeMap::vec3);
 
     while (!glfwWindowShouldClose(windowManager->window))
     {
@@ -192,8 +180,6 @@ void GameManager::Run()
             loopTime -= frameTime;
         }
 
-        bunny->AddUniform("viewPos", cam->pos, UniformTypeMap::vec3);
-
         // ensure window scaling is up to date before running render pipeline
         int width, height;
         glfwGetFramebufferSize(windowManager->window, &width, &height);
@@ -204,7 +190,7 @@ void GameManager::Run()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 2. Game Objects
-        cam->RenderAll(objects);
+        // cam->RenderAll(objects);
 
         // 3. UI
         ui->RenderWindow();
@@ -216,18 +202,14 @@ void GameManager::Run()
     std::cout << "Exited main loop" << std::endl;
 }
 
-void GameManager::Shutdown()
+void App::Shutdown()
 {
+    delete lua;
     delete cam;
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
-    for (GameObject *obj : objects)
-    {
-        delete obj;
-    }
-    objects.clear();
     windowManager->shutdown();
 }

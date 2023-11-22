@@ -1,12 +1,12 @@
-#include <GameManager.h>
+#include <controllers/App.h>
 
 int main()
 {
-    GameManager &gm = GameManager::GetInstance();
+    App &app = App::GetInstance();
 
-    gm.Initialize();
-    gm.Run();
-    gm.Shutdown();
+    app.Initialize();
+    app.Run();
+    app.Shutdown();
 
     return 0;
 }

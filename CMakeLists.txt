@@ -3,9 +3,18 @@ set(CMAKE_CXX_STANDARD 17)
 project(cppengine)
 
 file(GLOB_RECURSE SOURCES
-"src/*.cpp"
-"include/*.h"
-"include/*.hpp"
+"src/*.cpp",
+"src/controllers/*.cpp",
+"src/components/*.cpp",
+"src/entities/*.cpp",
+"src/systems/*.cpp",
+"src/util/*.cpp",
+"include/*.h",
+"include/controllers/*.h",
+"include/components/*.h",
+"include/entities/*.h",
+"include/systems/*.h",
+"include/util/*.h",
 "external/glad/src/*.c"
 )
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
@@ -15,6 +24,7 @@ add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 set(OpenGL_GL_PREFERENCE "GLVND") # get latest version
 find_package(OpenGL REQUIRED)
 
+add_subdirectory(external/yaml-cpp)
 add_subdirectory(external/lua-cmake)
 add_subdirectory(external/sol2)
 
@@ -77,5 +87,5 @@ include_directories(
     external/sol2/include
     )
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE external/glm)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad glfw imgui lua sol2)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE yaml-cpp glad glfw imgui lua sol2)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})

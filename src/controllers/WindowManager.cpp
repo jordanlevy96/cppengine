@@ -1,4 +1,5 @@
-#include <WindowManager.h>
+#include "controllers/WindowManager.h"
+
 #include <iostream>
 
 void error_callback(int error, const char *description)

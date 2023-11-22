@@ -1,4 +1,5 @@
-#include <Shader.h>
+#include "util/Shader.h"
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -93,7 +94,7 @@ void Shader::LinkShaders(unsigned int vertexShader, unsigned int fragmentShader)
     glDeleteShader(fragmentShader);
 }
 
-Shader::Shader(const char *filepath)
+Shader::Shader(const std::string &filepath)
 {
     ShaderProgramSource source = ParseShader(filepath);
     unsigned int vertexShader = CompileShader(source.VertexSource, GL_VERTEX_SHADER);

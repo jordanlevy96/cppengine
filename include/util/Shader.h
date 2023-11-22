@@ -15,7 +15,7 @@ class Shader
 {
 public:
     unsigned int ID;
-    Shader(const char *filepath);
+    Shader(const std::string &filepath);
     ~Shader();
     void LinkShaders(unsigned int vertexShader, unsigned int fragmentShader);
     void Use()

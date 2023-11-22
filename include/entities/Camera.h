@@ -1,8 +1,7 @@
 #pragma once
 
-#include <GameObject3D.h>
-
-#include <globals.h>
+#include "components/Transform.h"
+#include "util/globals.h"
 
 #include <glm/glm.hpp>
 #include <glad/glad.h>
@@ -20,22 +19,24 @@ enum CameraDirections
 class Camera
 {
 public:
-    Camera(glm::vec3 start) : pos(start) { SetPerspective(fov, WINDOW_WIDTH, WINDOW_HEIGHT); };
-    ~Camera(){};
-    glm::mat4 View = glm::mat4(1.0f);
+    float fov = 45.0f;
+    Transform transform;
+    glm::vec3 front = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::mat4 Projection = glm::mat4(1.0f);
+
+    Camera()
+    {
+        SetPerspective(fov, WINDOW_WIDTH, WINDOW_HEIGHT);
+        transform.pos = glm::vec3(0.0f, 0.0f, -10.0f);
+    };
+    ~Camera(){};
     void SetPerspective(float fov, float width, float height);
-    void Render(GameObject *obj);
-    void RenderAll(std::vector<GameObject *> objects);
     void Translate(glm::vec3 translate);
     void Move(CameraDirections dir, float deltaTime);
     void RotateByMouse(double xpos, double ypos);
-    float fov = 45.0f;
-    glm::vec3 pos;
 
 private:
-    glm::vec3 front = glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     bool firstMouse = true;
 
     float yaw = 90.0f;

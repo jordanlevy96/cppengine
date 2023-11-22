@@ -28,6 +28,7 @@ make
 - GLAD†
 - stb_image†
 - tiny_obj_loader†
+- yaml-cpp‡
 - GLM‡
 - Dear ImGUI‡
 - Lua‡

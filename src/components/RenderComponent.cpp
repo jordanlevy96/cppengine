@@ -1,59 +1,34 @@
-#include <GameObject.h>
-#include <Shader.h>
-#include <Mesh.h>
-
-#include <glm/gtc/matrix_transform.hpp>
+#include "components/RenderComponent.h"
 
 #include <iostream>
 
-GameObject::GameObject(const char *shaderSrcFile, const char *meshSrcFile)
+std::unordered_map<std::string, Mesh *> RenderComponent::meshes;
+std::unordered_map<std::string, Shader *> RenderComponent::shaders;
+
+RenderComponent::RenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
 {
-    transform = glm::mat4(1.0f);
-    shader = new Shader(shaderSrcFile);
-    mesh = new Mesh(meshSrcFile);
+    if (shaders.find(shaderSrc) == shaders.end())
+    {
+        shaders[shaderSrc] = new Shader(shaderSrc);
+    }
+    shader = shaders[shaderSrc];
+
+    if (meshes.find(meshSrc) == meshes.end())
+    {
+        meshes[meshSrc] = new Mesh(meshSrc);
+    }
+    mesh = meshes[meshSrc];
 }
 
-GameObject::~GameObject()
-{
-    delete shader;
-    delete mesh;
-}
-
-void GameObject::Transform(float radians, glm::vec3 scale, glm::vec3 translate)
-{
-    transform = glm::translate(transform, translate);
-    transform = glm::rotate(transform, radians, glm::vec3(0.0, 0.0, 1.0));
-    transform = glm::scale(transform, scale);
-}
-
-void GameObject::Translate(glm::vec3 translate)
-{
-    transform = glm::translate(transform, translate);
-}
-
-void GameObject::Scale(glm::vec3 scale)
-{
-    transform = glm::scale(transform, scale);
-}
-
-void GameObject::AddTexture(const char *textureSrcPath, bool alpha)
-{
-    mesh->AddTexture(textureSrcPath, alpha);
-}
-
-void GameObject::Update(float deltaTime)
-{
-}
-
-void GameObject::AddUniform(std::string name, Uniform u, UniformTypeMap type)
+void RenderComponent::AddUniform(std::string name, Uniform u, UniformTypeMap type)
 {
     UniformWrapper uw = {name, type};
     uniforms[uw] = u;
 }
 
-void GameObject::SetUniforms()
+void RenderComponent::SetUniforms()
 {
-    shader->setMat4("model", transform);
+    // shader->setMat4("model", transform);
     for (std::pair<UniformWrapper, Uniform> pair : uniforms)
     {
         std::string name = pair.first.name;
