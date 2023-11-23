@@ -136,33 +136,22 @@ void App::Run()
     loopTime = 0.0;
 
     /* --------- Initial State --------- */
-    // GameObject *bunny = new GameObject("../res/shaders/Lighting.shader", "../res/models/xbunny.obj");
-    // bunny->Scale(glm::vec3(3.0f));
-    // bunny->AddUniform("objectColor", glm::vec3(1.0f, 0.5f, 0.31f), UniformTypeMap::vec3);
-    // bunny->AddUniform("lightColor", glm::vec3(1.0f), UniformTypeMap::vec3);
-    // objects.push_back(bunny);
-
-    // GameObject *cube = new GameObject("../res/shaders/Basic.shader", "../res/models/cube.obj");
-    // cube->Scale(glm::vec3(0.2f));
-    // cube->Translate(glm::vec3(-4.0f, 6.0f, 10.0f));
-    // cube->Rotate(-55.0f, EulerAngles::ROLL);
-    // objects.push_back(cube);
-
     unsigned int light = registry->RegisterEntity("light");
-    Transform lightTrans = Transform();
-    lightTrans.Scale = glm::vec3(0.2f);
-    lightTrans.Translate(glm::vec3(-4.0f, 6.0f, 10.0f));
-    lightTrans.Rotate(-55.0f, EulerAngles::Roll);
-    registry->RegisterComponent(light, &lightTrans, ComponentTypes::TransformType);
-    Emitter emitter = Emitter("../res/shaders/Basic.shader", "../res/models/cube.obj");
-    registry->RegisterComponent(light, &emitter, ComponentTypes::EmitterType);
+    Transform *lightTrans = new Transform();
+    lightTrans->Scale = glm::vec3(0.2f);
+    lightTrans->Translate(glm::vec3(-4.0f, 6.0f, 10.0f));
+    lightTrans->Rotate(-55.0f, EulerAngles::Roll);
+    registry->RegisterComponent(light, lightTrans, ComponentTypes::TransformType);
+    Emitter *emitter = new Emitter("../res/shaders/Basic.shader", "../res/models/cube.obj");
+    registry->RegisterComponent(light, emitter, ComponentTypes::EmitterType);
 
     unsigned int bunny = registry->RegisterEntity("bunny");
-    Transform btrans = Transform();
-    btrans.Scale = glm::vec3(3.0f);
-    btrans.Color = glm::vec3(1.0f, 0.5f, 0.31f);
-    Lighting rc = Lighting("../res/shaders/Lighting.shader", "../res/models/xbunny.obj", &btrans.Color, &lightTrans);
-    registry->RegisterComponent(bunny, (Component *)&rc, ComponentTypes::LightingType);
+    Transform *btrans = new Transform();
+    btrans->Scale = glm::vec3(3.0f);
+    btrans->Color = glm::vec3(1.0f, 0.5f, 0.31f);
+    registry->RegisterComponent(bunny, (Component *)btrans, ComponentTypes::TransformType);
+    Lighting *rc = new Lighting("../res/shaders/Lighting.shader", "../res/models/xbunny.obj", &btrans->Color, lightTrans);
+    registry->RegisterComponent(bunny, (Component *)rc, ComponentTypes::LightingType);
 
     while (!glfwWindowShouldClose(windowManager->window))
     {

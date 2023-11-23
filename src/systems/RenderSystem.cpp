@@ -45,7 +45,7 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
 
     rc->AddUniform("view", View, UniformTypeMap::mat4);
     rc->AddUniform("projection", cam->Projection, UniformTypeMap::mat4);
-    rc->SetUniforms();
+    rc->SetUniforms(t);
 
     glBindVertexArray(rc->mesh->VAO);
     glDrawElements(GL_TRIANGLES, rc->mesh->indices.size(), GL_UNSIGNED_INT, 0);

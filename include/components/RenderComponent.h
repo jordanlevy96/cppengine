@@ -1,6 +1,7 @@
 #pragma once
 
 #include "components/Component.h"
+#include "components/Transform.h"
 #include "util/Mesh.h"
 #include "util/Shader.h"
 #include "util/Uniform.h"
@@ -14,7 +15,7 @@ public:
     RenderComponent(const std::string &shaderSrc, const std::string &meshSrc);
 
     void AddUniform(std::string name, Uniform u, UniformTypeMap type);
-    virtual void SetUniforms();
+    virtual void SetUniforms(Transform *transform);
     const std::string GetName() override
     {
         return RENDER_COMPONENT;

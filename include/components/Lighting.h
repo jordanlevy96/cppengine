@@ -7,7 +7,7 @@ class Lighting : public RenderComponent
 {
 public:
     Lighting(const std::string &shaderSrc, const std::string &meshSrc, glm::vec3 *objColor, Transform *lightTransformPointer) : RenderComponent(shaderSrc, meshSrc), objectColor(objColor), lightTrans(lightTransformPointer){};
-    void SetUniforms() override;
+    void SetUniforms(Transform *transform) override;
 
 private:
     Transform *lightTrans;

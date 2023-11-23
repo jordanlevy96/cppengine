@@ -26,9 +26,9 @@ void RenderComponent::AddUniform(std::string name, Uniform u, UniformTypeMap typ
     uniforms[uw] = u;
 }
 
-void RenderComponent::SetUniforms()
+void RenderComponent::SetUniforms(Transform *transform)
 {
-    // shader->setMat4("model", transform);
+    shader->setMat4("model", transform->GetMatrix());
     for (std::pair<UniformWrapper, Uniform> pair : uniforms)
     {
         std::string name = pair.first.name;
