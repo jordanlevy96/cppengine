@@ -48,52 +48,70 @@ void Registry::RegisterComponent(const std::string &name, Component *comp, Compo
     RegisterComponent(id, comp, type);
 }
 
-// void LoadScene(const std::string &src)
-// {
-//     try
-//     {
-//         YAML::Node yaml = YAML::LoadFile("example.yaml");
+bool Registry::LoadScene(const std::string &src)
+{
+    try
+    {
+        YAML::Node yaml = YAML::LoadFile(src);
 
-//         const YAML::Node &objectsNode = yaml["scene"]["objects"];
-//         for (const auto &objectNode : objectsNode)
-//         {
-//             const std::string script, model;
-//             script = objectNode["shader"].as<std::string>();
-//             model = objectNode["model"].as<std::string>();
+        const YAML::Node &objectsNode = yaml["scene"]["objects"];
+        for (const auto &objectNode : objectsNode)
+        {
+            const std::string &name = objectNode["name"].as<std::string>();
+            unsigned int id = RegisterEntity(name);
+            Transform *transform = new Transform();
+            RegisterComponent(id, transform, ComponentTypes::TransformType);
+            if (objectNode["transform"]["pos"])
+            {
+                transform->Pos.x = objectNode["transform"]["pos"]["x"].as<float>();
+                transform->Pos.y = objectNode["transform"]["pos"]["y"].as<float>();
+                transform->Pos.z = objectNode["transform"]["pos"]["z"].as<float>();
+            }
+            if (objectNode["transform"]["scale"])
+            {
+                transform->Scale.x = objectNode["transform"]["scale"]["x"].as<float>();
+                transform->Scale.y = objectNode["transform"]["scale"]["y"].as<float>();
+                transform->Scale.z = objectNode["transform"]["scale"]["z"].as<float>();
+            }
+            if (objectNode["transform"]["color"])
+            {
+                transform->Color.r = objectNode["transform"]["color"]["r"].as<float>();
+                transform->Color.g = objectNode["transform"]["color"]["g"].as<float>();
+                transform->Color.b = objectNode["transform"]["color"]["b"].as<float>();
+            }
 
-//             Transform transform;
-//             if (objectNode["transform"]["pos"])
-//             {
-//                 transform.pos.x = objectNode["transform"]["pos"]["x"].as<float>();
-//                 transform.pos.y = objectNode["transform"]["pos"]["y"].as<float>();
-//                 transform.pos.z = objectNode["transform"]["pos"]["z"].as<float>();
-//             }
-//             if (objectNode["transform"]["scale"])
-//             {
-//                 transform.scale.x = objectNode["transform"]["scale"]["x"].as<float>();
-//                 transform.scale.y = objectNode["transform"]["scale"]["y"].as<float>();
-//                 transform.scale.z = objectNode["transform"]["scale"]["z"].as<float>();
-//             }
+            if (objectNode["components"])
+            {
+                const YAML::Node &componentsNode = objectNode["components"];
+                for (const auto &componentNode : componentsNode)
+                {
+                    const std::string name = componentNode["name"].as<std::string>();
+                    if (name == "lighting")
+                    {
+                        const std::string &shaderSrc = (const std::string &)(RES_PATH) + "/shaders/" + componentNode["shader"].as<std::string>();
+                        const std::string &modelSrc = (const std::string &)(RES_PATH) + "/models/" + componentNode["model"].as<std::string>();
+                        const std::string &lightName = componentNode["light"].as<std::string>();
 
-//             obj.color.r = objectNode["color"]["r"].as<float>();
-//             obj.color.g = objectNode["color"]["g"].as<float>();
-//             obj.color.b = objectNode["color"]["b"].as<float>();
-
-//             const YAML::Node &componentsNode = objectNode["components"];
-//             for (const auto &componentNode : componentsNode)
-//             {
-//                 obj.components.push_back(componentNode.as<std::string>());
-//             }
-
-//             scene.objects.push_back(obj);
-//         }
-
-//         // Process the parsed data (you can do whatever you need with the C++ structures)
-//         // ...
-//     }
-//     catch (const YAML::Exception &e)
-//     {
-//         std::cerr << "YAML parsing error: " << e.what() << std::endl;
-//         return 1;
-//     }
-// }
+                        unsigned int light = GetEntityByName(lightName);
+                        Transform *lightTrans = TransformComponents[light];
+                        Component *lightComp = new Lighting(shaderSrc, modelSrc, &transform->Color, lightTrans);
+                        RegisterComponent(id, lightComp, ComponentTypes::LightingType);
+                    }
+                    else if (name == "emitter")
+                    {
+                        const std::string &shaderSrc = (const std::string &)(RES_PATH) + "/shaders/" + componentNode["shader"].as<std::string>();
+                        const std::string &modelSrc = (const std::string &)(RES_PATH) + "/models/" + componentNode["model"].as<std::string>();
+                        Component *emitter = new Emitter(shaderSrc, modelSrc);
+                        RegisterComponent(id, emitter, ComponentTypes::EmitterType);
+                    }
+                }
+            }
+        }
+        return true;
+    }
+    catch (const YAML::Exception &e)
+    {
+        std::cerr << "YAML parsing error: " << e.what() << std::endl;
+        return false;
+    }
+}

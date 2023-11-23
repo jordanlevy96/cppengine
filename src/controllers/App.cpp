@@ -136,22 +136,7 @@ void App::Run()
     loopTime = 0.0;
 
     /* --------- Initial State --------- */
-    unsigned int light = registry->RegisterEntity("light");
-    Transform *lightTrans = new Transform();
-    lightTrans->Scale = glm::vec3(0.2f);
-    lightTrans->Translate(glm::vec3(-4.0f, 6.0f, 10.0f));
-    lightTrans->Rotate(-55.0f, EulerAngles::Roll);
-    registry->RegisterComponent(light, lightTrans, ComponentTypes::TransformType);
-    Emitter *emitter = new Emitter("../res/shaders/Basic.shader", "../res/models/cube.obj");
-    registry->RegisterComponent(light, emitter, ComponentTypes::EmitterType);
-
-    unsigned int bunny = registry->RegisterEntity("bunny");
-    Transform *btrans = new Transform();
-    btrans->Scale = glm::vec3(3.0f);
-    btrans->Color = glm::vec3(1.0f, 0.5f, 0.31f);
-    registry->RegisterComponent(bunny, (Component *)btrans, ComponentTypes::TransformType);
-    Lighting *rc = new Lighting("../res/shaders/Lighting.shader", "../res/models/xbunny.obj", &btrans->Color, lightTrans);
-    registry->RegisterComponent(bunny, (Component *)rc, ComponentTypes::LightingType);
+    registry->LoadScene("../res/conf/example.yaml");
 
     while (!glfwWindowShouldClose(windowManager->window))
     {

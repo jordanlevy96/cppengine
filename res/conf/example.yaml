@@ -2,20 +2,21 @@ name: "YAML Example"
 
 scene:
   objects:
-    - name: "bunny"
-      shader: "Lighting.shader"
-      model: "xbunny.obj"
-      transform:
-        scale: { x: 3.0, y: 3.0, z: 3.0 }
-      color: { r: 1.0, g: 0.5, b: 0.31 }
-      components:
-        - lighting
-
     - name: "light"
-      shader: "Basic.shader"
-      model: "cube.obj"
       transform:
         pos: { x: -4, y: 6, z: 10 }
         scale: { x: 0.2, y: 0.2, z: 0.2 }
       components:
-        - emitter
+        - name: "emitter"
+          shader: "Basic.shader"
+          model: "cube.obj"
+
+    - name: "bunny"
+      transform:
+        scale: { x: 3.0, y: 3.0, z: 3.0 }
+        color: { r: 1.0, g: 0.5, b: 0.31 }
+      components:
+        - name: "lighting"
+          shader: "Lighting.shader"
+          model: "xbunny.obj"
+          light: "light"

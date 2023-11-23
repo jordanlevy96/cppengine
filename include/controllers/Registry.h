@@ -4,6 +4,7 @@
 #include "components/Lighting.h"
 #include "components/RenderComponent.h"
 #include "components/Transform.h"
+#include "util/globals.h"
 
 #include <yaml-cpp/yaml.h>
 #include <sol/sol.hpp>
@@ -24,6 +25,7 @@ public:
     unsigned int GetEntityByName(const std::string &name);
     void RegisterComponent(unsigned int id, Component *comp, ComponentTypes type);
     void RegisterComponent(const std::string &name, Component *comp, ComponentTypes type);
+    bool LoadScene(const std::string &src);
 
     std::unordered_map<unsigned int, Lighting *> LightingComponents;
     std::unordered_map<unsigned int, RenderComponent *> RenderComponents;
