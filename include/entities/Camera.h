@@ -28,7 +28,7 @@ public:
     Camera()
     {
         SetPerspective(fov, WINDOW_WIDTH, WINDOW_HEIGHT);
-        transform.pos = glm::vec3(0.0f, 0.0f, -10.0f);
+        transform.Pos = glm::vec3(0.0f, 0.0f, -10.0f);
     };
     ~Camera(){};
     void SetPerspective(float fov, float width, float height);

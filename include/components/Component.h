@@ -4,6 +4,15 @@
 
 #include <string>
 
+enum ComponentTypes
+{
+    BaseComponentType = -1,
+    TransformType,
+    RenderComponentType,
+    LightingType,
+    EmitterType
+};
+
 class Component
 {
 public:

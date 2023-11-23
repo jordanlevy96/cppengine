@@ -5,5 +5,6 @@
 
 class RenderSystem
 {
-    static void RenderEntity(unsigned int id, Camera cam);
+public:
+    static void RenderEntity(unsigned int id, Camera *cam);
 };

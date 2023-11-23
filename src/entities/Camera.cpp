@@ -47,16 +47,16 @@ void Camera::Move(CameraDirections dir, float deltaTime)
     switch (dir)
     {
     case (CameraDirections::FORWARD):
-        transform.pos += speed * front;
+        transform.Pos += speed * front;
         break;
     case (CameraDirections::BACK):
-        transform.pos -= speed * front;
+        transform.Pos -= speed * front;
         break;
     case (CameraDirections::LEFT):
-        transform.pos -= glm::normalize(glm::cross(front, up)) * speed;
+        transform.Pos -= glm::normalize(glm::cross(front, up)) * speed;
         break;
     case (CameraDirections::RIGHT):
-        transform.pos += glm::normalize(glm::cross(front, up)) * speed;
+        transform.Pos += glm::normalize(glm::cross(front, up)) * speed;
         break;
     default:
         std::cerr << "Invalid direction given to camera" << std::endl;
@@ -65,5 +65,5 @@ void Camera::Move(CameraDirections dir, float deltaTime)
 
 void Camera::Translate(glm::vec3 translate)
 {
-    transform.pos += translate;
+    transform.Pos += translate;
 }

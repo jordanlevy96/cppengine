@@ -5,7 +5,7 @@
 #include "util/Shader.h"
 #include "util/Uniform.h"
 
-class RenderComponent : Component
+class RenderComponent : public Component
 {
 public:
     Mesh *mesh;
@@ -14,13 +14,13 @@ public:
     RenderComponent(const std::string &shaderSrc, const std::string &meshSrc);
 
     void AddUniform(std::string name, Uniform u, UniformTypeMap type);
-    void SetUniforms();
+    virtual void SetUniforms();
     const std::string GetName() override
     {
         return RENDER_COMPONENT;
     };
 
-private:
+protected:
     static std::unordered_map<std::string, Shader *> shaders;
     static std::unordered_map<std::string, Mesh *> meshes;
     std::unordered_map<UniformWrapper, Uniform> uniforms;

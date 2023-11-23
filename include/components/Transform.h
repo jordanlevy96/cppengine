@@ -12,18 +12,18 @@ namespace EulerAngles
     const glm::vec3 Yaw(0.0f, 1.0f, 0.0f);
 };
 
-class Transform : Component
+class Transform : public Component
 {
 public:
-    glm::vec3 pos = glm::vec3(1.0f);
-    glm::vec3 scale = glm::vec3(1.0f);
-    glm::vec3 eulers = glm::vec3(0.0f);
+    glm::vec3 Pos = glm::vec3(1.0f);
+    glm::vec3 Scale = glm::vec3(1.0f);
+    glm::vec3 Eulers = glm::vec3(0.0f);
+    glm::vec3 Color = glm::vec3(1.0f);
 
     Transform(){};
     ~Transform(){};
 
     void Translate(glm::vec3 translate);
-    void Scale(glm::vec3 scale);
     void Rotate(float degrees, glm::vec3 dir);
     glm::mat4 GetMatrix() const;
 

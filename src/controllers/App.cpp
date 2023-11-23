@@ -142,19 +142,27 @@ void App::Run()
     // bunny->AddUniform("lightColor", glm::vec3(1.0f), UniformTypeMap::vec3);
     // objects.push_back(bunny);
 
-    unsigned int bunny = registry->RegisterEntity("bunny");
-    Transform btrans = Transform();
-    btrans.scale = glm::vec3(3.0f);
-    RenderComponent rc = RenderComponent("../res/shaders/Lighting.shader", "../res/models/xbunny.obj");
-    registry->RegisterComponent(bunny, (Component *)&rc);
-
     // GameObject *cube = new GameObject("../res/shaders/Basic.shader", "../res/models/cube.obj");
     // cube->Scale(glm::vec3(0.2f));
     // cube->Translate(glm::vec3(-4.0f, 6.0f, 10.0f));
     // cube->Rotate(-55.0f, EulerAngles::ROLL);
     // objects.push_back(cube);
 
-    // bunny->AddUniform("lightPos", GetPositionFromTransform(cube->transform), UniformTypeMap::vec3);
+    unsigned int light = registry->RegisterEntity("light");
+    Transform lightTrans = Transform();
+    lightTrans.Scale = glm::vec3(0.2f);
+    lightTrans.Translate(glm::vec3(-4.0f, 6.0f, 10.0f));
+    lightTrans.Rotate(-55.0f, EulerAngles::Roll);
+    registry->RegisterComponent(light, &lightTrans, ComponentTypes::TransformType);
+    Emitter emitter = Emitter("../res/shaders/Basic.shader", "../res/models/cube.obj");
+    registry->RegisterComponent(light, &emitter, ComponentTypes::EmitterType);
+
+    unsigned int bunny = registry->RegisterEntity("bunny");
+    Transform btrans = Transform();
+    btrans.Scale = glm::vec3(3.0f);
+    btrans.Color = glm::vec3(1.0f, 0.5f, 0.31f);
+    Lighting rc = Lighting("../res/shaders/Lighting.shader", "../res/models/xbunny.obj", &btrans.Color, &lightTrans);
+    registry->RegisterComponent(bunny, (Component *)&rc, ComponentTypes::LightingType);
 
     while (!glfwWindowShouldClose(windowManager->window))
     {
@@ -190,7 +198,10 @@ void App::Run()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 2. Game Objects
-        // cam->RenderAll(objects);
+        for (unsigned int id : registry->entities)
+        {
+            RenderSystem::RenderEntity(id, cam);
+        }
 
         // 3. UI
         ui->RenderWindow();

@@ -9,6 +9,7 @@
 #include "entities/Camera.h"
 
 #include "systems/UI.h"
+#include "systems/RenderSystem.h"
 
 #include "util/globals.h"
 
