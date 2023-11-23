@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-void Lighting::SetUniforms(Transform *transform)
+void Lighting::SetUniforms(std::shared_ptr<Transform> transform)
 {
     RenderComponent::AddUniform("lightPos", lightTrans->Pos, UniformTypeMap::vec3);
     RenderComponent::AddUniform("lightColor", lightTrans->Color, UniformTypeMap::vec3);

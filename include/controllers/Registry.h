@@ -9,6 +9,7 @@
 #include <yaml-cpp/yaml.h>
 #include <sol/sol.hpp>
 
+#include <memory>
 class Registry
 {
 public:
@@ -22,17 +23,17 @@ public:
     void operator=(Registry const &) = delete;
 
     unsigned int RegisterEntity(const std::string &name);
+    void DestroyEntity(unsigned int id);
     unsigned int GetEntityByName(const std::string &name);
-    void RegisterComponent(unsigned int id, Component *comp, ComponentTypes type);
-    void RegisterComponent(const std::string &name, Component *comp, ComponentTypes type);
+    void RegisterComponent(unsigned int id, std::shared_ptr<Component> comp, ComponentTypes type);
+    void RegisterComponent(const std::string &name, std::shared_ptr<Component> comp, ComponentTypes type);
     bool LoadScene(const std::string &src);
 
-    std::unordered_map<unsigned int, Lighting *> LightingComponents;
-    std::unordered_map<unsigned int, RenderComponent *> RenderComponents;
-    std::unordered_map<unsigned int, Transform *> TransformComponents;
-    std::unordered_map<unsigned int, Emitter *> EmitterComponents;
-    std::vector<unsigned int> entities;
-    std::unordered_map<unsigned int, std::string> entityNames;
+    std::unordered_map<unsigned int, std::shared_ptr<Lighting>> LightingComponents;
+    std::unordered_map<unsigned int, std::shared_ptr<RenderComponent>> RenderComponents;
+    std::unordered_map<unsigned int, std::shared_ptr<Transform>> TransformComponents;
+    std::unordered_map<unsigned int, std::shared_ptr<Emitter>> EmitterComponents;
+    std::unordered_map<unsigned int, std::string> entities;
 
 private:
     unsigned int i = 0;

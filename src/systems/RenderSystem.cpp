@@ -7,7 +7,7 @@ static Registry *registry = &Registry::GetInstance();
 
 void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
 {
-    RenderComponent *rc;
+    std::shared_ptr<RenderComponent> rc;
 
     if (registry->RenderComponents.find(id) != registry->RenderComponents.end())
     {
@@ -22,11 +22,12 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
         rc = registry->EmitterComponents[id];
     }
 
-    Transform *t = registry->TransformComponents[id];
+    std::shared_ptr<Transform> t = registry->TransformComponents[id];
 
     rc->shader->Use();
 
     // Send Textures to GPU
+    // TODO: set up texture/material component
 
     // GLenum gl_textures[] = {GL_TEXTURE0,
     //                         GL_TEXTURE1};

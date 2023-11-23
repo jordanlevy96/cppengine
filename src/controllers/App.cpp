@@ -172,8 +172,9 @@ void App::Run()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 2. Game Objects
-        for (unsigned int id : registry->entities)
+        for (std::pair<unsigned int, std::string> pair : registry->entities)
         {
+            unsigned int id = pair.first;
             RenderSystem::RenderEntity(id, cam);
         }
 

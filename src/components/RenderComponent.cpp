@@ -2,20 +2,20 @@
 
 #include <iostream>
 
-std::unordered_map<std::string, Mesh *> RenderComponent::meshes;
-std::unordered_map<std::string, Shader *> RenderComponent::shaders;
+std::unordered_map<std::string, std::shared_ptr<Shader>> RenderComponent::shaders;
+std::unordered_map<std::string, std::shared_ptr<Mesh>> RenderComponent::meshes;
 
 RenderComponent::RenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
 {
     if (shaders.find(shaderSrc) == shaders.end())
     {
-        shaders[shaderSrc] = new Shader(shaderSrc);
+        shaders[shaderSrc] = std::make_shared<Shader>(shaderSrc);
     }
     shader = shaders[shaderSrc];
 
     if (meshes.find(meshSrc) == meshes.end())
     {
-        meshes[meshSrc] = new Mesh(meshSrc);
+        meshes[meshSrc] = std::make_shared<Mesh>(meshSrc);
     }
     mesh = meshes[meshSrc];
 }
@@ -26,7 +26,7 @@ void RenderComponent::AddUniform(std::string name, Uniform u, UniformTypeMap typ
     uniforms[uw] = u;
 }
 
-void RenderComponent::SetUniforms(Transform *transform)
+void RenderComponent::SetUniforms(std::shared_ptr<Transform> transform)
 {
     shader->setMat4("model", transform->GetMatrix());
     for (std::pair<UniformWrapper, Uniform> pair : uniforms)

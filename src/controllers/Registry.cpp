@@ -2,14 +2,20 @@
 
 unsigned int Registry::RegisterEntity(const std::string &name)
 {
-    entityNames[i] = name;
-    entities.push_back(i);
+    entities[i] = name;
     return i++;
+}
+
+void Registry::DestroyEntity(unsigned int id)
+{
+    LightingComponents.erase(id);
+    RenderComponents.erase(id);
+    TransformComponents.erase(id);
 }
 
 unsigned int Registry::GetEntityByName(const std::string &name)
 {
-    for (const auto &pair : entityNames)
+    for (const auto &pair : entities)
     {
         if (pair.second == name)
         {
@@ -20,21 +26,21 @@ unsigned int Registry::GetEntityByName(const std::string &name)
     return -1;
 }
 
-void Registry::RegisterComponent(unsigned int id, Component *comp, ComponentTypes type)
+void Registry::RegisterComponent(unsigned int id, std::shared_ptr<Component> comp, ComponentTypes type)
 {
     switch (type)
     {
     case (ComponentTypes::TransformType):
-        TransformComponents[id] = static_cast<Transform *>(comp);
+        TransformComponents[id] = std::dynamic_pointer_cast<Transform>(comp);
         break;
     case ComponentTypes::RenderComponentType:
-        RenderComponents[id] = static_cast<RenderComponent *>(comp);
+        RenderComponents[id] = std::dynamic_pointer_cast<RenderComponent>(comp);
         break;
     case ComponentTypes::LightingType:
-        LightingComponents[id] = static_cast<Lighting *>(comp);
+        LightingComponents[id] = std::dynamic_pointer_cast<Lighting>(comp);
         break;
     case ComponentTypes::EmitterType:
-        EmitterComponents[id] = static_cast<Emitter *>(comp);
+        EmitterComponents[id] = std::dynamic_pointer_cast<Emitter>(comp);
         break;
     default:
         std::cerr << "Component not set up for registry!" << std::endl;
@@ -42,7 +48,7 @@ void Registry::RegisterComponent(unsigned int id, Component *comp, ComponentType
     }
 }
 
-void Registry::RegisterComponent(const std::string &name, Component *comp, ComponentTypes type)
+void Registry::RegisterComponent(const std::string &name, std::shared_ptr<Component> comp, ComponentTypes type)
 {
     unsigned int id = GetEntityByName(name);
     RegisterComponent(id, comp, type);
@@ -59,7 +65,7 @@ bool Registry::LoadScene(const std::string &src)
         {
             const std::string &name = objectNode["name"].as<std::string>();
             unsigned int id = RegisterEntity(name);
-            Transform *transform = new Transform();
+            std::shared_ptr<Transform> transform = std::make_shared<Transform>();
             RegisterComponent(id, transform, ComponentTypes::TransformType);
             if (objectNode["transform"]["pos"])
             {
@@ -93,15 +99,15 @@ bool Registry::LoadScene(const std::string &src)
                         const std::string &lightName = componentNode["light"].as<std::string>();
 
                         unsigned int light = GetEntityByName(lightName);
-                        Transform *lightTrans = TransformComponents[light];
-                        Component *lightComp = new Lighting(shaderSrc, modelSrc, &transform->Color, lightTrans);
+                        std::shared_ptr<Transform> lightTrans = TransformComponents[light];
+                        std::shared_ptr<Component> lightComp = std::make_shared<Lighting>(shaderSrc, modelSrc, &transform->Color, lightTrans);
                         RegisterComponent(id, lightComp, ComponentTypes::LightingType);
                     }
                     else if (name == "emitter")
                     {
                         const std::string &shaderSrc = (const std::string &)(RES_PATH) + "/shaders/" + componentNode["shader"].as<std::string>();
                         const std::string &modelSrc = (const std::string &)(RES_PATH) + "/models/" + componentNode["model"].as<std::string>();
-                        Component *emitter = new Emitter(shaderSrc, modelSrc);
+                        std::shared_ptr<Component> emitter = std::make_shared<Emitter>(shaderSrc, modelSrc);
                         RegisterComponent(id, emitter, ComponentTypes::EmitterType);
                     }
                 }
