@@ -6,6 +6,8 @@
 #include "util/Shader.h"
 #include "util/Uniform.h"
 
+#include <memory>
+
 class RenderComponent : public Component
 {
 public:
