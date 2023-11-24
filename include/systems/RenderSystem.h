@@ -1,6 +1,6 @@
 #pragma once
 
-#include "entities/Camera.h"
+#include "Camera.h"
 #include "components/RenderComponent.h"
 
 class RenderSystem

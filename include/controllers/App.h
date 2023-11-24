@@ -6,7 +6,7 @@
 #include "controllers/ScriptManager.h"
 #include "controllers/Registry.h"
 
-#include "entities/Camera.h"
+#include "Camera.h"
 
 #include "systems/UI.h"
 #include "systems/RenderSystem.h"

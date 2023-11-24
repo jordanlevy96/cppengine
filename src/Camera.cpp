@@ -1,4 +1,4 @@
-#include "entities/Camera.h"
+#include "Camera.h"
 
 #include <iostream>
 
