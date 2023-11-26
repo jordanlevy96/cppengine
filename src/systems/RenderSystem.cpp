@@ -7,6 +7,8 @@ static Registry *registry = &Registry::GetInstance();
 
 void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
 {
+    std::cout << "Rendering " << id << std::endl;
+    std::shared_ptr<Transform> t = registry->TransformComponents[id];
     std::shared_ptr<RenderComponent> rc;
 
     if (registry->RenderComponents.find(id) != registry->RenderComponents.end())
@@ -15,14 +17,22 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
     }
     else if (registry->LightingComponents.find(id) != registry->LightingComponents.end())
     {
-        rc = registry->LightingComponents[id];
+        std::shared_ptr<Lighting> lightComp = registry->LightingComponents[id];
+        rc = lightComp->RC;
+
+        rc->AddUniform("lightPos", lightComp->LightTrans->Pos, UniformTypeMap::vec3);
+        rc->AddUniform("lightColor", lightComp->LightTrans->Color, UniformTypeMap::vec3);
+        rc->AddUniform("objectColor", *lightComp->ObjectColor, UniformTypeMap::vec3);
     }
     else if (registry->EmitterComponents.find(id) != registry->EmitterComponents.end())
     {
         rc = registry->EmitterComponents[id];
     }
 
-    std::shared_ptr<Transform> t = registry->TransformComponents[id];
+    if (rc == nullptr)
+    {
+        std::cerr << "Failed to retrieve RenderComponent for " << registry->entities[id] << std::endl;
+    }
 
     rc->shader->Use();
 
@@ -44,9 +54,10 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
     glm::mat4 View = glm::mat4(1.0f);
     View = glm::lookAt(cameraPos, cameraPos + cam->front, cam->up);
 
+    rc->AddUniform("model", t->GetMatrix(), UniformTypeMap::mat4);
     rc->AddUniform("view", View, UniformTypeMap::mat4);
     rc->AddUniform("projection", cam->Projection, UniformTypeMap::mat4);
-    rc->SetUniforms(t);
+    rc->shader->SetUniforms(rc->uniforms);
 
     glBindVertexArray(rc->mesh->VAO);
     glDrawElements(GL_TRIANGLES, rc->mesh->indices.size(), GL_UNSIGNED_INT, 0);

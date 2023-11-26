@@ -13,10 +13,7 @@ enum ComponentTypes
     EmitterType
 };
 
-class Component
+struct Component
 {
-public:
-    Component(){};
-    virtual ~Component(){};
-    virtual const std::string GetName() = 0;
+    virtual ComponentTypes GetType() const { return BaseComponentType; }
 };

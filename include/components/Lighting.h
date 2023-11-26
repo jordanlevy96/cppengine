@@ -3,13 +3,17 @@
 #include "components/RenderComponent.h"
 #include "components/Transform.h"
 
-class Lighting : public RenderComponent
+struct Lighting : public Component
 {
-public:
-    Lighting(const std::string &shaderSrc, const std::string &meshSrc, glm::vec3 *objColor, std::shared_ptr<Transform> lightTransformPointer) : RenderComponent(shaderSrc, meshSrc), objectColor(objColor), lightTrans(lightTransformPointer){};
-    void SetUniforms(std::shared_ptr<Transform> transform) override;
+    std::shared_ptr<RenderComponent> RC;
+    std::shared_ptr<Transform> LightTrans;
+    glm::vec3 *ObjectColor;
 
-private:
-    std::shared_ptr<Transform> lightTrans;
-    glm::vec3 *objectColor;
+    Lighting(const std::shared_ptr<RenderComponent> &rc, glm::vec3 *objColor, const std::shared_ptr<Transform> &lightTransformPointer)
+        : RC(rc), ObjectColor(objColor), LightTrans(lightTransformPointer) {}
+
+    ComponentTypes GetType() const override
+    {
+        return ComponentTypes::LightingType;
+    }
 };
