@@ -38,7 +38,9 @@ namespace std
     };
 }
 
+// Uniforms are compared by their names.
+// Two uniforms should never have the same name, and this is up to the developer to enforce.
 inline bool operator==(const UniformWrapper &lhs, const UniformWrapper &rhs)
 {
-    return lhs.name == rhs.name; // this might cause problems if two uniforms have the same name and different types. But that would be dumb!
+    return lhs.name == rhs.name;
 }

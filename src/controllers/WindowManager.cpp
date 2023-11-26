@@ -63,7 +63,7 @@ bool WindowManager::Initialize(int const width, int const height)
     return true;
 }
 
-void WindowManager::shutdown()
+void WindowManager::Shutdown()
 {
     delete callbacks;
     glfwDestroyWindow(window);
@@ -72,7 +72,7 @@ void WindowManager::shutdown()
 
 // This weird callback setup allows me to use lambdas, i.e. define the callbacks at runtime
 
-void WindowManager::setEventCallbacks(EventCallbacks *callbacks_in)
+void WindowManager::SetEventCallbacks(EventCallbacks *callbacks_in)
 {
     callbacks = callbacks_in;
     std::cout << "Callbacks set!" << std::endl;

@@ -47,6 +47,7 @@ Mesh::Mesh(const std::string &filepath)
                 attrib.normals[3 * index.normal_index + 2],
             };
 
+            // TODO: handle textures
             // glm::vec2 texCoord = {
             //     attrib.texcoords[2 * index.texcoord_index + 0],
             //     attrib.texcoords[2 * index.texcoord_index + 1],

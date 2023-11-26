@@ -7,7 +7,6 @@ static Registry *registry = &Registry::GetInstance();
 
 void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
 {
-    std::cout << "Rendering " << id << std::endl;
     std::shared_ptr<Transform> t = registry->TransformComponents[id];
     std::shared_ptr<RenderComponent> rc;
 
@@ -36,9 +35,7 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
 
     rc->shader->Use();
 
-    // Send Textures to GPU
     // TODO: set up texture/material component
-
     // GLenum gl_textures[] = {GL_TEXTURE0,
     //                         GL_TEXTURE1};
     // for (int i = 0; i < obj->model->textures.size(); i++)
@@ -46,7 +43,6 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
     //     glActiveTexture(gl_textures[i]);
     //     glBindTexture(GL_TEXTURE_2D, obj->model->textures[i]);
     // }
-
     // obj->shader->setInt("texture1", 0);
     // obj->shader->setInt("texture2", 1);
 

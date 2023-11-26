@@ -41,5 +41,3 @@ struct RenderComponent : public Component
         uniforms[uw] = u;
     }
 };
-
-// typedef RenderComponent RenderComponent_t;

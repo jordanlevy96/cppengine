@@ -3,14 +3,12 @@
 unsigned int Registry::RegisterEntity()
 {
     entities[i] = std::to_string(i);
-    std::cout << "Registered " << std::to_string(i) << std::endl;
     return i++;
 }
 
 unsigned int Registry::RegisterEntity(const std::string &name)
 {
     entities[i] = name;
-    std::cout << "Registered " << name << " as " << i << std::endl;
     return i++;
 }
 

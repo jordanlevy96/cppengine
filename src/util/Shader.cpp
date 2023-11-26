@@ -8,7 +8,7 @@
 
 static const int ERR_LOG_SIZE = 512;
 
-static ShaderProgramSource ParseShader(const std::string &filepath)
+static ShaderProgramSource parseShader(const std::string &filepath)
 {
     std::ifstream stream(filepath);
     if (!stream.is_open())
@@ -49,7 +49,7 @@ static ShaderProgramSource ParseShader(const std::string &filepath)
     return {ss[0].str(), ss[1].str()};
 }
 
-static unsigned int CompileShader(std::string source, int type)
+static unsigned int compileShader(std::string source, int type)
 {
     unsigned int shader;
     const char *src = source.c_str();
@@ -63,7 +63,7 @@ static unsigned int CompileShader(std::string source, int type)
     if (!success)
     {
         glGetShaderInfoLog(shader, 512, NULL, infoLog);
-        // if I ever use other types of shaders, they need to be added in the check here
+        // any new shader types need to be handled here and in the parser above
         const char *shader_type = type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT";
         std::cerr << "ERROR::SHADER::" << shader_type << "::COMPILATION_FAILED\n"
                   << infoLog << std::endl;
@@ -72,34 +72,36 @@ static unsigned int CompileShader(std::string source, int type)
     return shader;
 }
 
-void Shader::LinkShaders(unsigned int vertexShader, unsigned int fragmentShader)
+static unsigned int linkShaders(unsigned int vertexShader, unsigned int fragmentShader)
 {
-    ID = glCreateProgram();
-    glAttachShader(ID, vertexShader);
-    glAttachShader(ID, fragmentShader);
-    glLinkProgram(ID);
+    unsigned int id = glCreateProgram();
+    glAttachShader(id, vertexShader);
+    glAttachShader(id, fragmentShader);
+    glLinkProgram(id);
 
-    // check shader linking results
+    // error checking
     int success;
     char infoLog[ERR_LOG_SIZE];
-    glGetProgramiv(ID, GL_LINK_STATUS, &success);
+    glGetProgramiv(id, GL_LINK_STATUS, &success);
     if (!success)
     {
-        glGetProgramInfoLog(ID, 512, NULL, infoLog);
+        glGetProgramInfoLog(id, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::LINKING_FAILED\n"
                   << infoLog << std::endl;
     }
 
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    return id;
 }
 
 Shader::Shader(const std::string &filepath)
 {
-    ShaderProgramSource source = ParseShader(filepath);
-    unsigned int vertexShader = CompileShader(source.VertexSource, GL_VERTEX_SHADER);
-    unsigned int fragmentShader = CompileShader(source.FragmentSource, GL_FRAGMENT_SHADER);
-    LinkShaders(vertexShader, fragmentShader);
+    ShaderProgramSource source = parseShader(filepath);
+    unsigned int vertexShader = compileShader(source.VertexSource, GL_VERTEX_SHADER);
+    unsigned int fragmentShader = compileShader(source.FragmentSource, GL_FRAGMENT_SHADER);
+    ID = linkShaders(vertexShader, fragmentShader);
+    // cleanup; the shader data is stored inside the linked object, so these aren't needed anymore
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
 }
 
 Shader::~Shader()

@@ -46,8 +46,6 @@ namespace LuaBindings
 
         lua.new_usertype<Registry>("ObjectRegistry",
                                    "GetInstance", &Registry::GetInstance,
-                                   "GetEntityByName", &Registry::GetEntityByName
-                                   //    "RegisterFromLua", &Registry::RegisterFromLua
-        );
+                                   "GetEntityByName", &Registry::GetEntityByName);
     }
 }

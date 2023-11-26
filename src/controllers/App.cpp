@@ -3,11 +3,6 @@
 #include <iostream>
 #include <chrono>
 
-void process()
-{
-    // do game logic
-}
-
 static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -113,7 +108,7 @@ bool App::Initialize()
             scrollCallback(window, xoffset, yoffset);
         });
 
-    windowManager->setEventCallbacks(callbacks);
+    windowManager->SetEventCallbacks(callbacks);
 
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CW);
@@ -158,7 +153,7 @@ void App::Run()
 
         while (loopTime >= frameTime)
         {
-            process();
+            // do game logic here
             loopTime -= frameTime;
         }
 
@@ -197,5 +192,5 @@ void App::Shutdown()
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
-    windowManager->shutdown();
+    windowManager->Shutdown();
 }

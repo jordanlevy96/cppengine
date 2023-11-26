@@ -24,6 +24,7 @@ void UI::Shutdown()
     ImGui::DestroyContext();
 }
 
+// ImGUI Demo
 void UI::RenderWindow()
 {
     ImGuiIO &io = ImGui::GetIO();

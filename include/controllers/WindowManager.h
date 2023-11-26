@@ -36,17 +36,15 @@ public:
     void operator=(WindowManager const &) = delete;
 
     bool Initialize(int const width, int const height);
-    void shutdown();
+    void Shutdown();
 
-    void setEventCallbacks(EventCallbacks *callbacks);
+    void SetEventCallbacks(EventCallbacks *callbacks);
 
     GLFWwindow *window;
 
-protected:
-    EventCallbacks *callbacks;
-
 private:
     WindowManager(){};
+    EventCallbacks *callbacks;
     static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
     static void click_callback(GLFWwindow *window, int button, int action, int mods);
     static void cursorPos_callback(GLFWwindow *window, double xpos, double ypos);

@@ -3,8 +3,6 @@
 #include "Camera.h"
 #include "components/RenderComponent.h"
 
-#include "util/debug.h"
-
 class RenderSystem
 {
 public:
