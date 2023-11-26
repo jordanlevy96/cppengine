@@ -22,6 +22,7 @@ public:
     Registry(Registry const &) = delete;
     void operator=(Registry const &) = delete;
 
+    unsigned int RegisterEntity();
     unsigned int RegisterEntity(const std::string &name);
     void DestroyEntity(unsigned int id);
     unsigned int GetEntityByName(const std::string &name);

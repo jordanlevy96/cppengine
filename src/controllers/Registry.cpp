@@ -1,8 +1,16 @@
 #include "controllers/Registry.h"
 
+unsigned int Registry::RegisterEntity()
+{
+    entities[i] = std::to_string(i);
+    std::cout << "Registered " << std::to_string(i) << std::endl;
+    return i++;
+}
+
 unsigned int Registry::RegisterEntity(const std::string &name)
 {
     entities[i] = name;
+    std::cout << "Registered " << name << " as " << i << std::endl;
     return i++;
 }
 
@@ -100,7 +108,8 @@ bool Registry::LoadScene(const std::string &src)
 
                         unsigned int light = GetEntityByName(lightName);
                         std::shared_ptr<Transform> lightTrans = TransformComponents[light];
-                        std::shared_ptr<Component> lightComp = std::make_shared<Lighting>(shaderSrc, modelSrc, &transform->Color, lightTrans);
+                        std::shared_ptr<RenderComponent> rc = std::make_shared<RenderComponent>(shaderSrc, modelSrc);
+                        std::shared_ptr<Component> lightComp = std::make_shared<Lighting>(rc, &transform->Color, lightTrans);
                         RegisterComponent(id, lightComp, ComponentTypes::LightingType);
                     }
                     else if (name == "emitter")

@@ -106,3 +106,47 @@ Shader::~Shader()
 {
     glDeleteProgram(ID);
 }
+
+void Shader::SetUniforms(std::unordered_map<UniformWrapper, Uniform> uniforms)
+{
+    for (std::pair<UniformWrapper, Uniform> pair : uniforms)
+    {
+        std::string name = pair.first.name;
+        UniformTypeMap type = pair.first.type;
+        Uniform u = pair.second;
+
+        switch (type)
+        {
+        case UniformTypeMap::b:
+            SetBool(name, std::get<bool>(u));
+            break;
+        case UniformTypeMap::i:
+            SetInt(name, std::get<int>(u));
+            break;
+        case UniformTypeMap::f:
+            SetFloat(name, std::get<float>(u));
+            break;
+        case UniformTypeMap::vec2:
+            SetVec2(name, std::get<glm::vec2>(u));
+            break;
+        case UniformTypeMap::vec3:
+            SetVec3(name, std::get<glm::vec3>(u));
+            break;
+        case UniformTypeMap::vec4:
+            SetVec4(name, std::get<glm::vec4>(u));
+            break;
+        case UniformTypeMap::mat2:
+            SetMat2(name, std::get<glm::mat2>(u));
+            break;
+        case UniformTypeMap::mat3:
+            SetMat3(name, std::get<glm::mat3>(u));
+            break;
+        case UniformTypeMap::mat4:
+            SetMat4(name, std::get<glm::mat4>(u));
+            break;
+        default:
+            std::cerr << "Invalid Uniform Type!" << std::endl;
+            break;
+        }
+    }
+}

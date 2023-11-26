@@ -8,5 +8,6 @@ static const float WINDOW_HEIGHT = 600.0f;
 static const char *RES_PATH = "../res/";
 
 static const char *EMITTER_COMPONENT = "Emitter";
+static const char *LIGHTING_COMPONENT = "Lighting";
 static const char *RENDER_COMPONENT = "RenderComponent";
 static const char *TRANFORM = "Transform";

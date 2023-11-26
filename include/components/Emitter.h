@@ -2,12 +2,12 @@
 
 #include "components/RenderComponent.h"
 
-class Emitter : public RenderComponent
+struct Emitter : public RenderComponent
 {
-public:
     Emitter(const std::string &shaderSrc, const std::string &meshSrc) : RenderComponent(shaderSrc, meshSrc){};
-    const std::string GetName() override
+
+    ComponentTypes GetType() const override
     {
-        return EMITTER_COMPONENT;
+        return ComponentTypes::EmitterType;
     }
 };

@@ -12,26 +12,35 @@ namespace EulerAngles
     const glm::vec3 Yaw(0.0f, 1.0f, 0.0f);
 };
 
-class Transform : public Component
+struct Transform : public Component
 {
-public:
     glm::vec3 Pos = glm::vec3(1.0f);
     glm::vec3 Scale = glm::vec3(1.0f);
     glm::vec3 Eulers = glm::vec3(0.0f);
     glm::vec3 Color = glm::vec3(1.0f);
-
-    Transform(){};
-    ~Transform(){};
-
-    void Translate(glm::vec3 translate);
-    void Rotate(float degrees, glm::vec3 dir);
-    glm::mat4 GetMatrix() const;
-
-    const std::string GetName() override
+    glm::mat4 GetMatrix() const
     {
-        return TRANFORM;
-    };
+        glm::mat4 translation = glm::translate(glm::mat4(1.0f), Pos);
+        glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), Eulers.x, EulerAngles::Pitch) *
+                             glm::rotate(glm::mat4(1.0f), Eulers.y, EulerAngles::Yaw) *
+                             glm::rotate(glm::mat4(1.0f), Eulers.z, EulerAngles::Roll);
+        glm::mat4 scaling = glm::scale(glm::mat4(1.0f), Scale);
 
-private:
-    glm::mat4 transform = glm::mat4(1.0f);
+        return translation * rotation * scaling;
+    }
+
+    void Translate(glm::vec3 translate)
+    {
+        Pos += translate;
+    }
+
+    void Rotate(float degrees, glm::vec3 dir)
+    {
+        Eulers += degrees * dir;
+    }
+
+    ComponentTypes GetType() const override
+    {
+        return ComponentTypes::TransformType;
+    };
 };
