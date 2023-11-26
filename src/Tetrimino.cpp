@@ -2,13 +2,14 @@
 #include "controllers/Registry.h"
 
 #include <yaml-cpp/yaml.h>
+#include "util/debug.h"
 
 #include <iostream>
 
 static Registry *registry = &Registry::GetInstance();
 
-float spacingX = 1.0f;
-float spacingY = 1.0f;
+float spacingX = 2.0f;
+float spacingY = 2.0f;
 
 Tetrimino::Tetrimino(glm::mat4 matrix, std::shared_ptr<RenderComponent> rc)
 {
@@ -20,7 +21,6 @@ Tetrimino::Tetrimino(glm::mat4 matrix, std::shared_ptr<RenderComponent> rc)
             if (matrix[i][j] == 1)
             {
                 unsigned int cube = registry->RegisterEntity();
-                std::cout << "Registered " << cube << std::endl;
                 std::shared_ptr<Transform> t = std::make_shared<Transform>();
                 t->Pos.x = j * spacingX;
                 t->Pos.y = i * spacingY;
@@ -28,7 +28,7 @@ Tetrimino::Tetrimino(glm::mat4 matrix, std::shared_ptr<RenderComponent> rc)
 
                 std::shared_ptr<Transform> light = registry->TransformComponents[registry->GetEntityByName("light")];
                 std::shared_ptr<Lighting> lightComp = std::make_shared<Lighting>(rc, &t->Color, light);
-                registry->RegisterComponent(cube, lightComp, ComponentTypes::RenderComponentType);
+                registry->RegisterComponent(cube, lightComp, ComponentTypes::LightingType);
 
                 cubes[cubeIndex++] = cube;
             }
