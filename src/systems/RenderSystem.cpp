@@ -19,9 +19,10 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
         std::shared_ptr<Lighting> lightComp = registry->LightingComponents[id];
         rc = lightComp->RC;
 
-        rc->AddUniform("lightPos", lightComp->LightTrans->Pos, UniformTypeMap::vec3);
-        rc->AddUniform("lightColor", lightComp->LightTrans->Color, UniformTypeMap::vec3);
         rc->AddUniform("objectColor", *lightComp->ObjectColor, UniformTypeMap::vec3);
+        rc->AddUniform("lightColor", lightComp->LightTrans->Color, UniformTypeMap::vec3);
+        rc->AddUniform("lightPos", lightComp->LightTrans->Pos, UniformTypeMap::vec3);
+        rc->AddUniform("viewPos", cam->transform.Pos, UniformTypeMap::vec3);
     }
     else if (registry->EmitterComponents.find(id) != registry->EmitterComponents.end())
     {
