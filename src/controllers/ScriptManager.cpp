@@ -35,7 +35,6 @@ namespace LuaBindings
 
     void RegisterTypes(sol::state &lua)
     {
-
         lua.new_usertype<glm::vec3>("vec3",
                                     sol::call_constructor, sol::constructors<glm::vec3(), glm::vec3(float), glm::vec3(float, float, float)>());
 

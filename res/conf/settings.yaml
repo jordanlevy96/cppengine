@@ -1,0 +1,10 @@
+input:
+  keyMappings:
+    spinLeft: [Z, ArrowUp]
+    spinRight: [X]
+    down: [ArrowDown]
+    left: [ArrowLeft]
+    right: [ArrowRight]
+    place: [Space]
+    pause: [ESC, p]
+  scriptPath: input.lua
