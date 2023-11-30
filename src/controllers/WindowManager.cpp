@@ -2,9 +2,64 @@
 
 #include <iostream>
 
+std::unordered_map<int, std::string> keyMap = {
+    // WASD
+    {GLFW_KEY_W, "W"},
+    {GLFW_KEY_A, "A"},
+    {GLFW_KEY_S, "S"},
+    {GLFW_KEY_D, "D"},
+
+    // Numbers
+    {GLFW_KEY_0, "0"},
+    {GLFW_KEY_1, "1"},
+    // ... (Continue for all number keys)
+
+    // Function Keys
+    {GLFW_KEY_F1, "F1"},
+    {GLFW_KEY_F2, "F2"},
+    // ... (Continue for all function keys)
+
+    // Arrow Keys
+    {GLFW_KEY_UP, "ArrowUp"},
+    {GLFW_KEY_DOWN, "ArrowDown"},
+    {GLFW_KEY_LEFT, "ArrowLeft"},
+    {GLFW_KEY_RIGHT, "ArrowRight"},
+
+    // Special Keys
+    {GLFW_KEY_ESCAPE, "Escape"},
+    {GLFW_KEY_ENTER, "Enter"},
+    {GLFW_KEY_TAB, "Tab"},
+    {GLFW_KEY_BACKSPACE, "Backspace"},
+    {GLFW_KEY_INSERT, "Insert"},
+    {GLFW_KEY_DELETE, "Delete"},
+    {GLFW_KEY_RIGHT_SHIFT, "RightShift"},
+    {GLFW_KEY_LEFT_SHIFT, "LeftShift"},
+    {GLFW_KEY_RIGHT_CONTROL, "RightControl"},
+    {GLFW_KEY_LEFT_CONTROL, "LeftControl"},
+    {GLFW_KEY_RIGHT_ALT, "RightAlt"},
+    {GLFW_KEY_LEFT_ALT, "LeftAlt"},
+    {GLFW_KEY_SPACE, "Space"},
+    {GLFW_KEY_PAGE_UP, "PageUp"},
+    {GLFW_KEY_PAGE_DOWN, "PageDown"},
+    {GLFW_KEY_HOME, "Home"},
+    {GLFW_KEY_END, "End"},
+    {GLFW_KEY_CAPS_LOCK, "CapsLock"},
+    {GLFW_KEY_SCROLL_LOCK, "ScrollLock"},
+    {GLFW_KEY_NUM_LOCK, "NumLock"},
+    {GLFW_KEY_PRINT_SCREEN, "PrintScreen"},
+    {GLFW_KEY_PAUSE, "Pause"},
+
+    // Numpad Keys
+    {GLFW_KEY_KP_0, "Numpad0"},
+    {GLFW_KEY_KP_1, "Numpad1"},
+    // ... (Continue for all numpad keys)
+};
+
+#define GLFW_KEY(x) (keyMap.count(x) ? keyMap[x] : "Unknown")
+
 void error_callback(int error, const char *description)
 {
-    fprintf(stderr, "Error %d: %s\n", error, description);
+    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
 bool WindowManager::Initialize(int const width, int const height)
@@ -65,60 +120,71 @@ bool WindowManager::Initialize(int const width, int const height)
 
 void WindowManager::Shutdown()
 {
-    delete callbacks;
     glfwDestroyWindow(window);
     glfwTerminate();
 }
 
-// This weird callback setup allows me to use lambdas, i.e. define the callbacks at runtime
-
-void WindowManager::SetEventCallbacks(EventCallbacks *callbacks_in)
+void WindowManager::CloseWindow()
 {
-    callbacks = callbacks_in;
-    std::cout << "Callbacks set!" << std::endl;
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
+}
+
+glm::vec2 WindowManager::GetSize()
+{
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    return glm::vec2(width, height);
 }
 
 void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-    WindowManager *instance = &WindowManager::GetInstance();
-    if (instance && instance->callbacks)
+    if (action == GLFW_PRESS || action == GLFW_REPEAT)
     {
-        instance->callbacks->keyCallback(window, key, scancode, action, mods);
+        ScriptManager &sm = ScriptManager::GetInstance();
+        InputEvent event;
+        event.type = InputTypes::Key;
+        event.input = GLFW_KEY(key);
+
+        sm.AddToTable(EVENT_QUEUE, event);
     }
 }
 
 void WindowManager::click_callback(GLFWwindow *window, int button, int action, int mods)
 {
-    WindowManager *instance = &WindowManager::GetInstance();
-    if (instance && instance->callbacks)
-    {
-        instance->callbacks->clickCallback(window, button, action, mods);
-    }
+    ScriptManager &sm = ScriptManager::GetInstance();
+    InputEvent event;
+    event.type = InputTypes::Click;
+    event.input = "click";
+
+    sm.AddToTable(EVENT_QUEUE, event);
 }
 
 void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double ypos)
 {
-    WindowManager *instance = &WindowManager::GetInstance();
-    if (instance && instance->callbacks)
-    {
-        instance->callbacks->cursorPosCallback(window, xpos, ypos);
-    }
+    ScriptManager &sm = ScriptManager::GetInstance();
+    InputEvent event;
+    event.type = InputTypes::Cursor;
+    event.input = glm::vec2(xpos, ypos);
+
+    sm.AddToTable(EVENT_QUEUE, event);
 }
 
 void WindowManager::resize_callback(GLFWwindow *window, int in_width, int in_height)
 {
-    WindowManager *instance = &WindowManager::GetInstance();
-    if (instance && instance->callbacks)
-    {
-        instance->callbacks->resizeCallback(window, in_width, in_height);
-    }
+    ScriptManager &sm = ScriptManager::GetInstance();
+    InputEvent event;
+    event.type = InputTypes::Resize;
+    event.input = glm::vec2(in_width, in_height);
+
+    sm.AddToTable(EVENT_QUEUE, event);
 }
 
 void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
-    WindowManager *instance = &WindowManager::GetInstance();
-    if (instance && instance->callbacks)
-    {
-        instance->callbacks->scrollCallback(window, xoffset, yoffset);
-    }
+    ScriptManager &sm = ScriptManager::GetInstance();
+    InputEvent event;
+    event.type = InputTypes::Scroll;
+    event.input = glm::vec2(xoffset, yoffset);
+
+    sm.AddToTable(EVENT_QUEUE, event);
 }

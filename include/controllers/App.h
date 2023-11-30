@@ -3,7 +3,6 @@
 #include "components/RenderComponent.h"
 
 #include "controllers/WindowManager.h"
-#include "controllers/ScriptManager.h"
 #include "controllers/Registry.h"
 
 #include "Camera.h"
@@ -37,7 +36,9 @@ public:
     bool Initialize();
     void Shutdown();
     void Run();
+    void CloseWindow();
 
 private:
     App(){};
+    bool LoadConfig();
 };
