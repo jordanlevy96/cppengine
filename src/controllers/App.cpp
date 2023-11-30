@@ -3,20 +3,6 @@
 #include <iostream>
 #include <chrono>
 
-// static void cursorPosCallback(GLFWwindow *window, double xpos, double ypos)
-// {
-//     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-//     {
-//         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-//         App &app = App::GetInstance();
-//         app.cam->RotateByMouse(xpos, ypos);
-//     }
-//     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
-//     {
-//         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-//     }
-// }
-
 // static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 // {
 //     App &app = App::GetInstance();
@@ -127,11 +113,6 @@ void App::Run()
     }
 
     std::cout << "Exited main loop" << std::endl;
-}
-
-void App::CloseWindow()
-{
-    glfwSetWindowShouldClose(windowManager->window, GLFW_TRUE);
 }
 
 bool App::LoadConfig()

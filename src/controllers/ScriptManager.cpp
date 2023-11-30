@@ -1,3 +1,4 @@
+#include "Camera.h"
 #include "controllers/App.h"
 #include "controllers/Registry.h"
 #include "controllers/ScriptManager.h"
@@ -54,18 +55,41 @@ namespace LuaBindings
                      "CURSOR", InputTypes::Cursor,
                      "RESIZE", InputTypes::Resize,
                      "SCROLL", InputTypes::Scroll);
+
+        lua.new_enum("CameraDirections",
+                     "FORWARD", CameraDirections::FORWARD,
+                     "BACK", CameraDirections::BACK,
+                     "LEFT", CameraDirections::LEFT,
+                     "RIGHT", CameraDirections::RIGHT);
     }
 
     void RegisterTypes(sol::state &lua)
     {
+        lua.new_usertype<glm::vec2>("vec2",
+                                    sol::call_constructor, sol::constructors<glm::vec2(float, float)>(),
+                                    "x", &glm::vec2::x,
+                                    "y", &glm::vec2::y);
+
         lua.new_usertype<glm::vec3>("vec3",
                                     sol::call_constructor, sol::constructors<glm::vec3(), glm::vec3(float), glm::vec3(float, float, float)>());
 
+        lua.new_usertype<Camera>("Camera",
+                                 "transform", &Camera::transform,
+                                 "fov", &Camera::fov,
+                                 "SetPerspective", &Camera::SetPerspective,
+                                 "Move", &Camera::Move,
+                                 "RotateByMouse", &Camera::RotateByMouse);
+
         lua.new_usertype<App>("App",
                               "GetInstance", &App::GetInstance,
+                              "delta", &App::delta,
                               "registry", &App::registry,
-                              "cam", &App::cam,
-                              "CloseWindow", &App::CloseWindow);
+                              "camera", &App::cam,
+                              "window", &App::windowManager);
+
+        lua.new_usertype<WindowManager>("Window",
+                                        "CloseWindow", &WindowManager::CloseWindow,
+                                        "GetSize", &WindowManager::GetSize);
 
         lua.new_usertype<Registry>("Registry",
                                    "GetInstance", &Registry::GetInstance,

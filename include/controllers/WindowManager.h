@@ -4,6 +4,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 #include <functional>
 
@@ -19,7 +20,7 @@ enum InputTypes
 struct InputEvent
 {
     int type;
-    std::string input;
+    std::variant<std::string, glm::vec2> input;
 };
 
 class WindowManager
@@ -36,6 +37,9 @@ public:
 
     bool Initialize(int const width, int const height);
     void Shutdown();
+    void CloseWindow();
+
+    glm::vec2 GetSize();
 
     GLFWwindow *window;
 
