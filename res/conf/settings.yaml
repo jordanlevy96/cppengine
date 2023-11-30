@@ -1,0 +1,11 @@
+input:
+  keyMappings:
+    forward: [W, ArrowUp]
+    left: [A, ArrowLeft]
+    back: [S, ArrowDown]
+    right: [D, ArrowRight]
+    turn: [Space]
+    quit: [ESC]
+    zoomIn: [ScrollUp]
+    zoomOut: [ScrollDown]
+  scriptPath: input.lua

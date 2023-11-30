@@ -1,5 +1,6 @@
 {
   "files.associations": {
+    "*.toml": "toml",
     "chrono": "cpp",
     "array": "cpp",
     "atomic": "cpp",
@@ -71,7 +72,8 @@
     "mutex": "cpp",
     "stack": "cpp",
     "strstream": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "internal.h": "c"
   },
   "nuxt.isNuxtApp": false
 }

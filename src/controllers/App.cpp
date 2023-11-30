@@ -3,72 +3,36 @@
 #include <iostream>
 #include <chrono>
 
-static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-    {
-        std::cout << "User Closed with ESC" << std::endl;
-        glfwSetWindowShouldClose(window, GL_TRUE);
-        return;
-    }
+// static void cursorPosCallback(GLFWwindow *window, double xpos, double ypos)
+// {
+//     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+//     {
+//         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+//         App &app = App::GetInstance();
+//         app.cam->RotateByMouse(xpos, ypos);
+//     }
+//     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+//     {
+//         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+//     }
+// }
 
-    App &app = App::GetInstance();
-    Camera *cam = app.cam;
+// static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
+// {
+//     App &app = App::GetInstance();
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cam->Move(CameraDirections::FORWARD, app.delta);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cam->Move(CameraDirections::BACK, app.delta);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cam->Move(CameraDirections::LEFT, app.delta);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cam->Move(CameraDirections::RIGHT, app.delta);
+//     int width, height;
+//     glfwGetWindowSize(app.windowManager->window, &width, &height);
 
-    // up and down
-    if (key == GLFW_KEY_Z)
-    {
-        app.cam->Translate(glm::vec3(0.0f, -0.05f, 0.0f));
-    }
-    if (key == GLFW_KEY_X)
-    {
-        app.cam->Translate(glm::vec3(0.0f, 0.05f, 0.0f));
-    }
-}
+//     Camera *cam = app.cam;
+//     float fov = cam->fov - (float)yoffset;
+//     if (fov < 1.0f)
+//         fov = 1.0f;
+//     if (fov > 45.0f)
+//         fov = 45.0f;
 
-static void clickCallback(GLFWwindow *window, int button, int action, int mods) {}
-
-static void cursorPosCallback(GLFWwindow *window, double xpos, double ypos)
-{
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS)
-    {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        App &app = App::GetInstance();
-        app.cam->RotateByMouse(xpos, ypos);
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SUPER) == GLFW_RELEASE)
-    {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-}
-
-static void resizeCallback(GLFWwindow *window, int in_width, int in_height) {}
-
-static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
-{
-    App &app = App::GetInstance();
-
-    int width, height;
-    glfwGetWindowSize(app.windowManager->window, &width, &height);
-
-    Camera *cam = app.cam;
-    float fov = cam->fov - (float)yoffset;
-    if (fov < 1.0f)
-        fov = 1.0f;
-    if (fov > 45.0f)
-        fov = 45.0f;
-
-    cam->SetPerspective(fov, width, height);
-}
+//     cam->SetPerspective(fov, width, height);
+// }
 
 bool App::Initialize()
 {
@@ -86,35 +50,14 @@ bool App::Initialize()
 
     cam = new Camera();
 
-    EventCallbacks *callbacks = new EventCallbacks(
-        [](GLFWwindow *window, int key, int scancode, int action, int mods)
-        {
-            keyCallback(window, key, scancode, action, mods);
-        },
-        [](GLFWwindow *window, int button, int action, int mods)
-        {
-            clickCallback(window, button, action, mods);
-        },
-        [](GLFWwindow *window, double xpos, double ypos)
-        {
-            cursorPosCallback(window, xpos, ypos);
-        },
-        [](GLFWwindow *window, int in_width, int in_height)
-        {
-            resizeCallback(window, in_width, in_height);
-        },
-        [](GLFWwindow *window, double xoffset, double yoffset)
-        {
-            scrollCallback(window, xoffset, yoffset);
-        });
-
-    windowManager->SetEventCallbacks(callbacks);
-
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CW);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     registry = &Registry::GetInstance();
+    lua = &ScriptManager::GetInstance();
+    lua->Initialize();
+    lua->CreateTable(EVENT_QUEUE);
 
     return true;
 }
@@ -131,13 +74,14 @@ void App::Run()
     loopTime = 0.0;
 
     /* --------- Initial State --------- */
-    registry->LoadScene("../res/conf/example.yaml");
+    registry->LoadScene("../res/scenes/example.yaml");
 
     while (!glfwWindowShouldClose(windowManager->window))
     {
         /* ------------- Main Loop -------------
             1. Process Game Logic
-            2. Render Pipeline
+            2. Input Handling
+            3. Render Pipeline
             Render order:
                 1. Background
                 2. GameObjects
@@ -156,6 +100,8 @@ void App::Run()
             // do game logic here
             loopTime -= frameTime;
         }
+
+        lua->ProcessInput();
 
         // ensure window scaling is up to date before running render pipeline
         int width, height;
@@ -183,9 +129,40 @@ void App::Run()
     std::cout << "Exited main loop" << std::endl;
 }
 
+void App::CloseWindow()
+{
+    glfwSetWindowShouldClose(windowManager->window, GLFW_TRUE);
+}
+
+bool App::LoadConfig()
+{
+    YAML::Node config = YAML::LoadFile("../res/conf/settings.yaml");
+    YAML::Node keyMappings = config["input"]["keyMappings"];
+    YAML::Node script = config["input"]["scriptPath"];
+
+    // TODO: better error handling
+    if (!config || !keyMappings || !script)
+    {
+        std::cerr << "Failed to read config from res/conf/settings.yaml" << std::endl;
+        return false;
+    }
+
+    std::vector<std::string> actions;
+
+    for (auto key : keyMappings)
+    {
+        std::string action = key.first.as<std::string>();
+        actions.push_back(action);
+    }
+
+    std::string scriptPath = config["input"]["scriptPath"].as<std::string>();
+
+    // LoadLuaScript(scriptPath);
+    return true;
+}
+
 void App::Shutdown()
 {
-    delete lua;
     delete cam;
 
     ImGui_ImplOpenGL3_Shutdown();

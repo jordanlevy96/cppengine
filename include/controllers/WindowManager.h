@@ -1,26 +1,25 @@
 #pragma once
 
+#include "controllers/ScriptManager.h"
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <functional>
 
-struct EventCallbacks
+enum InputTypes
 {
-    std::function<void(GLFWwindow *window, int key, int scancode, int action, int mods)> keyCallback = nullptr;
-    std::function<void(GLFWwindow *window, int button, int action, int mods)> clickCallback = nullptr;
-    std::function<void(GLFWwindow *window, double xpos, double ypos)> cursorPosCallback = nullptr;
-    std::function<void(GLFWwindow *window, int in_width, int in_height)> resizeCallback = nullptr;
-    std::function<void(GLFWwindow *window, double xoffset, double yoffset)> scrollCallback = nullptr;
-    EventCallbacks(
-        std::function<void(GLFWwindow *, int, int, int, int)> key,
-        std::function<void(GLFWwindow *, int, int, int)> click,
-        std::function<void(GLFWwindow *, double, double)> cursor,
-        std::function<void(GLFWwindow *, int, int)> resize,
-        std::function<void(GLFWwindow *, double, double)> scroll)
-        : keyCallback(key), clickCallback(click), cursorPosCallback(cursor), resizeCallback(resize), scrollCallback(scroll)
-    {
-    }
+    Key,
+    Click,
+    Cursor,
+    Resize,
+    Scroll
+};
+
+struct InputEvent
+{
+    int type;
+    std::string input;
 };
 
 class WindowManager
@@ -38,13 +37,10 @@ public:
     bool Initialize(int const width, int const height);
     void Shutdown();
 
-    void SetEventCallbacks(EventCallbacks *callbacks);
-
     GLFWwindow *window;
 
 private:
     WindowManager(){};
-    EventCallbacks *callbacks;
     static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
     static void click_callback(GLFWwindow *window, int button, int action, int mods);
     static void cursorPos_callback(GLFWwindow *window, double xpos, double ypos);
