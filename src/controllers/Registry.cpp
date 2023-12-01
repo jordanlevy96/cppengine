@@ -48,6 +48,9 @@ void Registry::RegisterComponent(unsigned int id, std::shared_ptr<Component> com
     case ComponentTypes::EmitterType:
         EmitterComponents[id] = std::dynamic_pointer_cast<Emitter>(comp);
         break;
+    case ComponentTypes::CompositeType:
+        CompositeComponents[id] = std::dynamic_pointer_cast<CompositeEntity>(comp);
+        break;
     default:
         std::cerr << "Component not set up for registry!" << std::endl;
         break;

@@ -1,12 +1,10 @@
 #pragma once
 
+#include "Camera.h"
+#include "Tetrimino.h"
 #include "components/RenderComponent.h"
-
 #include "controllers/WindowManager.h"
 #include "controllers/Registry.h"
-
-#include "Camera.h"
-
 #include "systems/UI.h"
 #include "systems/RenderSystem.h"
 

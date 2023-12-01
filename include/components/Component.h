@@ -10,7 +10,8 @@ enum ComponentTypes
     TransformType,
     RenderComponentType,
     LightingType,
-    EmitterType
+    EmitterType,
+    CompositeType
 };
 
 struct Component

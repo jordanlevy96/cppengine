@@ -1,15 +1,10 @@
 #pragma once
 
+#include "controllers/ResourceManager.h"
 #include "components/Component.h"
-#include "components/Transform.h"
-#include "util/Mesh.h"
-#include "util/Shader.h"
 #include "util/Uniform.h"
 
 #include <memory>
-
-static std::unordered_map<std::string, std::shared_ptr<Shader>> shaders;
-static std::unordered_map<std::string, std::shared_ptr<Mesh>> meshes;
 
 struct RenderComponent : public Component
 {
@@ -19,17 +14,8 @@ struct RenderComponent : public Component
 
     RenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
     {
-        if (shaders.find(shaderSrc) == shaders.end())
-        {
-            shaders[shaderSrc] = std::make_shared<Shader>(shaderSrc);
-        }
-        shader = shaders[shaderSrc];
-
-        if (meshes.find(meshSrc) == meshes.end())
-        {
-            meshes[meshSrc] = std::make_shared<Mesh>(meshSrc);
-        }
-        mesh = meshes[meshSrc];
+        shader = ResourceManager::GetInstance().GetShader(shaderSrc);
+        mesh = ResourceManager::GetInstance().GetMesh(meshSrc);
     }
     ComponentTypes GetType() const override
     {
