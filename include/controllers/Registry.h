@@ -1,5 +1,6 @@
 #pragma once
 
+#include "components/CompositeEntity.h"
 #include "components/Emitter.h"
 #include "components/Lighting.h"
 #include "components/RenderComponent.h"
@@ -30,6 +31,7 @@ public:
     void RegisterComponent(const std::string &name, std::shared_ptr<Component> comp, ComponentTypes type);
     bool LoadScene(const std::string &src);
 
+    std::unordered_map<unsigned int, std::shared_ptr<CompositeEntity>> CompositeComponents;
     std::unordered_map<unsigned int, std::shared_ptr<Lighting>> LightingComponents;
     std::unordered_map<unsigned int, std::shared_ptr<RenderComponent>> RenderComponents;
     std::unordered_map<unsigned int, std::shared_ptr<Transform>> TransformComponents;

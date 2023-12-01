@@ -28,6 +28,11 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
     {
         rc = registry->EmitterComponents[id];
     }
+    else
+    {
+        // No RenderComponent = nothing to render (children are rendered separately)
+        return;
+    }
 
     if (rc == nullptr)
     {
