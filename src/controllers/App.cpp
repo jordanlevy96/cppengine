@@ -1,5 +1,4 @@
 #include "controllers/App.h"
-#include "Tetrimino.h"
 
 #include <iostream>
 #include <chrono>
@@ -62,9 +61,9 @@ void App::Run()
 
     /* --------- Initial State --------- */
     registry->LoadScene("../res/scenes/example.yaml");
-    std::unordered_map<TetriminoShape, glm::mat4> tetriminoMap = Tetrimino::LoadTetriminos("../res/conf/tetriminos.yaml");
-    std::shared_ptr<RenderComponent> cubeComp = std::make_shared<RenderComponent>("../res/shaders/Lighting.shader", "../res/models/cube.obj");
-    Tetrimino test = Tetrimino(tetriminoMap[TetriminoShape::T], cubeComp);
+    Tetrimino::cubeComp = std::make_shared<RenderComponent>("../res/shaders/Lighting.shader", "../res/models/cube.obj");
+    std::unordered_map<Tetrimino::TetriminoShape, glm::mat4> tetriminoMap = Tetrimino::LoadTetriminos("../res/conf/tetriminos.yaml");
+    unsigned int t = Tetrimino::RegisterTetrimino(tetriminoMap[Tetrimino::TetriminoShape::L]);
 
     while (!glfwWindowShouldClose(windowManager->window))
     {
