@@ -6,9 +6,8 @@
 
 #include <iostream>
 
-void ScriptManager::Run(const char *scriptSrc)
+void ScriptManager::Run(const std::string &scriptSrc)
 {
-    lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math);
     lua.script_file(scriptSrc);
 }
 
@@ -17,6 +16,7 @@ void ScriptManager::Initialize()
     LuaBindings::RegisterEnums(lua);
     LuaBindings::RegisterTypes(lua);
     LuaBindings::RegisterFunctions(lua);
+    lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math);
 
     Run("../res/scripts/init.lua");
 }
@@ -38,17 +38,6 @@ namespace LuaBindings
 {
     void RegisterEnums(sol::state &lua)
     {
-        lua.new_enum("UniformTypeMap",
-                     "BOOL", UniformTypeMap::b,
-                     "INT", UniformTypeMap::i,
-                     "FLOAT", UniformTypeMap::f,
-                     "VEC2", UniformTypeMap::vec2,
-                     "VEC3", UniformTypeMap::vec3,
-                     "VEC4", UniformTypeMap::vec4,
-                     "MAT2", UniformTypeMap::mat2,
-                     "MAT3", UniformTypeMap::mat3,
-                     "MAT4", UniformTypeMap::mat4);
-
         lua.new_enum("InputTypes",
                      "KEY", InputTypes::Key,
                      "CLICK", InputTypes::Click,

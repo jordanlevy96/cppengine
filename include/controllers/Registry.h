@@ -3,6 +3,7 @@
 #include "components/CompositeEntity.h"
 #include "components/Lighting.h"
 #include "components/RenderComponent.h"
+#include "components/ScriptComponent.h"
 #include "components/Transform.h"
 #include "util/globals.h"
 
@@ -64,5 +65,6 @@ private:
     std::unordered_map<unsigned int, std::shared_ptr<CompositeEntity>> CompositeComponents;
     std::unordered_map<unsigned int, std::shared_ptr<Lighting>> LightingComponents;
     std::unordered_map<unsigned int, std::shared_ptr<RenderComponent>> RenderComponents;
+    std::unordered_map<unsigned int, std::shared_ptr<ScriptComponent>> ScriptComponents;
     std::unordered_map<unsigned int, std::shared_ptr<Transform>> TransformComponents;
 };
