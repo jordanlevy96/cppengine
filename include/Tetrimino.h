@@ -34,5 +34,4 @@ namespace Tetrimino
 
     unsigned int RegisterTetrimino(glm::mat4 matrix);
     std::unordered_map<TetriminoShape, glm::mat4> LoadTetriminos(const std::string &src);
-    void Rotate(unsigned int id);
 }
