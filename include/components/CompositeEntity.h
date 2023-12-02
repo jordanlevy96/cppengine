@@ -1,9 +1,11 @@
 #pragma once
 
-#include "components/Component.h"
 #include "components/Transform.h"
 
-struct CompositeEntity : Component
+#include <vector>
+#include <memory>
+
+struct CompositeEntity
 {
     std::vector<unsigned int> children;
     std::shared_ptr<Transform> transform;
@@ -12,8 +14,4 @@ struct CompositeEntity : Component
     {
         children.push_back(id);
     }
-    ComponentTypes GetType() const override
-    {
-        return ComponentTypes::CompositeType;
-    };
 };

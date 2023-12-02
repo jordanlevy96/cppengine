@@ -1,7 +1,5 @@
 #pragma once
 
-#include "components/Component.h"
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -12,7 +10,7 @@ namespace EulerAngles
     const glm::vec3 Yaw(0.0f, 1.0f, 0.0f);
 };
 
-struct Transform : public Component
+struct Transform
 {
     glm::vec3 Pos = glm::vec3(1.0f);
     glm::vec3 Scale = glm::vec3(1.0f);

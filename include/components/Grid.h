@@ -1,8 +1,8 @@
 #pragma once
 
-#include "components/Component.h"
+#include <vector>
 
-struct Grid : public Component
+struct Grid
 {
     std::vector<std::vector<bool>> cells;
     Grid(int width, int height) : cells(height, std::vector<bool>(width, false)) {}

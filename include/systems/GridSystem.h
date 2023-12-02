@@ -4,4 +4,6 @@
 
 class GridSystem
 {
+public:
+    static void Update(float delta);
 };

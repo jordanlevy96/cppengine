@@ -3,7 +3,7 @@
 #include "components/RenderComponent.h"
 #include "components/Transform.h"
 
-struct Lighting : public Component
+struct Lighting
 {
     std::shared_ptr<RenderComponent> RC;
     std::shared_ptr<Transform> LightTrans;

@@ -26,8 +26,20 @@ public:
 
     bool LoadScene(const std::string &src);
 
-    void RegisterComponent(const std::string &name, std::shared_ptr<Component> comp, ComponentTypes type);
-    void RegisterComponent(unsigned int id, std::shared_ptr<Component> comp, ComponentTypes type);
+    template <typename T>
+    void RegisterComponent(const std::string &name, std::shared_ptr<T> comp)
+    {
+        unsigned int id = GetEntityByName(name);
+        RegisterComponent(id, comp);
+    }
+
+    template <typename T>
+    void RegisterComponent(unsigned int id, std::shared_ptr<T> comp)
+    {
+        auto &componentMap = GetComponentMap<T>();
+        componentMap[id] = comp;
+    }
+
     template <typename T>
     std::shared_ptr<T> GetComponent(unsigned int entityID)
     {

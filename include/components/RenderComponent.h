@@ -1,12 +1,11 @@
 #pragma once
 
 #include "controllers/ResourceManager.h"
-#include "components/Component.h"
 #include "util/Uniform.h"
 
 #include <memory>
 
-struct RenderComponent : public Component
+struct RenderComponent
 {
     std::shared_ptr<Shader> shader;
     std::shared_ptr<Mesh> mesh;

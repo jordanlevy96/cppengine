@@ -2,13 +2,16 @@
 
 unsigned int Registry::RegisterEntity()
 {
-    entities[i] = std::to_string(i);
-    return i++;
+    std::string name = std::to_string(i);
+
+    return RegisterEntity(name);
 }
 
 unsigned int Registry::RegisterEntity(const std::string &name)
 {
     entities[i] = name;
+    std::shared_ptr<Transform> t = std::make_shared<Transform>();
+    RegisterComponent(i, t);
     return i++;
 }
 
@@ -32,34 +35,6 @@ unsigned int Registry::GetEntityByName(const std::string &name)
     }
 
     return -1;
-}
-
-void Registry::RegisterComponent(unsigned int id, std::shared_ptr<Component> comp, ComponentTypes type)
-{
-    switch (type)
-    {
-    case (ComponentTypes::TransformType):
-        TransformComponents[id] = std::dynamic_pointer_cast<Transform>(comp);
-        break;
-    case ComponentTypes::RenderComponentType:
-        RenderComponents[id] = std::dynamic_pointer_cast<RenderComponent>(comp);
-        break;
-    case ComponentTypes::LightingType:
-        LightingComponents[id] = std::dynamic_pointer_cast<Lighting>(comp);
-        break;
-    case ComponentTypes::CompositeType:
-        CompositeComponents[id] = std::dynamic_pointer_cast<CompositeEntity>(comp);
-        break;
-    default:
-        std::cerr << "Component not set up for registry!" << std::endl;
-        break;
-    }
-}
-
-void Registry::RegisterComponent(const std::string &name, std::shared_ptr<Component> comp, ComponentTypes type)
-{
-    unsigned int id = GetEntityByName(name);
-    RegisterComponent(id, comp, type);
 }
 
 template <>
@@ -97,8 +72,7 @@ bool Registry::LoadScene(const std::string &src)
         {
             const std::string &name = objectNode["name"].as<std::string>();
             unsigned int id = RegisterEntity(name);
-            std::shared_ptr<Transform> transform = std::make_shared<Transform>();
-            RegisterComponent(id, transform, ComponentTypes::TransformType);
+            std::shared_ptr<Transform> transform = GetComponent<Transform>(id);
             if (objectNode["transform"]["pos"])
             {
                 transform->Pos.x = objectNode["transform"]["pos"]["x"].as<float>();
@@ -131,17 +105,17 @@ bool Registry::LoadScene(const std::string &src)
                         const std::string &lightName = componentNode["light"].as<std::string>();
 
                         unsigned int light = GetEntityByName(lightName);
-                        std::shared_ptr<Transform> lightTrans = TransformComponents[light];
+                        std::shared_ptr<Transform> lightTrans = GetComponent<Transform>(light);
                         std::shared_ptr<RenderComponent> rc = std::make_shared<RenderComponent>(shaderSrc, modelSrc);
-                        std::shared_ptr<Component> lightComp = std::make_shared<Lighting>(rc, &transform->Color, lightTrans);
-                        RegisterComponent(id, lightComp, ComponentTypes::LightingType);
+                        std::shared_ptr<Lighting> lightComp = std::make_shared<Lighting>(rc, &transform->Color, lightTrans);
+                        RegisterComponent<Lighting>(id, lightComp);
                     }
                     else if (name == "RenderComponent")
                     {
                         const std::string &shaderSrc = (const std::string &)(RES_PATH) + "/shaders/" + componentNode["shader"].as<std::string>();
                         const std::string &modelSrc = (const std::string &)(RES_PATH) + "/models/" + componentNode["model"].as<std::string>();
-                        std::shared_ptr<Component> rc = std::make_shared<RenderComponent>(shaderSrc, modelSrc);
-                        RegisterComponent(id, rc, ComponentTypes::RenderComponentType);
+                        std::shared_ptr<RenderComponent> rc = std::make_shared<RenderComponent>(shaderSrc, modelSrc);
+                        RegisterComponent<RenderComponent>(id, rc);
                     }
                 }
             }
