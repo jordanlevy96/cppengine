@@ -15,10 +15,9 @@ std::shared_ptr<RenderComponent> Tetrimino::cubeComp = nullptr;
 unsigned int Tetrimino::RegisterTetrimino(glm::mat4 matrix)
 {
     unsigned int id = registry->RegisterEntity();
-    std::shared_ptr<Transform> parentTransform = std::make_shared<Transform>();
+    std::shared_ptr<Transform> parentTransform = registry->GetComponent<Transform>(id);
     std::shared_ptr<CompositeEntity> wrapper = std::make_shared<CompositeEntity>();
-    registry->RegisterComponent(id, parentTransform, ComponentTypes::TransformType);
-    registry->RegisterComponent(id, wrapper, ComponentTypes::CompositeType);
+    registry->RegisterComponent<CompositeEntity>(id, wrapper);
 
     for (int i = 0; i < 4; i++)
     {
@@ -27,14 +26,13 @@ unsigned int Tetrimino::RegisterTetrimino(glm::mat4 matrix)
             if (matrix[i][j] == 1)
             {
                 unsigned int cube = registry->RegisterEntity();
-                std::shared_ptr<Transform> t = std::make_shared<Transform>();
+                std::shared_ptr<Transform> t = registry->GetComponent<Transform>(cube);
                 t->Pos.x = j * spacingX;
                 t->Pos.y = i * spacingY;
-                registry->RegisterComponent(cube, t, ComponentTypes::TransformType);
 
                 std::shared_ptr<Transform> light = registry->GetComponent<Transform>(registry->GetEntityByName("light"));
                 std::shared_ptr<Lighting> lightComp = std::make_shared<Lighting>(Tetrimino::cubeComp, &t->Color, light);
-                registry->RegisterComponent(cube, lightComp, ComponentTypes::LightingType);
+                registry->RegisterComponent<Lighting>(cube, lightComp);
 
                 wrapper->AddChild(cube);
             }

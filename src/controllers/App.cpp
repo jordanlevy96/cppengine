@@ -1,4 +1,5 @@
 #include "controllers/App.h"
+#include "Tetrimino.h"
 
 #include "util/TransformUtils.h"
 
@@ -49,7 +50,7 @@ void App::Run()
     Tetrimino::cubeComp = std::make_shared<RenderComponent>("../res/shaders/Lighting.shader", "../res/models/cube.obj");
     std::unordered_map<Tetrimino::TetriminoShape, glm::mat4> tetriminoMap = Tetrimino::LoadTetriminos("../res/conf/tetriminos.yaml");
     unsigned int t = Tetrimino::RegisterTetrimino(tetriminoMap[Tetrimino::TetriminoShape::T]);
-    Tetrimino::Rotate(t);
+    TransformUtils::rotate(t, 90.0f, EulerAngles::Pitch);
 
     while (!glfwWindowShouldClose(windowManager->window))
     {

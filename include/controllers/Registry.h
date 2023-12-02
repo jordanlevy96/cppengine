@@ -19,7 +19,9 @@ public:
         return instance;
     }
 
+    // Registers a new entity and corresponding Transform where name = id
     unsigned int RegisterEntity();
+    // Registers a new entity and corresponding Transform
     unsigned int RegisterEntity(const std::string &name);
     unsigned int GetEntityByName(const std::string &name);
     void DestroyEntity(unsigned int id);
