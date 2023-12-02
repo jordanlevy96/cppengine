@@ -18,7 +18,6 @@ void Registry::DestroyEntity(unsigned int id)
     LightingComponents.erase(id);
     RenderComponents.erase(id);
     TransformComponents.erase(id);
-    EmitterComponents.erase(id);
     entities.erase(id);
 }
 
@@ -47,9 +46,6 @@ void Registry::RegisterComponent(unsigned int id, std::shared_ptr<Component> com
         break;
     case ComponentTypes::LightingType:
         LightingComponents[id] = std::dynamic_pointer_cast<Lighting>(comp);
-        break;
-    case ComponentTypes::EmitterType:
-        EmitterComponents[id] = std::dynamic_pointer_cast<Emitter>(comp);
         break;
     case ComponentTypes::CompositeType:
         CompositeComponents[id] = std::dynamic_pointer_cast<CompositeEntity>(comp);
@@ -88,12 +84,6 @@ template <>
 std::unordered_map<unsigned int, std::shared_ptr<Transform>> &Registry::GetComponentMap<Transform>()
 {
     return TransformComponents;
-}
-
-template <>
-std::unordered_map<unsigned int, std::shared_ptr<Emitter>> &Registry::GetComponentMap<Emitter>()
-{
-    return EmitterComponents;
 }
 
 bool Registry::LoadScene(const std::string &src)
@@ -146,12 +136,12 @@ bool Registry::LoadScene(const std::string &src)
                         std::shared_ptr<Component> lightComp = std::make_shared<Lighting>(rc, &transform->Color, lightTrans);
                         RegisterComponent(id, lightComp, ComponentTypes::LightingType);
                     }
-                    else if (name == "emitter")
+                    else if (name == "RenderComponent")
                     {
                         const std::string &shaderSrc = (const std::string &)(RES_PATH) + "/shaders/" + componentNode["shader"].as<std::string>();
                         const std::string &modelSrc = (const std::string &)(RES_PATH) + "/models/" + componentNode["model"].as<std::string>();
-                        std::shared_ptr<Component> emitter = std::make_shared<Emitter>(shaderSrc, modelSrc);
-                        RegisterComponent(id, emitter, ComponentTypes::EmitterType);
+                        std::shared_ptr<Component> rc = std::make_shared<RenderComponent>(shaderSrc, modelSrc);
+                        RegisterComponent(id, rc, ComponentTypes::RenderComponentType);
                     }
                 }
             }

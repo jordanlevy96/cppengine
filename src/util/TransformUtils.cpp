@@ -15,15 +15,15 @@ void TransformUtils::translate(unsigned int entity, const glm::vec3 &translation
 
 void TransformUtils::rotate(unsigned int entity, float angle, const glm::vec3 &axis)
 {
-    std::shared_ptr<Transform> transform = registry->GetComponent<Transform>(entity);
-    if (transform)
+    glm::quat deltaRotation = glm::angleAxis(glm::radians(angle), glm::normalize(axis));
+    std::shared_ptr<Transform> parentTransform = registry->GetComponent<Transform>(entity);
+
+    if (parentTransform)
     {
-        glm::quat deltaRotation = glm::angleAxis(glm::radians(angle), glm::normalize(axis));
-        transform->Rotation = glm::normalize(deltaRotation * transform->Rotation);
+        parentTransform->Rotation = glm::normalize(deltaRotation * parentTransform->Rotation);
     }
 
     std::shared_ptr<CompositeEntity> composite = registry->GetComponent<CompositeEntity>(entity);
-
     if (composite)
     {
         for (unsigned int childId : composite->children)
@@ -31,11 +31,13 @@ void TransformUtils::rotate(unsigned int entity, float angle, const glm::vec3 &a
             std::shared_ptr<Transform> childTransform = registry->GetComponent<Transform>(childId);
             if (childTransform)
             {
-                glm::vec3 relativePos = childTransform->Pos - transform->Pos;
-                glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), angle, axis);
-                glm::vec4 rotatedPos = rotationMatrix * glm::vec4(relativePos, 1.0f);
+                // Assuming parent's position is the rotation pivot for the entire composite entity
+                glm::vec3 relativePos = childTransform->Pos - parentTransform->Pos;
+                glm::quat rotatedPos = deltaRotation * glm::quat(0.0f, relativePos.x, relativePos.y, relativePos.z) * glm::conjugate(deltaRotation);
+                childTransform->Pos = parentTransform->Pos + glm::vec3(rotatedPos.x, rotatedPos.y, rotatedPos.z);
 
-                childTransform->Pos = glm::vec3(rotatedPos) + transform->Pos;
+                // Recursively rotate child entities
+                TransformUtils::rotate(childId, angle, axis);
             }
         }
     }

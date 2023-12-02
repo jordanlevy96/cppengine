@@ -1,7 +1,6 @@
 #pragma once
 
 #include "components/CompositeEntity.h"
-#include "components/Emitter.h"
 #include "components/Lighting.h"
 #include "components/RenderComponent.h"
 #include "components/Transform.h"
@@ -52,5 +51,4 @@ private:
     std::unordered_map<unsigned int, std::shared_ptr<Lighting>> LightingComponents;
     std::unordered_map<unsigned int, std::shared_ptr<RenderComponent>> RenderComponents;
     std::unordered_map<unsigned int, std::shared_ptr<Transform>> TransformComponents;
-    std::unordered_map<unsigned int, std::shared_ptr<Emitter>> EmitterComponents;
 };

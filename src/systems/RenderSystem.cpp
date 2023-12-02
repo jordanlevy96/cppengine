@@ -23,7 +23,6 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
     if (!rc)
     {
         std::shared_ptr<Lighting> lightComp = registry->GetComponent<Lighting>(id);
-        std::shared_ptr<Emitter> emitter = registry->GetComponent<Emitter>(id);
         if (lightComp)
         {
             rc = lightComp->RC;
@@ -32,10 +31,6 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
             rc->AddUniform("lightColor", lightComp->LightTrans->Color, UniformTypeMap::vec3);
             rc->AddUniform("lightPos", lightComp->LightTrans->Pos, UniformTypeMap::vec3);
             rc->AddUniform("viewPos", cam->transform.Pos, UniformTypeMap::vec3);
-        }
-        else if (emitter)
-        {
-            rc = emitter;
         }
         else
         {

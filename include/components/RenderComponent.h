@@ -17,10 +17,6 @@ struct RenderComponent : public Component
         shader = ResourceManager::GetInstance().GetShader(shaderSrc);
         mesh = ResourceManager::GetInstance().GetMesh(meshSrc);
     }
-    ComponentTypes GetType() const override
-    {
-        return ComponentTypes::RenderComponentType;
-    }
     void AddUniform(std::string name, Uniform u, UniformTypeMap type)
     {
         UniformWrapper uw = {name, type};
