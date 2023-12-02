@@ -63,7 +63,8 @@ void App::Run()
     registry->LoadScene("../res/scenes/example.yaml");
     Tetrimino::cubeComp = std::make_shared<RenderComponent>("../res/shaders/Lighting.shader", "../res/models/cube.obj");
     std::unordered_map<Tetrimino::TetriminoShape, glm::mat4> tetriminoMap = Tetrimino::LoadTetriminos("../res/conf/tetriminos.yaml");
-    unsigned int t = Tetrimino::RegisterTetrimino(tetriminoMap[Tetrimino::TetriminoShape::L]);
+    unsigned int t = Tetrimino::RegisterTetrimino(tetriminoMap[Tetrimino::TetriminoShape::T]);
+    Tetrimino::Rotate(t);
 
     while (!glfwWindowShouldClose(windowManager->window))
     {
