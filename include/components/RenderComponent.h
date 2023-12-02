@@ -1,12 +1,11 @@
 #pragma once
 
 #include "controllers/ResourceManager.h"
-#include "components/Component.h"
 #include "util/Uniform.h"
 
 #include <memory>
 
-struct RenderComponent : public Component
+struct RenderComponent
 {
     std::shared_ptr<Shader> shader;
     std::shared_ptr<Mesh> mesh;
@@ -16,10 +15,6 @@ struct RenderComponent : public Component
     {
         shader = ResourceManager::GetInstance().GetShader(shaderSrc);
         mesh = ResourceManager::GetInstance().GetMesh(meshSrc);
-    }
-    ComponentTypes GetType() const override
-    {
-        return ComponentTypes::RenderComponentType;
     }
     void AddUniform(std::string name, Uniform u, UniformTypeMap type)
     {

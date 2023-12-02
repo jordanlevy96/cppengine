@@ -1,24 +1,9 @@
 #include "controllers/App.h"
 
+#include "util/TransformUtils.h"
+
 #include <iostream>
 #include <chrono>
-
-// static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
-// {
-//     App &app = App::GetInstance();
-
-//     int width, height;
-//     glfwGetWindowSize(app.windowManager->window, &width, &height);
-
-//     Camera *cam = app.cam;
-//     float fov = cam->fov - (float)yoffset;
-//     if (fov < 1.0f)
-//         fov = 1.0f;
-//     if (fov > 45.0f)
-//         fov = 45.0f;
-
-//     cam->SetPerspective(fov, width, height);
-// }
 
 bool App::Initialize()
 {

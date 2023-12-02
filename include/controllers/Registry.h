@@ -1,7 +1,6 @@
 #pragma once
 
 #include "components/CompositeEntity.h"
-#include "components/Emitter.h"
 #include "components/Lighting.h"
 #include "components/RenderComponent.h"
 #include "components/Transform.h"
@@ -27,8 +26,20 @@ public:
 
     bool LoadScene(const std::string &src);
 
-    void RegisterComponent(const std::string &name, std::shared_ptr<Component> comp, ComponentTypes type);
-    void RegisterComponent(unsigned int id, std::shared_ptr<Component> comp, ComponentTypes type);
+    template <typename T>
+    void RegisterComponent(const std::string &name, std::shared_ptr<T> comp)
+    {
+        unsigned int id = GetEntityByName(name);
+        RegisterComponent(id, comp);
+    }
+
+    template <typename T>
+    void RegisterComponent(unsigned int id, std::shared_ptr<T> comp)
+    {
+        auto &componentMap = GetComponentMap<T>();
+        componentMap[id] = comp;
+    }
+
     template <typename T>
     std::shared_ptr<T> GetComponent(unsigned int entityID)
     {
@@ -52,5 +63,4 @@ private:
     std::unordered_map<unsigned int, std::shared_ptr<Lighting>> LightingComponents;
     std::unordered_map<unsigned int, std::shared_ptr<RenderComponent>> RenderComponents;
     std::unordered_map<unsigned int, std::shared_ptr<Transform>> TransformComponents;
-    std::unordered_map<unsigned int, std::shared_ptr<Emitter>> EmitterComponents;
 };
