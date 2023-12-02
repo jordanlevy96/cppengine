@@ -14,9 +14,12 @@ unsigned int Registry::RegisterEntity(const std::string &name)
 
 void Registry::DestroyEntity(unsigned int id)
 {
+    CompositeComponents.erase(id);
     LightingComponents.erase(id);
     RenderComponents.erase(id);
     TransformComponents.erase(id);
+    EmitterComponents.erase(id);
+    entities.erase(id);
 }
 
 unsigned int Registry::GetEntityByName(const std::string &name)
@@ -61,6 +64,36 @@ void Registry::RegisterComponent(const std::string &name, std::shared_ptr<Compon
 {
     unsigned int id = GetEntityByName(name);
     RegisterComponent(id, comp, type);
+}
+
+template <>
+std::unordered_map<unsigned int, std::shared_ptr<CompositeEntity>> &Registry::GetComponentMap<CompositeEntity>()
+{
+    return CompositeComponents;
+}
+
+template <>
+std::unordered_map<unsigned int, std::shared_ptr<Lighting>> &Registry::GetComponentMap<Lighting>()
+{
+    return LightingComponents;
+}
+
+template <>
+std::unordered_map<unsigned int, std::shared_ptr<RenderComponent>> &Registry::GetComponentMap<RenderComponent>()
+{
+    return RenderComponents;
+}
+
+template <>
+std::unordered_map<unsigned int, std::shared_ptr<Transform>> &Registry::GetComponentMap<Transform>()
+{
+    return TransformComponents;
+}
+
+template <>
+std::unordered_map<unsigned int, std::shared_ptr<Emitter>> &Registry::GetComponentMap<Emitter>()
+{
+    return EmitterComponents;
 }
 
 bool Registry::LoadScene(const std::string &src)
