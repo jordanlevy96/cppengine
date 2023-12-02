@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Camera.h"
-#include "Tetrimino.h"
 #include "components/RenderComponent.h"
 #include "controllers/WindowManager.h"
 #include "controllers/Registry.h"

@@ -1,42 +1,47 @@
 #include "systems/RenderSystem.h"
 #include "controllers/Registry.h"
+#include "util/TransformUtils.h"
 
 #include <glad/glad.h>
 
 static Registry *registry = &Registry::GetInstance();
 
+void RenderSystem::Update(Camera *cam, float delta)
+{
+    for (std::pair<unsigned int, std::string> pair : registry->entities)
+    {
+        unsigned int id = pair.first;
+        RenderSystem::RenderEntity(id, cam);
+    }
+}
+
 void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
 {
-    std::shared_ptr<Transform> t = registry->TransformComponents[id];
-    std::shared_ptr<RenderComponent> rc;
+    std::shared_ptr<Transform> t = registry->GetComponent<Transform>(id);
+    std::shared_ptr<RenderComponent> rc = registry->GetComponent<RenderComponent>(id);
 
-    if (registry->RenderComponents.find(id) != registry->RenderComponents.end())
+    if (!rc)
     {
-        rc = registry->RenderComponents[id];
-    }
-    else if (registry->LightingComponents.find(id) != registry->LightingComponents.end())
-    {
-        std::shared_ptr<Lighting> lightComp = registry->LightingComponents[id];
-        rc = lightComp->RC;
+        std::shared_ptr<Lighting> lightComp = registry->GetComponent<Lighting>(id);
+        std::shared_ptr<Emitter> emitter = registry->GetComponent<Emitter>(id);
+        if (lightComp)
+        {
+            rc = lightComp->RC;
 
-        rc->AddUniform("objectColor", *lightComp->ObjectColor, UniformTypeMap::vec3);
-        rc->AddUniform("lightColor", lightComp->LightTrans->Color, UniformTypeMap::vec3);
-        rc->AddUniform("lightPos", lightComp->LightTrans->Pos, UniformTypeMap::vec3);
-        rc->AddUniform("viewPos", cam->transform.Pos, UniformTypeMap::vec3);
-    }
-    else if (registry->EmitterComponents.find(id) != registry->EmitterComponents.end())
-    {
-        rc = registry->EmitterComponents[id];
-    }
-    else
-    {
-        // No RenderComponent = nothing to render (children are rendered separately)
-        return;
-    }
-
-    if (rc == nullptr)
-    {
-        std::cerr << "Failed to retrieve RenderComponent for " << registry->entities[id] << std::endl;
+            rc->AddUniform("objectColor", *lightComp->ObjectColor, UniformTypeMap::vec3);
+            rc->AddUniform("lightColor", lightComp->LightTrans->Color, UniformTypeMap::vec3);
+            rc->AddUniform("lightPos", lightComp->LightTrans->Pos, UniformTypeMap::vec3);
+            rc->AddUniform("viewPos", cam->transform.Pos, UniformTypeMap::vec3);
+        }
+        else if (emitter)
+        {
+            rc = emitter;
+        }
+        else
+        {
+            // No RenderComponent = nothing to render (children are rendered separately)
+            return;
+        }
     }
 
     rc->shader->Use();
@@ -55,8 +60,9 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
     glm::vec3 cameraPos = cam->transform.Pos;
     glm::mat4 View = glm::mat4(1.0f);
     View = glm::lookAt(cameraPos, cameraPos + cam->front, cam->up);
+    glm::mat4 Model = TransformUtils::calculateMatrix(t);
 
-    rc->AddUniform("model", t->GetMatrix(), UniformTypeMap::mat4);
+    rc->AddUniform("model", Model, UniformTypeMap::mat4);
     rc->AddUniform("view", View, UniformTypeMap::mat4);
     rc->AddUniform("projection", cam->Projection, UniformTypeMap::mat4);
     rc->shader->SetUniforms(rc->uniforms);
