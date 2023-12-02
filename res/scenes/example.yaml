@@ -7,7 +7,7 @@ scene:
         pos: { x: -4, y: 6, z: 10 }
         scale: { x: 0.2, y: 0.2, z: 0.2 }
       components:
-        - name: "RenderComponent"
+        - type: "RenderComponent"
           shader: "Basic.shader"
           model: "cube.obj"
 
@@ -16,7 +16,12 @@ scene:
         scale: { x: 10.0, y: 10.0, z: 10.0 }
         color: { r: 1.0, g: 0.5, b: 0.31 }
       components:
-        - name: "lighting"
+        - type: "Lighting"
           shader: "Lighting.shader"
           model: "xbunny.obj"
           light: "light"
+
+    - name: "Example"
+      components:
+        - type: "Script"
+          script: "Example.lua"

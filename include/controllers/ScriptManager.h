@@ -18,13 +18,13 @@ public:
     void operator=(ScriptManager const &) = delete;
 
     void Initialize();
-    void Run(const char *scriptSrc);
+    void Run(const std::string &scriptSrc);
 
     void CreateTable(const std::string &key)
     {
         sol::table targetTable = lua.create_table();
         lua[key] = targetTable;
-    }
+    };
 
     template <typename T>
     void AddToTable(const std::string &tableName, const T &value)
@@ -36,13 +36,18 @@ public:
             return;
         }
         table.add(value);
-    }
+    };
 
     template <typename T>
     void SetScriptVar(const std::string &key, const T &value)
     {
         lua[key] = value;
-    }
+    };
+
+    sol::table GetLuaTable(const std::string &className)
+    {
+        return lua[className];
+    };
 
     void ProcessInput();
 

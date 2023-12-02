@@ -5,6 +5,7 @@
 #include "controllers/WindowManager.h"
 #include "controllers/Registry.h"
 #include "systems/UI.h"
+#include "systems/ScriptSystem.h"
 #include "systems/RenderSystem.h"
 
 #include "util/globals.h"

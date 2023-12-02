@@ -52,10 +52,11 @@ void App::Run()
         /* ------------- Main Loop -------------
             1. Process Game Logic
             2. Input Handling
-            3. Render Pipeline
+            3. Other Systems (Script)
+            4. Render Pipeline
             Render order:
                 1. Background
-                2. GameObjects
+                2. GameObjects (RenderSystem)
                 3. UI
         */
 
@@ -73,6 +74,7 @@ void App::Run()
         }
 
         lua->ProcessInput();
+        ScriptSystem::Update(delta);
 
         // ensure window scaling is up to date before running render pipeline
         int width, height;
