@@ -1,6 +1,15 @@
 #include "controllers/Registry.h"
 #include "controllers/ScriptManager.h"
 
+void Registry::Shutdown()
+{
+    for (auto entity : entities)
+    {
+        unsigned int id = entity.first;
+        DestroyEntity(id);
+    }
+}
+
 unsigned int Registry::RegisterEntity()
 {
     std::string name = std::to_string(i);
@@ -135,7 +144,20 @@ bool Registry::LoadScene(const std::string &src)
                         // Be careful with this ready call, if it relies on stuff that hasn't been initialized yet, it'll fail.
                         sm.Run(scriptSrc);
                         sol::table scriptClass = sm.GetLuaTable(name);
-                        scriptClass["ready"]();
+                        for (const auto &property : componentNode)
+                        {
+                            std::string key = property.first.as<std::string>();
+                            // "type" and "script" are already handled above
+                            if (key == "type" || key == "script")
+                            {
+                                continue;
+                            }
+
+                            // Assume all other keys are meant as strings for the Lua script
+                            scriptClass[key] = property.second.as<std::string>();
+                        }
+
+                        scriptClass["ready"](scriptClass);
                         std::shared_ptr<ScriptComponent> sc = std::make_shared<ScriptComponent>(scriptSrc, scriptClass);
                         RegisterComponent<ScriptComponent>(id, sc);
                     }
@@ -149,4 +171,25 @@ bool Registry::LoadScene(const std::string &src)
         std::cerr << "YAML parsing error: " << e.what() << std::endl;
         return false;
     }
+}
+
+// For Lua scripting
+
+std::shared_ptr<RenderComponent> Registry::CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
+{
+    std::string shaderPath = (RES_PATH) + "/shaders/" + shaderSrc;
+    std::string meshPath = (RES_PATH) + "/models/" + meshSrc;
+
+    return std::make_shared<RenderComponent>(shaderPath, meshPath);
+}
+
+void Registry::CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 pos, glm::vec3 color)
+{
+    // static reference to registry for Lua binding
+    Registry *r = &GetInstance();
+    int id = r->RegisterEntity();
+    std::shared_ptr<Transform> transform = r->GetComponent<Transform>(id);
+    transform->Pos = pos;
+    transform->Color = color;
+    r->RegisterComponent<RenderComponent>(id, cubeComp);
 }

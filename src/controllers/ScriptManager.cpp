@@ -92,6 +92,7 @@ namespace LuaBindings
 
     void RegisterFunctions(sol::state &lua)
     {
-        // lua.set_function("CloseWindow", &App::CloseWindow);
+        lua.set_function("CreateRenderComponent", &Registry::CreateRenderComponent);
+        lua.set_function("CreateCube", &Registry::CreateCube);
     }
 }

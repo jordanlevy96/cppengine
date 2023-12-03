@@ -23,9 +23,8 @@ void main()
 out vec4 FragColor;
   
 in vec2 TexCoord;
-// in vec3 Normal;
 
-// uniform vec3 lightPos;
+uniform vec3 objectColor;
 
 // uniform sampler2D texture_diffuse1;
 // uniform sampler2D texture2;
@@ -33,5 +32,5 @@ in vec2 TexCoord;
 void main()
 {
     // FragColor = texture(texture_diffuse1, TexCoord);
-    FragColor = vec4(1.0);
+    FragColor = vec4(objectColor, 1.0);
 }
