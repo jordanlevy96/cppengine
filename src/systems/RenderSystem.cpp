@@ -38,6 +38,11 @@ void RenderSystem::RenderEntity(unsigned int id, Camera *cam)
             return;
         }
     }
+    else
+    {
+        // Basic.shader
+        rc->AddUniform("objectColor", t->Color, UniformTypeMap::vec3);
+    }
 
     rc->shader->Use();
 

@@ -20,12 +20,18 @@ public:
         return instance;
     }
 
+    void Shutdown();
+
+    // Registers a new entity and corresponding Transform where name = id
     unsigned int RegisterEntity();
+    // Registers a new entity and corresponding Transform
     unsigned int RegisterEntity(const std::string &name);
     unsigned int GetEntityByName(const std::string &name);
     void DestroyEntity(unsigned int id);
 
     bool LoadScene(const std::string &src);
+    static std::shared_ptr<RenderComponent> CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc);
+    static void CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 pos, glm::vec3 color);
 
     template <typename T>
     void RegisterComponent(const std::string &name, std::shared_ptr<T> comp)

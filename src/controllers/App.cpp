@@ -127,6 +127,9 @@ bool App::LoadConfig()
 
 void App::Shutdown()
 {
+    registry->Shutdown();
+
+    delete lua;
     delete cam;
 
     ImGui_ImplOpenGL3_Shutdown();
