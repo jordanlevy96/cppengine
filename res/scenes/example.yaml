@@ -22,7 +22,10 @@ scene:
           model: "xbunny.obj"
           light: "light"
 
-    - name: "TetrisGrid" # this name must be the same as the corresponding script
+    - name: "TetrisGrid"
       components:
         - type: "Script"
           script: "TetrisGrid.lua"
+          borderShader: "Basic.shader"
+          gameObjectShader: "Lighting.shader"
+          model: "cube.obj"
