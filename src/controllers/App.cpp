@@ -46,9 +46,9 @@ void App::Run()
     loopTime = 0.0;
 
     /* --------- Initial State --------- */
-    registry->LoadScene("../res/scenes/example.yaml");
-    Tetrimino::cubeComp = std::make_shared<RenderComponent>("../res/shaders/Lighting.shader", "../res/models/cube.obj");
-    std::unordered_map<Tetrimino::TetriminoShape, glm::mat4> tetriminoMap = Tetrimino::LoadTetriminos("../res/conf/tetriminos.yaml");
+    registry->LoadScene(RES_PATH + "/scenes/example.yaml");
+    Tetrimino::cubeComp = std::make_shared<RenderComponent>(RES_PATH + "/shaders/Lighting.shader", RES_PATH + "/models/cube.obj");
+    std::unordered_map<Tetrimino::TetriminoShape, glm::mat4> tetriminoMap = Tetrimino::LoadTetriminos(RES_PATH + "/conf/tetriminos.yaml");
     unsigned int t = Tetrimino::RegisterTetrimino(tetriminoMap[Tetrimino::TetriminoShape::T]);
     TransformUtils::rotate(t, 90.0f, EulerAngles::Pitch);
 
@@ -132,10 +132,10 @@ bool App::LoadConfig()
 
 void App::Shutdown()
 {
-    registry->Shutdown();
-
-    delete lua;
     delete cam;
+
+    lua->Shutdown();
+    registry->Shutdown();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

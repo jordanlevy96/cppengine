@@ -25,6 +25,7 @@ set(OpenGL_GL_PREFERENCE "GLVND") # get latest version
 find_package(OpenGL REQUIRED)
 
 add_subdirectory(external/yaml-cpp)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as static library" FORCE)
 add_subdirectory(external/lua-cmake)
 add_subdirectory(external/sol2)
 
@@ -46,17 +47,23 @@ if (APPLE)
     FetchContent_MakeAvailable(GLAD)
 
 elseif(WIN32)
-    add_subdirectory(external/glad)
+    # add_subdirectory(external/glad)
     include(FetchContent)
 
-	# Specify where to get GLFW and what version to use
+    FetchContent_Declare(
+        GLAD
+        URL https://github.com/Dav1dde/glad/archive/master.zip
+    )
+
+    FetchContent_MakeAvailable(GLAD)
+
 	FetchContent_Declare(
 		GLFW
 		GIT_REPOSITORY https://github.com/glfw/glfw.git
-		GIT_TAG 3.3.8 # Specify Release Version
-	)
-	# Get and build GLFW
+		GIT_TAG 3.3.8 	
+    )
 	FetchContent_MakeAvailable(GLFW)
+
 else() # Linux
     add_subdirectory(external/glad)
     find_package(glfw3 REQUIRED)
@@ -65,16 +72,14 @@ endif()
 
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
 
-# Add ImGui source files to your project
 add_library(imgui
-    ${IMGUI_DIR}/imgui.cpp
-    ${IMGUI_DIR}/imgui_demo.cpp # TODO: remove this
-    ${IMGUI_DIR}/imgui_draw.cpp
-    ${IMGUI_DIR}/imgui_tables.cpp
-    ${IMGUI_DIR}/imgui_widgets.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-    # Add other ImGui source files as needed
+	${IMGUI_DIR}/imgui.cpp
+	${IMGUI_DIR}/imgui_demo.cpp # TODO: remove this
+	${IMGUI_DIR}/imgui_draw.cpp
+	${IMGUI_DIR}/imgui_tables.cpp
+	${IMGUI_DIR}/imgui_widgets.cpp
+	${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+	${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 )
 target_include_directories(imgui PUBLIC ${IMGUI_DIR})
 target_link_libraries(imgui PUBLIC glfw)
@@ -83,9 +88,16 @@ include_directories(
     include
     external/headers
     external/glad/include
+    external/yaml-cpp/include
     external/lua-cmake/upstream
     external/sol2/include
+    ${GLFW_DIR}
+    ${IMGUI_DIR}
     )
+
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+    yaml-cpp::yaml-cpp
+)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE external/glm)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE yaml-cpp glad glfw imgui lua sol2)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glfw lua sol2 imgui)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})

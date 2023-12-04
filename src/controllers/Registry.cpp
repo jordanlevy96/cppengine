@@ -5,8 +5,8 @@ void Registry::Shutdown()
 {
     for (auto entity : entities)
     {
-        unsigned int id = entity.first;
-        DestroyEntity(id);
+		unsigned int id = entity.first;
+		DestroyEntity(id);
     }
 }
 
@@ -30,8 +30,9 @@ void Registry::DestroyEntity(unsigned int id)
     CompositeComponents.erase(id);
     LightingComponents.erase(id);
     RenderComponents.erase(id);
+    ScriptComponents.erase(id);
     TransformComponents.erase(id);
-    entities.erase(id);
+    // entities.erase(id);
 }
 
 unsigned int Registry::GetEntityByName(const std::string &name)

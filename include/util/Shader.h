@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <glad/glad.h>
 
+#include <unordered_map>
 #include <string>
 
 struct ShaderProgramSource

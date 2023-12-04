@@ -1,5 +1,5 @@
 GameManager = App:GetInstance()
 CameraRotateFlag = false
 
-dofile("../res/scripts/input.lua")
+dofile("C:/Users/jorda/Documents/cppengine/res/scripts/input.lua")
 print("Loaded init.lua")

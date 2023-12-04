@@ -6,6 +6,7 @@
       "type": "default",
       "project": "CMakeLists.txt",
       "projectTarget": "cppengine.exe",
+      "workingDirectory": "${projectDir}\\build",
       "name": "cppengine.exe"
     }
   ]
