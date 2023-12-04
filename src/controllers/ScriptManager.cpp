@@ -22,9 +22,10 @@ void ScriptManager::Initialize()
     Run(RES_PATH + "/scripts/init.lua");
 }
 
-void ScriptManager::Shutdown() {
+void ScriptManager::Shutdown()
+{
     // Clear Lua references to C++ singletons
-    lua["GameManager"] = sol::nil;
+    lua["GameManager"] = sol::lua_nil;
     // lua["registry"] = sol::nil;
     // lua["camera"] = sol::nil;
     // lua["window"] = sol::nil;
