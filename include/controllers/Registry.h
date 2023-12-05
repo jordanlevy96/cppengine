@@ -5,7 +5,6 @@
 #include "components/RenderComponent.h"
 #include "components/ScriptComponent.h"
 #include "components/Transform.h"
-#include "util/globals.h"
 
 #include <yaml-cpp/yaml.h>
 #include <sol/sol.hpp>

@@ -2,7 +2,6 @@
 #include "controllers/App.h"
 #include "controllers/Registry.h"
 #include "controllers/ScriptManager.h"
-#include "util/globals.h"
 #include "util/Uniform.h"
 
 #include <iostream>
@@ -19,22 +18,18 @@ void ScriptManager::Initialize()
     LuaBindings::RegisterFunctions(lua);
     lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math);
 
-    Run(RES_PATH + "/scripts/init.lua");
+    Run(App::GetInstance().conf.ResourcePath + "scripts/init.lua");
 }
 
 void ScriptManager::Shutdown()
 {
     // Clear Lua references to C++ singletons
     lua["GameManager"] = sol::lua_nil;
-    // lua["registry"] = sol::nil;
-    // lua["camera"] = sol::nil;
-    // lua["window"] = sol::nil;
 
     // Run garbage collector
     lua.collect_garbage();
 
-    // At this point, you could explicitly destroy the Lua state if needed,
-    // though it will automatically be destroyed when the ScriptManager instance goes out of scope.
+    // The Lua state itself will be destroyed when the ScriptManager instance goes out of scope
 }
 
 void ScriptManager::ProcessInput()
@@ -76,12 +71,19 @@ namespace LuaBindings
                                     "y", &glm::vec2::y);
 
         lua.new_usertype<glm::vec3>("vec3",
-                                    sol::call_constructor, sol::constructors<glm::vec3(), glm::vec3(float), glm::vec3(float, float, float)>());
+                                    sol::call_constructor, sol::constructors<glm::vec3(), glm::vec3(float), glm::vec3(float, float, float)>(),
+                                    "x", &glm::vec3::x,
+                                    "y", &glm::vec3::y,
+                                    "z", &glm::vec3::z);
+
+        lua.new_usertype<Transform>("Transform",
+                                    "Pos", &Transform::Pos);
 
         lua.new_usertype<Camera>("Camera",
                                  "transform", &Camera::transform,
                                  "fov", &Camera::fov,
-                                 "SetPerspective", &Camera::SetPerspective,
+                                 "front", &Camera::front,
+                                 "SetPerspective", std::function<void(Camera *, float)>(static_cast<void (Camera::*)(float)>(&Camera::SetPerspective)),
                                  "Move", &Camera::Move,
                                  "RotateByMouse", &Camera::RotateByMouse);
 

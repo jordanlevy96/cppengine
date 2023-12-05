@@ -2,9 +2,16 @@
 
 #include <iostream>
 
+void Camera::SetPerspective(float fov)
+{
+    SetPerspective(fov, lastWidth, lastHeight);
+}
+
 void Camera::SetPerspective(float fovInDegrees, float width, float height)
 {
     fov = fovInDegrees;
+    lastWidth = width;
+    lastHeight = height;
     Projection = glm::perspective(glm::radians(fov), width / height, 0.1f, 100.0f); // TODO: settings for near and far
 }
 

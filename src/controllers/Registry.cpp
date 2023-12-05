@@ -1,3 +1,4 @@
+#include "controllers/App.h"
 #include "controllers/Registry.h"
 #include "controllers/ScriptManager.h"
 
@@ -5,8 +6,8 @@ void Registry::Shutdown()
 {
     for (auto entity : entities)
     {
-		unsigned int id = entity.first;
-		DestroyEntity(id);
+        unsigned int id = entity.first;
+        DestroyEntity(id);
     }
 }
 
@@ -80,6 +81,7 @@ std::unordered_map<unsigned int, std::shared_ptr<Transform>> &Registry::GetCompo
 
 bool Registry::LoadScene(const std::string &src)
 {
+    const std::string &res = App::GetInstance().conf.ResourcePath;
     try
     {
         YAML::Node yaml = YAML::LoadFile(src);
@@ -120,8 +122,8 @@ bool Registry::LoadScene(const std::string &src)
                     const std::string componentType = componentNode["type"].as<std::string>();
                     if (componentType == "Lighting")
                     {
-                        const std::string &shaderSrc = (const std::string &)(RES_PATH) + "/shaders/" + componentNode["shader"].as<std::string>();
-                        const std::string &modelSrc = (const std::string &)(RES_PATH) + "/models/" + componentNode["model"].as<std::string>();
+                        const std::string &shaderSrc = (const std::string &)(res) + "/shaders/" + componentNode["shader"].as<std::string>();
+                        const std::string &modelSrc = (const std::string &)(res) + "/models/" + componentNode["model"].as<std::string>();
                         const std::string &lightName = componentNode["light"].as<std::string>();
 
                         unsigned int light = GetEntityByName(lightName);
@@ -132,14 +134,14 @@ bool Registry::LoadScene(const std::string &src)
                     }
                     else if (componentType == "RenderComponent")
                     {
-                        const std::string &shaderSrc = (const std::string &)(RES_PATH) + "/shaders/" + componentNode["shader"].as<std::string>();
-                        const std::string &modelSrc = (const std::string &)(RES_PATH) + "/models/" + componentNode["model"].as<std::string>();
+                        const std::string &shaderSrc = (const std::string &)(res) + "/shaders/" + componentNode["shader"].as<std::string>();
+                        const std::string &modelSrc = (const std::string &)(res) + "/models/" + componentNode["model"].as<std::string>();
                         std::shared_ptr<RenderComponent> rc = std::make_shared<RenderComponent>(shaderSrc, modelSrc);
                         RegisterComponent<RenderComponent>(id, rc);
                     }
                     else if (componentType == "Script")
                     {
-                        const std::string &scriptSrc = (const std::string &)(RES_PATH) + "/scripts/" + componentNode["script"].as<std::string>();
+                        const std::string &scriptSrc = (const std::string &)(res) + "/scripts/" + componentNode["script"].as<std::string>();
                         ScriptManager &sm = ScriptManager::GetInstance();
                         // Load the script and call the ready function
                         // Be careful with this ready call, if it relies on stuff that hasn't been initialized yet, it'll fail.
@@ -178,8 +180,9 @@ bool Registry::LoadScene(const std::string &src)
 
 std::shared_ptr<RenderComponent> Registry::CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
 {
-    std::string shaderPath = (RES_PATH) + "/shaders/" + shaderSrc;
-    std::string meshPath = (RES_PATH) + "/models/" + meshSrc;
+    const std::string &res = App::GetInstance().conf.ResourcePath;
+    std::string shaderPath = (res) + "/shaders/" + shaderSrc;
+    std::string meshPath = (res) + "/models/" + meshSrc;
 
     return std::make_shared<RenderComponent>(shaderPath, meshPath);
 }

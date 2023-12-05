@@ -16,3 +16,9 @@ input:
     zoomIn: [ScrollUp]
     zoomOut: [ScrollDown]
   scriptPath: input.lua
+  resourcePath: ../res/
+
+window:
+  targetFPS: 60
+  windowWidth: 440
+  windowHeight: 840
