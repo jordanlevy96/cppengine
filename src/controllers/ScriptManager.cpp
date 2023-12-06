@@ -63,6 +63,10 @@ namespace LuaBindings
                      "BACK", CameraDirections::BACK,
                      "LEFT", CameraDirections::LEFT,
                      "RIGHT", CameraDirections::RIGHT);
+
+        lua.new_enum("Rotations",
+                     "CW", Tetris::Rotations::CW,
+                     "CCW", Tetris::Rotations::CCW);
     }
 
     void RegisterTypes(sol::state &lua)
@@ -120,7 +124,10 @@ namespace LuaBindings
         lua.set_function("CreateRenderComponent", &Registry::CreateRenderComponent);
         lua.set_function("AttachScript", &Registry::AttachScript);
         lua.set_function("CreateCube", &Registry::CreateCube);
+
         lua.set_function("CreateTetrimino", &Tetris::CreateTetrimino);
         lua.set_function("GetChildMap", &Tetris::GetChildMap);
+        lua.set_function("RotateTetrimino", &Tetris::RotateTetrimino);
+        lua.set_function("MoveTetrimino", &Tetris::MoveTetrimino);
     }
 }

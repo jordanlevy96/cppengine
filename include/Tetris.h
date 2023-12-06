@@ -20,6 +20,16 @@ namespace Tetris
         Z
     };
 
+    enum Rotations
+    {
+        CW,
+        CCW
+    };
+
+    static std::unordered_map<Rotations, float> RotationMap = {
+        {Rotations::CW, 90.0f},
+        {Rotations::CCW, -90.0f}};
+
     struct Tetrimino
     {
         glm::mat4 shape;
@@ -36,5 +46,9 @@ namespace Tetris
     unsigned int CreateTetrimino(std::shared_ptr<RenderComponent> rc, const std::string &in);
     unsigned int RegisterTetrimino(std::shared_ptr<RenderComponent> rc, Tetrimino tetriminoData);
     glm::mat4 GetChildMap(unsigned int parentID);
+
+    void RotateTetrimino(unsigned int id, Rotations rotation);
+    void MoveTetrimino(unsigned int id, glm::vec2 dir);
+
     void LoadTetriminos(const std::string &src);
 }

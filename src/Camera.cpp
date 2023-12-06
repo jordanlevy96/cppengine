@@ -42,9 +42,9 @@ void Camera::RotateByMouse(double xpos, double ypos)
         pitch = -89.0f;
 
     glm::vec3 direction;
-    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.x = -cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     direction.y = sin(glm::radians(pitch));
-    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.z = -sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     front = glm::normalize(direction);
 }
 

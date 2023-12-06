@@ -4,7 +4,7 @@ scene:
   objects:
     - name: "light"
       transform:
-        pos: { x: 0, y: 38, z: -10 }
+        pos: { x: 0, y: 38, z: 20 }
         scale: { x: 0.5, y: 0.5, z: 0.5 }
       components:
         - type: "RenderComponent"

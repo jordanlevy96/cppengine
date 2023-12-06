@@ -47,9 +47,9 @@ TetrisGrid = {
         local camera = GameManager.camera
         local maxDimension = math.max(self.gridWidth + 2, self.gridHeight + 2)
         camera:SetPerspective(45)
-        local distance = -(maxDimension / math.tan(math.rad(camera.fov) / 2))
+        local distance = maxDimension / math.tan(math.rad(camera.fov) / 2)
 
-        camera.transform.Pos = vec3(self.gridWidth - 1, self.gridHeight - 1, distance - 1) 
+        camera.transform.Pos = vec3(self.gridWidth - 1, self.gridHeight - 1, distance + 1) 
     end,
 
     renderBorder = function(self)
@@ -87,6 +87,8 @@ TetrisGrid = {
             AttachScript(id, "Tetrimino", Tetrimino)
             self.activePiece = id
             print('activePiece', id)
+            RotateTetrimino(id, Rotations.CCW)
+            MoveTetrimino(id, vec2(5, 10))
         end
     end
 }

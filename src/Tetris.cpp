@@ -1,8 +1,11 @@
 #include "Tetris.h"
+
 #include "controllers/Registry.h"
+#include "util/TransformUtils.h"
+
+#include "util/debug.h"
 
 #include <yaml-cpp/yaml.h>
-#include "util/debug.h"
 
 #include <iostream>
 
@@ -93,4 +96,24 @@ void Tetris::LoadTetriminos(const std::string &src)
     {
         std::cerr << "Error loading Tetriminos: " << e.what() << std::endl;
     }
+}
+
+void Tetris::RotateTetrimino(unsigned int id, Rotations rotation)
+{
+    float angle = RotationMap[rotation];
+    std::cout << "rotating " << id << " by " << angle << " radians" << std::endl;
+
+    std::shared_ptr<CompositeEntity> ptr = registry->GetComponent<CompositeEntity>(id);
+    std::shared_ptr<TetriminoComponent> tetrimino = std::static_pointer_cast<TetriminoComponent>(ptr);
+
+    glm::mat4 &orientation = tetrimino->cubeIDMap;
+
+    orientation = glm::rotate(orientation, glm::radians(angle), EulerAngles::Pitch);
+
+    TransformUtils::rotate(id, angle, EulerAngles::Pitch);
+}
+
+void Tetris::MoveTetrimino(unsigned int id, glm::vec2 dir)
+{
+    TransformUtils::translate(id, glm::vec3(dir, 0));
 }

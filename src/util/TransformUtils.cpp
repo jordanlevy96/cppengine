@@ -11,6 +11,15 @@ void TransformUtils::translate(unsigned int entity, const glm::vec3 &translation
     {
         transform->Pos += translation;
     }
+
+    std::shared_ptr<CompositeEntity> composite = registry->GetComponent<CompositeEntity>(entity);
+    if (composite)
+    {
+        for (unsigned int childId : composite->children)
+        {
+            TransformUtils::translate(childId, translation);
+        }
+    }
 }
 
 void TransformUtils::rotate(unsigned int entity, float angle, const glm::vec3 &axis)
@@ -36,7 +45,6 @@ void TransformUtils::rotate(unsigned int entity, float angle, const glm::vec3 &a
                 glm::quat rotatedPos = deltaRotation * glm::quat(0.0f, relativePos.x, relativePos.y, relativePos.z) * glm::conjugate(deltaRotation);
                 childTransform->Pos = parentTransform->Pos + glm::vec3(rotatedPos.x, rotatedPos.y, rotatedPos.z);
 
-                // Recursively rotate child entities
                 TransformUtils::rotate(childId, angle, axis);
             }
         }
