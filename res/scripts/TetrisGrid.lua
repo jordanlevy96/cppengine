@@ -1,5 +1,13 @@
 -- TetrisGrid
 
+dofile(RES_PATH .. "scripts/Tetrimino.lua")
+
+local function selectRandomTetrimino()
+    local shapes = {'I', 'O', 'T', 'J', 'L', 'S', 'Z'}
+    local index = math.random(#shapes)
+    return shapes[index]
+end
+
 TetrisGrid = {
     -- read from YAML
     model = nil,
@@ -9,15 +17,26 @@ TetrisGrid = {
     -- initialized in ready
     borderCube = nil,
     cube = nil,
+    grid = {},
+    activePiece = nil,
 
     -- static
     borderColor = vec3(0.471, 0.471, 0.471),
     cubeSize = 2,
     gridWidth = 10,
     gridHeight = 20,
+
+    moveDownInterval = 1,
+    timeSinceLastMove = 0,
     
     ready = function(self)
-        self.borderCube = CreateRenderComponent(self.borderShader, self.model)
+        for i = 1, self.gridHeight do
+            self.grid[i] = {}
+            for j = 1, 10 do
+                self.grid[i][j] = false
+            end
+        end
+        self.borderCube = CreateRenderComponent(self.gameObjectShader, self.model)
         self.cube = CreateRenderComponent(self.gameObjectShader, self.model)
         TetrisGrid:setCamera()
         TetrisGrid:renderBorder()
@@ -28,8 +47,7 @@ TetrisGrid = {
         local camera = GameManager.camera
         local maxDimension = math.max(self.gridWidth + 2, self.gridHeight + 2)
         camera:SetPerspective(45)
-        local fovRadians = math.rad(camera.fov) -- Convert FOV to radians
-        local distance = -(maxDimension / math.tan(fovRadians / 2))
+        local distance = -(maxDimension / math.tan(math.rad(camera.fov) / 2))
 
         camera.transform.Pos = vec3(self.gridWidth - 1, self.gridHeight - 1, distance - 1) 
     end,
@@ -47,11 +65,28 @@ TetrisGrid = {
         end
     end,
 
+    placeTetrimino = function(self, tetriminoID, pos)
+        local childMap = GetChildMap(tetriminoID)
+
+        for i = 1, 4 do
+            for j = 1, 4 do
+                local childId = childMap[i][j]
+                if childId ~= -1 then
+                    local gridX = position.x + j
+                    local gridY = position.y + i
+                    self.grid[gridY][gridX] = childId
+                end
+            end
+        end
+
+    end,
+
     process = function(self, delta)
-        -- print("TetrisGrid process")
-        local camera = GameManager.camera
-        local pos = camera.transform.Pos
-        print("Camera Pos: ", pos.x, pos.y, pos.z)
-        print("fov: ", camera.fov)
+        if (self.activePiece == nil) then
+            local id = CreateTetrimino(self.cube, selectRandomTetrimino())
+            AttachScript(id, "Tetrimino", Tetrimino)
+            self.activePiece = id
+            print('activePiece', id)
+        end
     end
 }

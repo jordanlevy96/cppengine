@@ -4,6 +4,8 @@
 #include "controllers/ScriptManager.h"
 #include "util/Uniform.h"
 
+#include "Tetris.h"
+
 #include <iostream>
 
 void ScriptManager::Run(const std::string &scriptSrc)
@@ -83,6 +85,7 @@ namespace LuaBindings
                                  "transform", &Camera::transform,
                                  "fov", &Camera::fov,
                                  "front", &Camera::front,
+                                 // casting is necessary here because the function is overloaded, which Lua does not support
                                  "SetPerspective", std::function<void(Camera *, float)>(static_cast<void (Camera::*)(float)>(&Camera::SetPerspective)),
                                  "Move", &Camera::Move,
                                  "RotateByMouse", &Camera::RotateByMouse);
@@ -92,7 +95,11 @@ namespace LuaBindings
                               "delta", &App::delta,
                               "registry", &App::registry,
                               "camera", &App::cam,
+                              "conf", &App::conf,
                               "window", &App::windowManager);
+
+        lua.new_usertype<Config>("Config",
+                                 "resPath", &Config::ResourcePath);
 
         lua.new_usertype<WindowManager>("Window",
                                         "CloseWindow", &WindowManager::CloseWindow,
@@ -111,6 +118,9 @@ namespace LuaBindings
     void RegisterFunctions(sol::state &lua)
     {
         lua.set_function("CreateRenderComponent", &Registry::CreateRenderComponent);
+        lua.set_function("AttachScript", &Registry::AttachScript);
         lua.set_function("CreateCube", &Registry::CreateCube);
+        lua.set_function("CreateTetrimino", &Tetris::CreateTetrimino);
+        lua.set_function("GetChildMap", &Tetris::GetChildMap);
     }
 }

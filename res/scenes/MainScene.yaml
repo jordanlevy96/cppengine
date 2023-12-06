@@ -4,23 +4,12 @@ scene:
   objects:
     - name: "light"
       transform:
-        pos: { x: 0, y: 0, z: 0 }
+        pos: { x: 0, y: 38, z: -10 }
         scale: { x: 0.5, y: 0.5, z: 0.5 }
       components:
         - type: "RenderComponent"
           shader: "Basic.shader"
           model: "cube.obj"
-
-    - name: "bunny"
-      transform:
-        pos: { x: -3, y: 0, z: 0 }
-        scale: { x: 10.0, y: 10.0, z: 10.0 }
-        color: { r: 1.0, g: 0.5, b: 0.31 }
-      components:
-        - type: "Lighting"
-          shader: "Lighting.shader"
-          model: "xbunny.obj"
-          light: "light"
 
     - name: "TetrisGrid"
       components:

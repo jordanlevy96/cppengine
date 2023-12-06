@@ -1,5 +1,5 @@
 #include "controllers/App.h"
-#include "Tetrimino.h"
+#include "Tetris.h"
 
 #include "util/TransformUtils.h"
 
@@ -39,6 +39,8 @@ bool App::Initialize()
     lua->Initialize();
     lua->CreateTable(EVENT_QUEUE);
 
+    Tetris::LoadTetriminos(conf.ResourcePath + "conf/tetriminos.yaml");
+
     return true;
 }
 
@@ -54,8 +56,7 @@ void App::Run()
     loopTime = 0.0;
 
     /* --------- Initial State --------- */
-    registry->LoadScene(conf.ResourcePath + "/scenes/example.yaml");
-    std::unordered_map<Tetrimino::TetriminoShape, glm::mat4> tetriminoMap = Tetrimino::LoadTetriminos(conf.ResourcePath + "/conf/tetriminos.yaml");
+    registry->LoadScene(conf.ResourcePath + "scenes/MainScene.yaml");
 
     while (!glfwWindowShouldClose(windowManager->window))
     {

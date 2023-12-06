@@ -31,6 +31,7 @@ public:
     bool LoadScene(const std::string &src);
     static std::shared_ptr<RenderComponent> CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc);
     static void CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 pos, glm::vec3 color);
+    static void AttachScript(unsigned int entityId, const std::string &name, sol::table luaClass);
 
     template <typename T>
     void RegisterComponent(const std::string &name, std::shared_ptr<T> comp)

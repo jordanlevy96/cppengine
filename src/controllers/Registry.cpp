@@ -160,7 +160,6 @@ bool Registry::LoadScene(const std::string &src)
                             scriptClass[key] = property.second.as<std::string>();
                         }
 
-                        scriptClass["ready"](scriptClass);
                         std::shared_ptr<ScriptComponent> sc = std::make_shared<ScriptComponent>(scriptSrc, scriptClass);
                         RegisterComponent<ScriptComponent>(id, sc);
                     }
@@ -178,11 +177,19 @@ bool Registry::LoadScene(const std::string &src)
 
 // For Lua scripting
 
+void Registry::AttachScript(unsigned int entityId, const std::string &name, sol::table luaClass)
+{
+    std::shared_ptr<ScriptComponent> sc = std::make_shared<ScriptComponent>(name, luaClass);
+
+    Registry *r = &GetInstance();
+    r->RegisterComponent<ScriptComponent>(entityId, sc);
+}
+
 std::shared_ptr<RenderComponent> Registry::CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
 {
     const std::string &res = App::GetInstance().conf.ResourcePath;
-    std::string shaderPath = (res) + "/shaders/" + shaderSrc;
-    std::string meshPath = (res) + "/models/" + meshSrc;
+    std::string shaderPath = (res) + "shaders/" + shaderSrc;
+    std::string meshPath = (res) + "models/" + meshSrc;
 
     return std::make_shared<RenderComponent>(shaderPath, meshPath);
 }

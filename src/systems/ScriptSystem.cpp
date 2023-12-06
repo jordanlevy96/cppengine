@@ -11,7 +11,7 @@ void ScriptSystem::Update(float delta)
         std::shared_ptr<ScriptComponent> sc = registry.GetComponent<ScriptComponent>(id);
         if (sc)
         {
-            sc->ScriptClass["process"](delta);
+            sc->ScriptClass["process"](sc->ScriptClass, delta);
         }
     }
 }
