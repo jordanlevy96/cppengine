@@ -11,5 +11,6 @@ namespace TransformUtils
 {
     glm::mat4 calculateMatrix(std::shared_ptr<Transform> transform);
     void translate(unsigned int entity, const glm::vec3 &translation);
+    void move_to(unsigned int entity, const glm::vec3 &newPos);
     void rotate(unsigned int entity, float angle, const glm::vec3 &axis);
 };

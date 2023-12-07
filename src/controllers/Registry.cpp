@@ -33,6 +33,7 @@ void Registry::DestroyEntity(unsigned int id)
     RenderComponents.erase(id);
     ScriptComponents.erase(id);
     TransformComponents.erase(id);
+    TweenComponents.erase(id);
     // entities.erase(id);
 }
 
@@ -77,6 +78,12 @@ template <>
 std::unordered_map<unsigned int, std::shared_ptr<Transform>> &Registry::GetComponentMap<Transform>()
 {
     return TransformComponents;
+}
+
+template <>
+std::unordered_map<unsigned int, std::shared_ptr<Tween>> &Registry::GetComponentMap<Tween>()
+{
+    return TweenComponents;
 }
 
 bool Registry::LoadScene(const std::string &src)

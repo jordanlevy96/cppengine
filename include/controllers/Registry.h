@@ -5,6 +5,7 @@
 #include "components/RenderComponent.h"
 #include "components/ScriptComponent.h"
 #include "components/Transform.h"
+#include "components/Tween.h"
 
 #include <yaml-cpp/yaml.h>
 #include <sol/sol.hpp>
@@ -66,9 +67,11 @@ private:
     Registry(Registry const &) = delete;
     void operator=(Registry const &) = delete;
 
+    // TODO: consider refactor to unique or raw ptrs
     std::unordered_map<unsigned int, std::shared_ptr<CompositeEntity>> CompositeComponents;
     std::unordered_map<unsigned int, std::shared_ptr<Lighting>> LightingComponents;
     std::unordered_map<unsigned int, std::shared_ptr<RenderComponent>> RenderComponents;
     std::unordered_map<unsigned int, std::shared_ptr<ScriptComponent>> ScriptComponents;
     std::unordered_map<unsigned int, std::shared_ptr<Transform>> TransformComponents;
+    std::unordered_map<unsigned int, std::shared_ptr<Tween>> TweenComponents;
 };

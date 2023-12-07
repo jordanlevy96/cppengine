@@ -2,6 +2,7 @@
 
 #include "Camera.h"
 #include "components/RenderComponent.h"
+#include "components/Tween.h"
 
 class RenderSystem
 {

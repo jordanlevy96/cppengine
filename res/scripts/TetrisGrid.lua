@@ -53,12 +53,10 @@ TetrisGrid = {
     end,
 
     renderBorder = function(self)
-        -- Create the left and right borders
         for y = 0, self.gridHeight do
             CreateCube(self.borderCube, vec3(-self.cubeSize, y * self.cubeSize, 0), self.borderColor) -- Left border
             CreateCube(self.borderCube, vec3(self.gridWidth * self.cubeSize, y * self.cubeSize, 0), self.borderColor) -- Right border
         end
-        -- Create the top border
         for x = -1, self.gridWidth do
             CreateCube(self.borderCube, vec3(x * self.cubeSize, self.gridHeight * self.cubeSize, 0), self.borderColor) -- Top border
             CreateCube(self.borderCube, vec3(x * self.cubeSize, -self.cubeSize, 0), self.borderColor) -- Bottom border
@@ -86,9 +84,7 @@ TetrisGrid = {
             local id = CreateTetrimino(self.cube, selectRandomTetrimino())
             AttachScript(id, "Tetrimino", Tetrimino)
             self.activePiece = id
-            print('activePiece', id)
-            RotateTetrimino(id, Rotations.CCW)
-            MoveTetrimino(id, vec2(5, 10))
+            MoveTetrimino(id, vec2(10, 34))
         end
     end
 }

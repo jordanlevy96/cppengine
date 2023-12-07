@@ -1,12 +1,9 @@
 #pragma once
 
 #include "Camera.h"
-#include "components/RenderComponent.h"
 #include "controllers/WindowManager.h"
 #include "controllers/Registry.h"
 #include "systems/UI.h"
-#include "systems/ScriptSystem.h"
-#include "systems/RenderSystem.h"
 
 extern "C" void stbi_set_flip_vertically_on_load(int flag);
 
@@ -25,6 +22,7 @@ public:
     Config conf;
     Camera *cam;
     UI *ui;
+    // time since last frame
     double delta = 0;
     Registry *registry;
     WindowManager *windowManager;

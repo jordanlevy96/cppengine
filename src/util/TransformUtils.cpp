@@ -22,6 +22,13 @@ void TransformUtils::translate(unsigned int entity, const glm::vec3 &translation
     }
 }
 
+void TransformUtils::move_to(unsigned int entity, const glm::vec3 &newPos)
+{
+    std::shared_ptr<Transform> transform = registry->GetComponent<Transform>(entity);
+    glm::vec3 difference = newPos - transform->Pos;
+    translate(entity, difference);
+}
+
 void TransformUtils::rotate(unsigned int entity, float angle, const glm::vec3 &axis)
 {
     glm::quat deltaRotation = glm::angleAxis(glm::radians(angle), glm::normalize(axis));

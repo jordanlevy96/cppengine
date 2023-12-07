@@ -3,8 +3,6 @@
 #include "controllers/Registry.h"
 #include "util/TransformUtils.h"
 
-#include "util/debug.h"
-
 #include <yaml-cpp/yaml.h>
 
 #include <iostream>
@@ -101,7 +99,6 @@ void Tetris::LoadTetriminos(const std::string &src)
 void Tetris::RotateTetrimino(unsigned int id, Rotations rotation)
 {
     float angle = RotationMap[rotation];
-    std::cout << "rotating " << id << " by " << angle << " radians" << std::endl;
 
     std::shared_ptr<CompositeEntity> ptr = registry->GetComponent<CompositeEntity>(id);
     std::shared_ptr<TetriminoComponent> tetrimino = std::static_pointer_cast<TetriminoComponent>(ptr);
@@ -116,4 +113,26 @@ void Tetris::RotateTetrimino(unsigned int id, Rotations rotation)
 void Tetris::MoveTetrimino(unsigned int id, glm::vec2 dir)
 {
     TransformUtils::translate(id, glm::vec3(dir, 0));
+}
+
+void Tetris::TweenTetrimino(unsigned int id, glm::vec3 dir, float duration)
+{
+    std::shared_ptr<Transform> transform = registry->GetComponent<Transform>(id);
+    std::shared_ptr<Tween> tween;
+    tween = registry->GetComponent<Tween>(id);
+    if (!tween)
+    {
+        tween = std::make_shared<Tween>(&TransformUtils::move_to, transform->Pos, transform->Pos + dir, duration, TransitionType::TRANS_LINEAR);
+        registry->RegisterComponent<Tween>(id, tween);
+    }
+    else
+    {
+        // reset
+        tween->elapsed = 0;
+        tween->Start = transform->Pos;
+        tween->End = transform->Pos + dir;
+        tween->Duration = duration;
+    }
+
+    tween->isActive = true;
 }

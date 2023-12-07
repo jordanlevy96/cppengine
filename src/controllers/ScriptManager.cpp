@@ -129,5 +129,6 @@ namespace LuaBindings
         lua.set_function("GetChildMap", &Tetris::GetChildMap);
         lua.set_function("RotateTetrimino", &Tetris::RotateTetrimino);
         lua.set_function("MoveTetrimino", &Tetris::MoveTetrimino);
+        lua.set_function("TweenTetrimino", &Tetris::TweenTetrimino);
     }
 }

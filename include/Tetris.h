@@ -3,6 +3,8 @@
 #include "components/RenderComponent.h"
 #include "components/CompositeEntity.h"
 
+#include "util/debug.h"
+
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -49,6 +51,7 @@ namespace Tetris
 
     void RotateTetrimino(unsigned int id, Rotations rotation);
     void MoveTetrimino(unsigned int id, glm::vec2 dir);
+    void TweenTetrimino(unsigned int id, glm::vec3 dir, float duration);
 
     void LoadTetriminos(const std::string &src);
 }

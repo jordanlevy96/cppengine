@@ -11,7 +11,7 @@ void RenderSystem::Update(Camera *cam, float delta)
     for (std::pair<unsigned int, std::string> pair : registry->entities)
     {
         unsigned int id = pair.first;
-        RenderSystem::RenderEntity(id, cam);
+        RenderEntity(id, cam);
     }
 }
 

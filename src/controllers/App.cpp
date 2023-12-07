@@ -1,7 +1,12 @@
 #include "controllers/App.h"
-#include "Tetris.h"
+
+#include "systems/RenderSystem.h"
+#include "systems/ScriptSystem.h"
+#include "systems/TweenSystem.h"
 
 #include "util/TransformUtils.h"
+
+#include "Tetris.h"
 
 #include <iostream>
 #include <chrono>
@@ -86,6 +91,7 @@ void App::Run()
 
         lua->ProcessInput();
         ScriptSystem::Update(delta);
+        TweenSystem::Update(delta);
 
         // ensure window scaling is up to date before running render pipeline
         int width, height;
@@ -100,7 +106,8 @@ void App::Run()
         RenderSystem::Update(cam, delta);
 
         // 3. UI
-        ui->RenderWindow();
+        // TODO: implement UISystem
+        // ui->RenderWindow();
 
         glfwPollEvents();
         glfwSwapBuffers(windowManager->window);
