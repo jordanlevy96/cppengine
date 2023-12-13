@@ -260,12 +260,18 @@ void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double y
 
 void WindowManager::resize_callback(GLFWwindow *window, int in_width, int in_height)
 {
-    ScriptManager &sm = ScriptManager::GetInstance();
-    InputEvent event;
-    event.type = InputTypes::Resize;
-    event.input = glm::vec2(in_width, in_height);
+    // ScriptManager &sm = ScriptManager::GetInstance();
+    // InputEvent event;
+    // event.type = InputTypes::Resize;
+    // event.input = glm::vec2(in_width, in_height);
 
-    sm.AddToTable(EVENT_QUEUE, event);
+    // sm.AddToTable(EVENT_QUEUE, event);
+
+    // Enforce 2:1 Aspect ratio for Tetris
+    // FIXME: Lua handling
+    int aspectWidth = in_width;
+    int aspectHeight = in_width * 2 / 1;
+    glfwSetWindowSize(window, aspectWidth, aspectHeight);
 }
 
 void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double yoffset)

@@ -86,5 +86,26 @@ TetrisGrid = {
             self.activePiece = id
             MoveTetrimino(id, vec2(10, 34))
         end
+    end,
+
+    canRotateTetrimino = function(tetriminoId, rotation)
+        local tetriminoMatrix = GetChildMap(tetriminoId) -- Get current layout of Tetrimino 📍
+        local rotatedMatrix = self:rotateMatrix(tetriminoMatrix, rotation) -- Get the rotated layout 🔄
+    
+        -- Check if the rotatedMatrix fits in the grid without colliding ⛔
+        for i = 1, 4 do
+            for j = 1, 4 do
+                if rotatedMatrix[i][j] ~= 0 then
+                    -- Check if out of bounds or collides with other pieces
+                    if j + tetriminoX < 1 or j + tetriminoX > self.gridWidth or 
+                       i + tetriminoY > self.gridHeight or self.grid[i + tetriminoY][j + tetriminoX] ~= 0 then
+                        return false -- Rotation not possible ❌
+                    end
+                end
+            end
+        end
+    
+        return true -- Rotation is possible ✅
     end
+    
 }

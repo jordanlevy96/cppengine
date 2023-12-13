@@ -77,6 +77,7 @@ void App::Run()
         */
 
         // Process
+        lua->ProcessInput();
         currentTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - previousTime).count();
         previousTime = currentTime;
@@ -85,12 +86,11 @@ void App::Run()
 
         while (loopTime >= frameTime)
         {
-            // do game logic here
             loopTime -= frameTime;
+            // do game logic here
+            ScriptSystem::Update(delta);
         }
 
-        lua->ProcessInput();
-        ScriptSystem::Update(delta);
         TweenSystem::Update(delta);
 
         // ensure window scaling is up to date before running render pipeline
