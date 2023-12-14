@@ -15,6 +15,13 @@ template <typename T>
 struct SparseSet
 {
 public:
+    ~SparseSet<T>()
+    {
+        sparse.clear();
+        dense.clear();
+        entities.clear();
+    };
+
     void AddComponent(EntityID entity, T component)
     {
         while (entity >= maxEntities)
@@ -25,6 +32,7 @@ public:
 
         dense.push_back(component);
         sparse[entity] = dense.size() - 1;
+        entities.push_back(entity);
     }
 
     T &GetComponent(EntityID entity)
@@ -53,7 +61,7 @@ public:
         dense.pop_back();
 
         // Update the sparse array for the entity that was moved
-        for (size_t i = 0; i < sparse.size(); ++i)
+        for (size_t i = 0; i < sparse.size(); i++)
         {
             if (sparse[i] == dense.size() - 1)
             {
@@ -61,57 +69,11 @@ public:
                 break;
             }
         }
+
+        entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
     }
 
-    // SparseSet's iterator goes over just the sparse array's valid members
-    // (i.e., all the entities with the component)
-    class Iterator
-    {
-    public:
-        using iterator_category = std::forward_iterator_tag;
-        using value_type = size_t;
-        using difference_type = std::ptrdiff_t;
-        using pointer = size_t *;
-        using reference = size_t &;
-
-        Iterator(pointer ptr, pointer endPtr) : m_ptr(ptr), m_endPtr(endPtr)
-        {
-            // Skip to the first valid element
-            while (m_ptr != m_endPtr && *m_ptr == std::numeric_limits<size_t>::max())
-            {
-                ++m_ptr;
-            }
-        }
-
-        reference operator*() const { return *m_ptr; }
-        pointer operator->() { return m_ptr; }
-
-        Iterator &operator++()
-        {
-            do
-            {
-                m_ptr++;
-            } while (m_ptr != m_endPtr && *m_ptr == std::numeric_limits<size_t>::max());
-            return *this;
-        }
-
-        Iterator operator++(int)
-        {
-            Iterator temp = *this;
-            ++(*this);
-            return temp;
-        }
-
-        friend bool operator==(const Iterator &a, const Iterator &b) { return a.m_ptr == b.m_ptr; }
-        friend bool operator!=(const Iterator &a, const Iterator &b) { return a.m_ptr != b.m_ptr; }
-
-    private:
-        pointer m_ptr;
-        pointer m_endPtr;
-    };
-
-    Iterator begin() { return Iterator(sparse.data(), sparse.data() + sparse.size()); }
-    Iterator end() { return Iterator(sparse.data() + sparse.size(), sparse.data() + sparse.size()); }
+    std::vector<EntityID> GetEntities() { return entities; };
 
 private:
     size_t maxEntities = 100; // dynamically updated as needed
@@ -122,6 +84,8 @@ private:
     // of that component in the dense array
     std::vector<size_t> sparse = std::vector<size_t>(maxEntities);
     std::vector<T> dense;
+
+    std::vector<size_t> entities;
 };
 
 class Registry

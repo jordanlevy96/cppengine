@@ -61,7 +61,7 @@ void App::Run()
     loopTime = 0.0;
 
     /* --------- Initial State --------- */
-    registry->LoadScene(conf.ResourcePath + "scenes/MainScene.yaml");
+    registry->LoadScene("scenes/MainScene.yaml");
 
     while (!glfwWindowShouldClose(windowManager->window))
     {

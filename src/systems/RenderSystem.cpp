@@ -48,12 +48,12 @@ void RenderSystem::RenderEntity<RenderComponent>(EntityID id, Camera *cam)
 void RenderSystem::Update(Camera *cam, float delta)
 {
 
-    for (EntityID id : registry->GetComponentSet<Lighting>())
+    for (EntityID id : registry->GetComponentSet<Lighting>().GetEntities())
     {
         RenderEntity<Lighting>(id, cam);
     }
 
-    for (EntityID id : registry->GetComponentSet<RenderComponent>())
+    for (EntityID id : registry->GetComponentSet<RenderComponent>().GetEntities())
     {
         RenderEntity<RenderComponent>(id, cam);
     }

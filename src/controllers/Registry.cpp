@@ -19,7 +19,7 @@ EntityID Registry::RegisterEntity()
 
 EntityID Registry::RegisterEntity(const std::string &name)
 {
-    entityNames[i] = name;
+    entityNames.push_back(name);
     Transform t = Transform();
     RegisterComponent(i, t);
     return i++;
@@ -82,7 +82,7 @@ bool Registry::LoadScene(const std::string &src)
     const std::string &res = App::GetInstance().conf.ResourcePath;
     try
     {
-        YAML::Node yaml = YAML::LoadFile(src);
+        YAML::Node yaml = YAML::LoadFile(res + src);
 
         const YAML::Node &objectsNode = yaml["scene"]["objects"];
         for (const auto &objectNode : objectsNode)

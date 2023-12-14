@@ -4,7 +4,7 @@ static Registry *registry = &Registry::GetInstance();
 
 void TweenSystem::Update(float delta)
 {
-    for (EntityID id : registry->GetComponentSet<Tween>())
+    for (EntityID id : registry->GetComponentSet<Tween>().GetEntities())
     {
         Tween tween = registry->GetComponent<Tween>(id);
         if (tween.isActive)
