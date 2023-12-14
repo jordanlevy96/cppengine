@@ -30,6 +30,7 @@ TetrisGrid = {
     timeSinceLastMove = 0,
     
     ready = function(self)
+        print("TetrisGrid readying")
         for i = 1, self.gridHeight do
             self.grid[i] = {}
             for j = 1, 10 do
@@ -64,7 +65,7 @@ TetrisGrid = {
     end,
 
     placeTetrimino = function(self, tetriminoID, pos)
-        local childMap = GetChildMap(tetriminoID)
+        local childMap = GetTetriminoChildMap(tetriminoID)
 
         for i = 1, 4 do
             for j = 1, 4 do
@@ -89,7 +90,7 @@ TetrisGrid = {
     end,
 
     canRotateTetrimino = function(tetriminoId, rotation)
-        local tetriminoMatrix = GetChildMap(tetriminoId) -- Get current layout of Tetrimino 📍
+        local tetriminoMatrix = GetTetriminoChildMap(tetriminoId) -- Get current layout of Tetrimino 📍
         local rotatedMatrix = self:rotateMatrix(tetriminoMatrix, rotation) -- Get the rotated layout 🔄
     
         -- Check if the rotatedMatrix fits in the grid without colliding ⛔

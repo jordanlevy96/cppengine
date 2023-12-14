@@ -1,16 +1,17 @@
 #pragma once
 
+#include "controllers/Registry.h"
 #include "components/RenderComponent.h"
-#include "components/CompositeEntity.h"
 
 #include "util/debug.h"
 
 #include <glm/glm.hpp>
 #include <vector>
 
+#define EntityID size_t
+
 namespace Tetris
 {
-
     enum TetriminoShape
     {
         I,
@@ -38,20 +39,19 @@ namespace Tetris
         glm::vec3 color;
     };
 
-    struct TetriminoComponent : CompositeEntity
-    {
-        glm::mat4 cubeIDMap;
-    };
+    // a wee bit hacky way to avoid registering an additional component for this matrix
+    // of which there will only ever be one of at a time
+    static glm::mat4 ActiveTetriminoChildMap = glm::mat4(-1.0f);
 
     extern std::unordered_map<char, Tetrimino> TetriminoMap;
 
-    unsigned int CreateTetrimino(std::shared_ptr<RenderComponent> rc, const std::string &in);
-    unsigned int RegisterTetrimino(std::shared_ptr<RenderComponent> rc, Tetrimino tetriminoData);
-    glm::mat4 GetChildMap(unsigned int parentID);
+    EntityID CreateTetrimino(RenderComponent rc, const std::string &in);
+    EntityID RegisterTetrimino(RenderComponent rc, Tetrimino &tetriminoData);
+    glm::mat4 GetTetriminoChildMap();
 
-    void RotateTetrimino(unsigned int id, Rotations rotation);
-    void MoveTetrimino(unsigned int id, glm::vec2 dir);
-    void TweenTetrimino(unsigned int id, glm::vec3 dir, float duration);
+    void RotateTetrimino(EntityID id, Rotations rotation);
+    void MoveTetrimino(EntityID id, glm::vec2 dir);
+    void TweenTetrimino(EntityID id, glm::vec3 dir, float duration);
 
     void LoadTetriminos(const std::string &src);
 }

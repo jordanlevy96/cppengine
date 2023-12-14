@@ -58,8 +58,6 @@ OnKeyPress = function(key)
         MoveTetrimino(TetrisGrid.activePiece, vec2(-2, 0))
     elseif key == "RIGHT" then
         MoveTetrimino(TetrisGrid.activePiece, vec2(2, 0))
-    elseif key == "DOWN" then
-        TweenTetrimino(TetrisGrid.activePiece, vec3(0, -2, 0), 1000)
     end
 end
 

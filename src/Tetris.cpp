@@ -1,6 +1,5 @@
 #include "Tetris.h"
 
-#include "controllers/Registry.h"
 #include "util/TransformUtils.h"
 
 #include <yaml-cpp/yaml.h>
@@ -13,12 +12,10 @@ static float spacingX = 2.0f;
 static float spacingY = 2.0f;
 std::unordered_map<char, Tetris::Tetrimino> Tetris::TetriminoMap;
 
-unsigned int Tetris::RegisterTetrimino(std::shared_ptr<RenderComponent> rc, Tetrimino tetriminoData)
+EntityID Tetris::RegisterTetrimino(RenderComponent rc, Tetrimino &tetriminoData)
 {
     unsigned int id = registry->RegisterEntity();
-    std::shared_ptr<Transform> parentTransform = registry->GetComponent<Transform>(id);
-    std::shared_ptr<TetriminoComponent> wrapper = std::make_shared<TetriminoComponent>();
-    registry->RegisterComponent<CompositeEntity>(id, wrapper);
+    Transform parentTransform = registry->GetComponent<Transform>(id);
 
     glm::mat4 cubeIDMap = glm::mat4(-1.0f);
 
@@ -28,38 +25,38 @@ unsigned int Tetris::RegisterTetrimino(std::shared_ptr<RenderComponent> rc, Tetr
         {
             if (tetriminoData.shape[i][j] == 1)
             {
-                unsigned int cube = registry->RegisterEntity();
+                EntityID cube = registry->RegisterEntity();
                 cubeIDMap[i][j] = cube;
-                std::shared_ptr<Transform> t = registry->GetComponent<Transform>(cube);
-                t->Pos.x = j * spacingX;
-                t->Pos.y = i * spacingY;
-                t->Color = tetriminoData.color;
+                Transform t = registry->GetComponent<Transform>(cube);
+                t.Pos.x = j * spacingX;
+                t.Pos.y = i * spacingY;
+                t.Color = tetriminoData.color;
 
-                std::shared_ptr<Transform> light = registry->GetComponent<Transform>(registry->GetEntityByName("light"));
-                std::shared_ptr<Lighting> lightComp = std::make_shared<Lighting>(rc, &t->Color, light);
+                EntityID lightID = registry->GetEntityByName("light");
+                Lighting lightComp = Lighting(&registry->GetComponent<Transform>(lightID));
                 registry->RegisterComponent<Lighting>(cube, lightComp);
 
-                wrapper->AddChild(cube);
+                parentTransform.AddChild(cube);
             }
         }
     }
-    wrapper->cubeIDMap = cubeIDMap;
+    ActiveTetriminoChildMap = cubeIDMap;
+    Tween tween = Tween(&TransformUtils::move_to, parentTransform.Pos, parentTransform.Pos + glm::vec3(0, -2, 0), 1000, TransitionType::TRANS_LINEAR);
+    registry->RegisterComponent<Tween>(id, tween);
 
     return id;
 }
 
-glm::mat4 Tetris::GetChildMap(unsigned int parentID)
+glm::mat4 Tetris::GetTetriminoChildMap()
 {
-    std::shared_ptr<CompositeEntity> ptr = registry->GetComponent<CompositeEntity>(parentID);
-    std::shared_ptr<TetriminoComponent> tetrimino = std::static_pointer_cast<TetriminoComponent>(ptr);
-    return tetrimino->cubeIDMap;
+    return ActiveTetriminoChildMap;
 }
 
-unsigned int Tetris::CreateTetrimino(std::shared_ptr<RenderComponent> rc, const std::string &in)
+EntityID Tetris::CreateTetrimino(RenderComponent rc, const std::string &in)
 {
     char key = in[0];
     Tetrimino tetrimino = TetriminoMap[key];
-    unsigned int id = Tetris::RegisterTetrimino(rc, tetrimino);
+    EntityID id = Tetris::RegisterTetrimino(rc, tetrimino);
     return id;
 }
 
@@ -96,43 +93,27 @@ void Tetris::LoadTetriminos(const std::string &src)
     }
 }
 
-void Tetris::RotateTetrimino(unsigned int id, Rotations rotation)
+void Tetris::RotateTetrimino(EntityID id, Rotations rotation)
 {
     float angle = RotationMap[rotation];
-
-    std::shared_ptr<CompositeEntity> ptr = registry->GetComponent<CompositeEntity>(id);
-    std::shared_ptr<TetriminoComponent> tetrimino = std::static_pointer_cast<TetriminoComponent>(ptr);
-
-    glm::mat4 &orientation = tetrimino->cubeIDMap;
-
+    glm::mat4 &orientation = ActiveTetriminoChildMap;
     orientation = glm::rotate(orientation, glm::radians(angle), EulerAngles::Pitch);
-
     TransformUtils::rotate(id, angle, EulerAngles::Pitch);
 }
 
-void Tetris::MoveTetrimino(unsigned int id, glm::vec2 dir)
+void Tetris::MoveTetrimino(EntityID id, glm::vec2 dir)
 {
     TransformUtils::translate(id, glm::vec3(dir, 0));
 }
 
-void Tetris::TweenTetrimino(unsigned int id, glm::vec3 dir, float duration)
+void Tetris::TweenTetrimino(EntityID id, glm::vec3 dir, float duration)
 {
-    std::shared_ptr<Transform> transform = registry->GetComponent<Transform>(id);
-    std::shared_ptr<Tween> tween;
-    tween = registry->GetComponent<Tween>(id);
-    if (!tween)
-    {
-        tween = std::make_shared<Tween>(&TransformUtils::move_to, transform->Pos, transform->Pos + dir, duration, TransitionType::TRANS_LINEAR);
-        registry->RegisterComponent<Tween>(id, tween);
-    }
-    else
-    {
-        // reset
-        tween->elapsed = 0;
-        tween->Start = transform->Pos;
-        tween->End = transform->Pos + dir;
-        tween->Duration = duration;
-    }
+    Transform transform = registry->GetComponent<Transform>(id);
+    Tween tween = registry->GetComponent<Tween>(id);
+    tween.elapsed = 0;
+    tween.Start = transform.Pos;
+    tween.End = transform.Pos + dir;
+    tween.Duration = duration;
 
-    tween->isActive = true;
+    tween.isActive = true;
 }

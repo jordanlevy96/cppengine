@@ -5,10 +5,7 @@
 
 struct Lighting
 {
-    std::shared_ptr<RenderComponent> RC;
-    std::shared_ptr<Transform> LightTrans;
-    glm::vec3 *ObjectColor;
+    Transform *LightTrans; // maybe change this to the Light's ID?
 
-    Lighting(const std::shared_ptr<RenderComponent> &rc, glm::vec3 *objColor, const std::shared_ptr<Transform> &lightTransformPointer)
-        : RC(rc), ObjectColor(objColor), LightTrans(lightTransformPointer) {}
+    Lighting(Transform *lightTransform) : LightTrans(lightTransform) {}
 };

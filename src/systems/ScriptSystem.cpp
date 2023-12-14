@@ -5,13 +5,9 @@ static Registry &registry = Registry::GetInstance();
 
 void ScriptSystem::Update(float delta)
 {
-    for (auto entity : registry.entities)
+    for (EntityID id : registry.GetComponentSet<ScriptComponent>())
     {
-        unsigned int id = entity.first;
-        std::shared_ptr<ScriptComponent> sc = registry.GetComponent<ScriptComponent>(id);
-        if (sc)
-        {
-            sc->ScriptClass["process"](sc->ScriptClass, delta);
-        }
+        ScriptComponent sc = registry.GetComponent<ScriptComponent>(id);
+        sc.ScriptClass["process"](sc.ScriptClass, delta);
     }
 }
