@@ -4,7 +4,7 @@
 
 void Registry::Shutdown()
 {
-    for (size_t i; i < entityNames.size(); i++)
+    for (size_t i = 0; i < entityNames.size(); i++)
     {
         DestroyEntity(i);
     }
@@ -89,7 +89,7 @@ bool Registry::LoadScene(const std::string &src)
         {
             const std::string &name = objectNode["name"].as<std::string>();
             EntityID id = RegisterEntity(name);
-            Transform transform = GetComponent<Transform>(id);
+            Transform &transform = GetComponent<Transform>(id);
             if (objectNode["transform"])
             {
                 if (objectNode["transform"]["pos"])
@@ -120,26 +120,26 @@ bool Registry::LoadScene(const std::string &src)
                     const std::string componentType = componentNode["type"].as<std::string>();
                     if (componentType == "Lighting")
                     {
-                        const std::string &shaderSrc = (const std::string &)(res) + "/shaders/" + componentNode["shader"].as<std::string>();
-                        const std::string &modelSrc = (const std::string &)(res) + "/models/" + componentNode["model"].as<std::string>();
+                        const std::string &shaderSrc = (const std::string &)(res) + "shaders/" + componentNode["shader"].as<std::string>();
+                        const std::string &modelSrc = (const std::string &)(res) + "models/" + componentNode["model"].as<std::string>();
                         const std::string &lightName = componentNode["light"].as<std::string>();
 
                         EntityID light = GetEntityByName(lightName);
                         RenderComponent rc = RenderComponent(shaderSrc, modelSrc);
                         RegisterComponent<RenderComponent>(id, rc);
-                        Lighting lightComp = Lighting(&GetComponent<Transform>(light));
+                        Lighting lightComp = Lighting(light);
                         RegisterComponent<Lighting>(id, lightComp);
                     }
                     else if (componentType == "RenderComponent")
                     {
-                        const std::string &shaderSrc = (const std::string &)(res) + "/shaders/" + componentNode["shader"].as<std::string>();
-                        const std::string &modelSrc = (const std::string &)(res) + "/models/" + componentNode["model"].as<std::string>();
+                        const std::string &shaderSrc = (const std::string &)(res) + "shaders/" + componentNode["shader"].as<std::string>();
+                        const std::string &modelSrc = (const std::string &)(res) + "models/" + componentNode["model"].as<std::string>();
                         RenderComponent rc = RenderComponent(shaderSrc, modelSrc);
                         RegisterComponent<RenderComponent>(id, rc);
                     }
                     else if (componentType == "Script")
                     {
-                        const std::string &scriptSrc = (const std::string &)(res) + "/scripts/" + componentNode["script"].as<std::string>();
+                        const std::string &scriptSrc = (const std::string &)(res) + "scripts/" + componentNode["script"].as<std::string>();
                         ScriptManager &sm = ScriptManager::GetInstance();
                         // Load the script and call the ready function
                         // Be careful with this ready call, if it relies on stuff that hasn't been initialized yet, it'll fail.
@@ -183,22 +183,30 @@ void Registry::AttachScript(EntityID entityId, const std::string &name, sol::tab
     r->RegisterComponent<ScriptComponent>(entityId, sc);
 }
 
-std::unique_ptr<RenderComponent> Registry::CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
+std::shared_ptr<RenderComponent> Registry::CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
 {
     const std::string &res = App::GetInstance().conf.ResourcePath;
     std::string shaderPath = (res) + "shaders/" + shaderSrc;
     std::string meshPath = (res) + "models/" + meshSrc;
 
-    return std::make_unique<RenderComponent>(shaderPath, meshPath);
+    std::shared_ptr<RenderComponent> rc = std::make_shared<RenderComponent>(shaderPath, meshPath);
+
+    return rc;
 }
 
-void Registry::CreateCube(RenderComponent cubeComp, glm::vec3 pos, glm::vec3 color)
+void Registry::CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 pos, glm::vec3 color)
 {
     // static reference to registry for Lua binding
     Registry *r = &GetInstance();
     EntityID id = r->RegisterEntity();
-    Transform transform = r->GetComponent<Transform>(id);
+    Transform &transform = r->GetComponent<Transform>(id);
     transform.Pos = pos;
     transform.Color = color;
-    r->RegisterComponent<RenderComponent>(id, cubeComp);
+
+    r->RegisterComponent<RenderComponent>(id, *cubeComp);
+
+    // FIXME: hardcoded value
+    EntityID lightID = r->GetEntityByName("light");
+    Lighting lightComp = Lighting(lightID);
+    r->RegisterComponent<Lighting>(id, lightComp);
 }

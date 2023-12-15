@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#define EntityID size_t
+typedef size_t EntityID;
 
 namespace Tetris
 {

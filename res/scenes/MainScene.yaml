@@ -15,6 +15,5 @@ scene:
       components:
         - type: "Script"
           script: "TetrisGrid.lua"
-          borderShader: "Basic.shader"
-          gameObjectShader: "Lighting.shader"
+          shader: "Lighting.shader"
           model: "cube.obj"

@@ -10,18 +10,19 @@ template <>
 void RenderSystem::RenderEntity<Lighting>(EntityID id, Camera *cam)
 {
     Lighting lightComp = registry->GetComponent<Lighting>(id);
-    RenderComponent rc = registry->GetComponent<RenderComponent>(id);
+    RenderComponent &rc = registry->GetComponent<RenderComponent>(id);
+    Transform lightTrans = registry->GetComponent<Transform>(lightComp.LightID);
 
-    rc.AddUniform("lightColor", lightComp.LightTrans->Color, UniformTypeMap::vec3);
-    rc.AddUniform("lightPos", lightComp.LightTrans->Pos, UniformTypeMap::vec3);
+    rc.AddUniform("lightColor", lightTrans.Color, UniformTypeMap::vec3);
+    rc.AddUniform("lightPos", lightTrans.Pos, UniformTypeMap::vec3);
     rc.AddUniform("viewPos", cam->transform.Pos, UniformTypeMap::vec3);
 }
 
 template <>
 void RenderSystem::RenderEntity<RenderComponent>(EntityID id, Camera *cam)
 {
-    Transform t = registry->GetComponent<Transform>(id);
-    RenderComponent rc = registry->GetComponent<RenderComponent>(id);
+    Transform &t = registry->GetComponent<Transform>(id);
+    RenderComponent &rc = registry->GetComponent<RenderComponent>(id);
 
     // Basic.shader
     rc.AddUniform("objectColor", t.Color, UniformTypeMap::vec3);

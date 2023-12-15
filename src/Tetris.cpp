@@ -32,8 +32,10 @@ EntityID Tetris::RegisterTetrimino(RenderComponent rc, Tetrimino &tetriminoData)
                 t.Pos.y = i * spacingY;
                 t.Color = tetriminoData.color;
 
+                registry->RegisterComponent<RenderComponent>(cube, rc);
+
                 EntityID lightID = registry->GetEntityByName("light");
-                Lighting lightComp = Lighting(&registry->GetComponent<Transform>(lightID));
+                Lighting lightComp = Lighting(lightID);
                 registry->RegisterComponent<Lighting>(cube, lightComp);
 
                 parentTransform.AddChild(cube);

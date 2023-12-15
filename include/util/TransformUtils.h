@@ -6,7 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp> // For glm::toMat4
 
-#define EntityID size_t
+typedef size_t EntityID;
 
 namespace TransformUtils
 {

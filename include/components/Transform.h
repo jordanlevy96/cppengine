@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#define EntityID size_t
+typedef size_t EntityID;
 
 namespace EulerAngles
 {
@@ -21,7 +21,6 @@ struct Transform
     glm::quat Rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     glm::vec3 Color = glm::vec3(1.0f);
 
-    EntityID Parent = -1;
     std::vector<EntityID> Children;
 
     void AddChild(EntityID id)

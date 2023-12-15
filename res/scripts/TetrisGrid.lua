@@ -11,11 +11,9 @@ end
 TetrisGrid = {
     -- read from YAML
     model = nil,
-    borderShader = nil,
-    gameObjectShader = nil,
+    shader = nil,
 
     -- initialized in ready
-    borderCube = nil,
     cube = nil,
     grid = {},
     activePiece = nil,
@@ -30,15 +28,13 @@ TetrisGrid = {
     timeSinceLastMove = 0,
     
     ready = function(self)
-        print("TetrisGrid readying")
         for i = 1, self.gridHeight do
             self.grid[i] = {}
             for j = 1, 10 do
                 self.grid[i][j] = false
             end
         end
-        self.borderCube = CreateRenderComponent(self.gameObjectShader, self.model)
-        self.cube = CreateRenderComponent(self.gameObjectShader, self.model)
+        self.cube = CreateRenderComponent(self.shader, self.model)
         TetrisGrid:setCamera()
         TetrisGrid:renderBorder()
     end,
@@ -55,12 +51,12 @@ TetrisGrid = {
 
     renderBorder = function(self)
         for y = 0, self.gridHeight do
-            CreateCube(self.borderCube, vec3(-self.cubeSize, y * self.cubeSize, 0), self.borderColor) -- Left border
-            CreateCube(self.borderCube, vec3(self.gridWidth * self.cubeSize, y * self.cubeSize, 0), self.borderColor) -- Right border
+            CreateCube(self.cube, vec3(-self.cubeSize, y * self.cubeSize, 0), self.borderColor) -- Left border
+            CreateCube(self.cube, vec3(self.gridWidth * self.cubeSize, y * self.cubeSize, 0), self.borderColor) -- Right border
         end
         for x = -1, self.gridWidth do
-            CreateCube(self.borderCube, vec3(x * self.cubeSize, self.gridHeight * self.cubeSize, 0), self.borderColor) -- Top border
-            CreateCube(self.borderCube, vec3(x * self.cubeSize, -self.cubeSize, 0), self.borderColor) -- Bottom border
+            CreateCube(self.cube, vec3(x * self.cubeSize, self.gridHeight * self.cubeSize, 0), self.borderColor) -- Top border
+            CreateCube(self.cube, vec3(x * self.cubeSize, -self.cubeSize, 0), self.borderColor) -- Bottom border
         end
     end,
 

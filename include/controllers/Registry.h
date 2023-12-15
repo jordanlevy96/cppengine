@@ -9,7 +9,7 @@
 #include <yaml-cpp/yaml.h>
 #include <sol/sol.hpp>
 
-#define EntityID size_t
+typedef size_t EntityID;
 
 template <typename T>
 struct SparseSet
@@ -22,7 +22,7 @@ public:
         entities.clear();
     };
 
-    void AddComponent(EntityID entity, T component)
+    void AddComponent(EntityID entity, T &component)
     {
         while (entity >= maxEntities)
         {
@@ -82,7 +82,7 @@ private:
     // sparse contains the indices of the related component
     // e.g. if entity id 6 has a component, sparse[6] will be the index
     // of that component in the dense array
-    std::vector<size_t> sparse = std::vector<size_t>(maxEntities);
+    std::vector<size_t> sparse = std::vector<size_t>(maxEntities, -1);
     std::vector<T> dense;
 
     std::vector<size_t> entities;
@@ -109,14 +109,14 @@ public:
     bool LoadScene(const std::string &src);
 
     template <typename T>
-    void RegisterComponent(const std::string &name, T comp)
+    void RegisterComponent(const std::string &name, T &comp)
     {
         EntityID id = GetEntityByName(name);
         RegisterComponent(id, comp);
     }
 
     template <typename T>
-    void RegisterComponent(EntityID id, T comp)
+    void RegisterComponent(EntityID id, T &comp)
     {
         auto &componentSet = GetComponentSet<T>();
         componentSet.AddComponent(id, comp);
@@ -133,7 +133,8 @@ public:
     T &GetComponent(EntityID id)
     {
         auto &components = GetComponentSet<T>();
-        return components.GetComponent(id);
+        auto &component = components.GetComponent(id);
+        return component;
     }
 
     template <typename T>
@@ -143,12 +144,12 @@ public:
 
     // Lua Helper Functions
 
-    static std::unique_ptr<RenderComponent> CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc);
-    static void CreateCube(RenderComponent cubeComp, glm::vec3 pos, glm::vec3 color);
+    static std::shared_ptr<RenderComponent> CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc);
+    static void CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 pos, glm::vec3 color);
     static void AttachScript(EntityID entityId, const std::string &name, sol::table luaClass);
 
 private:
-    unsigned int i = 0;
+    EntityID i = 0;
     Registry(){};
     Registry(Registry const &) = delete;
     void operator=(Registry const &) = delete;

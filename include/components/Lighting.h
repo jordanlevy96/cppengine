@@ -5,7 +5,7 @@
 
 struct Lighting
 {
-    Transform *LightTrans; // maybe change this to the Light's ID?
+    EntityID LightID;
 
-    Lighting(Transform *lightTransform) : LightTrans(lightTransform) {}
+    Lighting(EntityID lightID) : LightID(lightID) {}
 };
