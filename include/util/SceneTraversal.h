@@ -6,8 +6,8 @@ static Registry *registry = &Registry::GetInstance();
 
 void AddChild(EntityID parent, EntityID child)
 {
-    HierarchyComponent parentHC = registry->GetComponent<HierarchyComponent>(parent);
-    HierarchyComponent childHC = registry->GetComponent<HierarchyComponent>(child);
+    HierarchyComponent &parentHC = registry->GetComponent<HierarchyComponent>(parent);
+    HierarchyComponent &childHC = registry->GetComponent<HierarchyComponent>(child);
 
     parentHC.Children.push_back(child);
     childHC.Parent = parent;

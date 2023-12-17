@@ -153,8 +153,8 @@ public:
     template <typename T>
     T &GetComponent(EntityID id)
     {
-        auto &components = GetComponentSet<T>();
-        auto &component = components.GetComponent(id);
+        SparseSet<T> &components = GetComponentSet<T>();
+        T &component = components.GetComponent(id);
         return component;
     }
 

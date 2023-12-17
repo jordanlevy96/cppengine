@@ -6,7 +6,7 @@ static Registry *registry = &Registry::GetInstance();
 
 void TransformUtils::translate(EntityID entity, const glm::vec3 &translation)
 {
-    Transform transform = registry->GetComponent<Transform>(entity);
+    Transform &transform = registry->GetComponent<Transform>(entity);
     HierarchyComponent hc = registry->GetComponent<HierarchyComponent>(entity);
     transform.Pos += translation;
 
@@ -26,14 +26,14 @@ void TransformUtils::move_to(EntityID entity, const glm::vec3 &newPos)
 void TransformUtils::rotate(EntityID entity, float angle, const glm::vec3 &axis)
 {
     glm::quat deltaRotation = glm::angleAxis(glm::radians(angle), glm::normalize(axis));
-    Transform transform = registry->GetComponent<Transform>(entity);
+    Transform &transform = registry->GetComponent<Transform>(entity);
     transform.Rotation = glm::normalize(deltaRotation * transform.Rotation);
 
     HierarchyComponent hc = registry->GetComponent<HierarchyComponent>(entity);
 
     for (EntityID childId : hc.Children)
     {
-        Transform childTransform = registry->GetComponent<Transform>(childId);
+        Transform &childTransform = registry->GetComponent<Transform>(childId);
 
         // Assuming parent's position is the rotation pivot for the entire composite entity
         glm::vec3 relativePos = childTransform.Pos - transform.Pos;

@@ -55,9 +55,11 @@ OnKeyPress = function(key)
     elseif key == "X" or key == "UP" then
         RotateTetrimino(TetrisGrid.activePiece, Rotations.CW)
     elseif key == "LEFT" then
-        MoveTetrimino(TetrisGrid.activePiece, vec2(-2, 0))
+        MoveTetrimino(TetrisGrid.activePiece, vec2(-1, 0))
     elseif key == "RIGHT" then
-        MoveTetrimino(TetrisGrid.activePiece, vec2(2, 0))
+        MoveTetrimino(TetrisGrid.activePiece, vec2(1, 0))
+    elseif key == "P" then
+        TweenTetrimino(TetrisGrid.activePiece, vec3(0,1,0), 100)
     end
 end
 

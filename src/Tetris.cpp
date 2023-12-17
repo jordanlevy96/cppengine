@@ -7,8 +7,8 @@
 
 #include <iostream>
 
-static float spacingX = 2.0f;
-static float spacingY = 2.0f;
+static float spacingX = 1.0f;
+static float spacingY = 1.0f;
 std::unordered_map<char, Tetris::Tetrimino> Tetris::TetriminoMap;
 
 EntityID Tetris::RegisterTetrimino(RenderComponent rc, Tetrimino &tetriminoData)
@@ -27,7 +27,7 @@ EntityID Tetris::RegisterTetrimino(RenderComponent rc, Tetrimino &tetriminoData)
             {
                 EntityID cube = registry->RegisterEntity();
                 cubeIDMap[i][j] = cube;
-                Transform t = registry->GetComponent<Transform>(cube);
+                Transform &t = registry->GetComponent<Transform>(cube);
                 t.Pos.x = j * spacingX;
                 t.Pos.y = i * spacingY;
                 t.Color = tetriminoData.color;

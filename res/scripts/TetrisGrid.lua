@@ -24,6 +24,7 @@ TetrisGrid = {
     gridWidth = 10,
     gridHeight = 20,
 
+    -- dynamic
     moveDownInterval = 1,
     timeSinceLastMove = 0,
     
@@ -79,7 +80,7 @@ TetrisGrid = {
             local id = CreateTetrimino(self.cube, selectRandomTetrimino())
             AttachScript(id, "Tetrimino", Tetrimino)
             self.activePiece = id
-            MoveTetrimino(id, vec2(10, 34))
+            MoveTetrimino(id, vec2(5, 17))
         end
     end,
 
