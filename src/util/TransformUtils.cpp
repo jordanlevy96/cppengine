@@ -7,14 +7,12 @@ static Registry *registry = &Registry::GetInstance();
 void TransformUtils::translate(EntityID entity, const glm::vec3 &translation)
 {
     Transform transform = registry->GetComponent<Transform>(entity);
+    HierarchyComponent hc = registry->GetComponent<HierarchyComponent>(entity);
     transform.Pos += translation;
 
-    if (transform.Children.size() > 0)
+    for (EntityID childId : hc.Children)
     {
-        for (EntityID childId : transform.Children)
-        {
-            TransformUtils::translate(childId, translation);
-        }
+        TransformUtils::translate(childId, translation);
     }
 }
 
@@ -31,19 +29,18 @@ void TransformUtils::rotate(EntityID entity, float angle, const glm::vec3 &axis)
     Transform transform = registry->GetComponent<Transform>(entity);
     transform.Rotation = glm::normalize(deltaRotation * transform.Rotation);
 
-    if (transform.Children.size() > 0)
+    HierarchyComponent hc = registry->GetComponent<HierarchyComponent>(entity);
+
+    for (EntityID childId : hc.Children)
     {
-        for (EntityID childId : transform.Children)
-        {
-            Transform childTransform = registry->GetComponent<Transform>(childId);
+        Transform childTransform = registry->GetComponent<Transform>(childId);
 
-            // Assuming parent's position is the rotation pivot for the entire composite entity
-            glm::vec3 relativePos = childTransform.Pos - transform.Pos;
-            glm::quat rotatedPos = deltaRotation * glm::quat(0.0f, relativePos.x, relativePos.y, relativePos.z) * glm::conjugate(deltaRotation);
-            childTransform.Pos = transform.Pos + glm::vec3(rotatedPos.x, rotatedPos.y, rotatedPos.z);
+        // Assuming parent's position is the rotation pivot for the entire composite entity
+        glm::vec3 relativePos = childTransform.Pos - transform.Pos;
+        glm::quat rotatedPos = deltaRotation * glm::quat(0.0f, relativePos.x, relativePos.y, relativePos.z) * glm::conjugate(deltaRotation);
+        childTransform.Pos = transform.Pos + glm::vec3(rotatedPos.x, rotatedPos.y, rotatedPos.z);
 
-            TransformUtils::rotate(childId, angle, axis);
-        }
+        TransformUtils::rotate(childId, angle, axis);
     }
 }
 

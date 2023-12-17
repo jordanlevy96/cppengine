@@ -1,12 +1,11 @@
 #include "Tetris.h"
 
+#include "util/SceneTraversal.h"
 #include "util/TransformUtils.h"
 
 #include <yaml-cpp/yaml.h>
 
 #include <iostream>
-
-static Registry *registry = &Registry::GetInstance();
 
 static float spacingX = 2.0f;
 static float spacingY = 2.0f;
@@ -17,7 +16,8 @@ EntityID Tetris::RegisterTetrimino(RenderComponent rc, Tetrimino &tetriminoData)
     unsigned int id = registry->RegisterEntity();
     Transform parentTransform = registry->GetComponent<Transform>(id);
 
-    glm::mat4 cubeIDMap = glm::mat4(-1.0f);
+    // initialize to all -1
+    glm::mat4 cubeIDMap = glm::mat4(-1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f);
 
     for (int i = 0; i < 4; i++)
     {
@@ -38,7 +38,7 @@ EntityID Tetris::RegisterTetrimino(RenderComponent rc, Tetrimino &tetriminoData)
                 Lighting lightComp = Lighting(lightID);
                 registry->RegisterComponent<Lighting>(cube, lightComp);
 
-                parentTransform.AddChild(cube);
+                AddChild(id, cube);
             }
         }
     }

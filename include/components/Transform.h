@@ -3,8 +3,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <vector>
-
 typedef size_t EntityID;
 
 namespace EulerAngles
@@ -20,11 +18,4 @@ struct Transform
     glm::vec3 Scale = glm::vec3(1.0f);
     glm::quat Rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     glm::vec3 Color = glm::vec3(1.0f);
-
-    std::vector<EntityID> Children;
-
-    void AddChild(EntityID id)
-    {
-        Children.push_back(id);
-    }
 };

@@ -66,11 +66,9 @@ TetrisGrid = {
         for i = 1, 4 do
             for j = 1, 4 do
                 local childId = childMap[i][j]
-                if childId ~= -1 then
-                    local gridX = position.x + j
-                    local gridY = position.y + i
-                    self.grid[gridY][gridX] = childId
-                end
+                local gridX = pos.x + j
+                local gridY = pos.y + i
+                self.grid[gridY][gridX] = childId
             end
         end
 
@@ -85,7 +83,7 @@ TetrisGrid = {
         end
     end,
 
-    canRotateTetrimino = function(tetriminoId, rotation)
+    --[[ canRotateTetrimino = function(tetriminoId, rotation)
         local tetriminoMatrix = GetTetriminoChildMap(tetriminoId) -- Get current layout of Tetrimino 📍
         local rotatedMatrix = self:rotateMatrix(tetriminoMatrix, rotation) -- Get the rotated layout 🔄
     
@@ -103,6 +101,6 @@ TetrisGrid = {
         end
     
         return true -- Rotation is possible ✅
-    end
+    end ]]
     
 }

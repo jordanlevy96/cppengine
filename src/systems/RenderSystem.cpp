@@ -21,8 +21,17 @@ void RenderSystem::RenderEntity<Lighting>(EntityID id, Camera *cam)
 template <>
 void RenderSystem::RenderEntity<RenderComponent>(EntityID id, Camera *cam)
 {
-    Transform &t = registry->GetComponent<Transform>(id);
-    RenderComponent &rc = registry->GetComponent<RenderComponent>(id);
+    Transform t = registry->GetComponent<Transform>(id);
+    RenderComponent rc = registry->GetComponent<RenderComponent>(id);
+    HierarchyComponent hc = registry->GetComponent<HierarchyComponent>(id);
+
+    if (hc.Parent < std::numeric_limits<size_t>::max())
+    {
+        Transform parentTransform = registry->GetComponent<Transform>(id);
+        t.Pos += parentTransform.Pos;
+        t.Color *= parentTransform.Color;
+        t.Scale *= parentTransform.Scale;
+    }
 
     // Basic.shader
     rc.AddUniform("objectColor", t.Color, UniformTypeMap::vec3);

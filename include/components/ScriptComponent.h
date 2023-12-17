@@ -20,4 +20,8 @@ struct ScriptComponent
             std::cerr << "Error calling Ready: " << e.what() << std::endl;
         }
     };
+    ~ScriptComponent()
+    {
+        ScriptClass.abandon();
+    }
 };

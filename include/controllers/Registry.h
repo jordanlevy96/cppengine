@@ -1,5 +1,6 @@
 #pragma once
 
+#include "components/HierarchyComponent.h"
 #include "components/Lighting.h"
 #include "components/RenderComponent.h"
 #include "components/ScriptComponent.h"
@@ -30,6 +31,7 @@ public:
             sparse.resize(maxEntities, -1);
         }
 
+        indices.push_back(dense.size());
         dense.push_back(component);
         sparse[entity] = dense.size() - 1;
         entities.push_back(entity);
@@ -37,40 +39,58 @@ public:
 
     T &GetComponent(EntityID entity)
     {
-        return dense[sparse[entity]];
+        return dense[indices[sparse[entity]]];
     }
 
-    // FIXME: this operates at O(N), could be O(1) with more memory usage or something clever
+    // void RemoveComponent(EntityID entity)
+    // {
+    //     if (entity >= sparse.size())
+    //     {
+    //         std::cerr << "Attemped to remove component from invalid entity " << entity << std::endl;
+    //         return;
+    //     }
+
+    //     if (sparse[entity] == std::numeric_limits<size_t>::max())
+    //     {
+    //         return;
+    //     }
+
+    //     if (entity > data.size())
+    //     {
+    //         std::cout << "something fishy is going on" << std::endl;
+    //     }
+
+    //     size_t temp = sparse[entity];
+    //     data[temp] = data.back();
+    //     data.pop_back();
+
+    //     sparse[entity] = -1; // implicitly converted to size_t's max value
+    //     dense[temp] = dense.back();
+    //     dense.pop_back();
+
+    //     sparse[dense[temp]] = temp;
+
+    //     entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
+    // }
+
     void RemoveComponent(EntityID entity)
     {
-        if (entity >= sparse.size())
-        {
-            std::cerr << "Attemped to remove component from invalid entity " << entity << std::endl;
+        // Check if the entity is present
+        if (sparse.size() <= entity || sparse[entity] >= dense.size() || indices[sparse[entity]] != entity)
             return;
-        }
 
-        if (sparse[entity] == std::numeric_limits<size_t>::max())
-        {
-            std::cerr << "Attempted to remove absent component from entity " << entity << std::endl;
-            return;
-        }
+        // Swap and remove
+        size_t indexInDense = sparse[entity];
+        size_t lastEntity = indices.back();
 
-        size_t temp = sparse[entity];
-        sparse[entity] = -1; // implicitly converted to size_t's max value
-        dense[temp] = dense.back();
+        std::swap(dense[indexInDense], dense.back());
+        std::swap(indices[indexInDense], indices.back());
+
         dense.pop_back();
+        indices.pop_back();
 
-        // Update the sparse array for the entity that was moved
-        for (size_t i = 0; i < sparse.size(); i++)
-        {
-            if (sparse[i] == dense.size() - 1)
-            {
-                sparse[i] = temp;
-                break;
-            }
-        }
-
-        entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
+        // Update the sparse array
+        sparse[lastEntity] = indexInDense;
     }
 
     std::vector<EntityID> GetEntities() { return entities; };
@@ -83,6 +103,7 @@ private:
     // e.g. if entity id 6 has a component, sparse[6] will be the index
     // of that component in the dense array
     std::vector<size_t> sparse = std::vector<size_t>(maxEntities, -1);
+    std::vector<size_t> indices;
     std::vector<T> dense;
 
     std::vector<size_t> entities;
@@ -100,9 +121,9 @@ public:
     void Shutdown();
 
     // Registers a new entity and corresponding Transform where name = id
-    EntityID RegisterEntity();
+    EntityID RegisterEntity(EntityID parent = -1);
     // Registers a new entity and corresponding Transform
-    EntityID RegisterEntity(const std::string &name);
+    EntityID RegisterEntity(const std::string &name, EntityID parent = -1);
     EntityID GetEntityByName(const std::string &name);
     void DestroyEntity(EntityID id);
 
@@ -154,6 +175,7 @@ private:
     Registry(Registry const &) = delete;
     void operator=(Registry const &) = delete;
 
+    SparseSet<HierarchyComponent> HierarchyComponents;
     SparseSet<Lighting> LightingComponents;
     SparseSet<RenderComponent> RenderComponents;
     SparseSet<ScriptComponent> ScriptComponents;

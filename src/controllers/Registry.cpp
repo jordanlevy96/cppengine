@@ -10,18 +10,20 @@ void Registry::Shutdown()
     }
 }
 
-EntityID Registry::RegisterEntity()
+EntityID Registry::RegisterEntity(EntityID parent)
 {
     std::string name = std::to_string(i);
 
-    return RegisterEntity(name);
+    return RegisterEntity(name, parent);
 }
 
-EntityID Registry::RegisterEntity(const std::string &name)
+EntityID Registry::RegisterEntity(const std::string &name, EntityID parent)
 {
     entityNames.push_back(name);
     Transform t = Transform();
     RegisterComponent(i, t);
+    HierarchyComponent hc = HierarchyComponent(parent);
+    RegisterComponent(i, hc);
     return i++;
 }
 
@@ -45,6 +47,12 @@ EntityID Registry::GetEntityByName(const std::string &name)
     {
         return std::distance(entityNames.begin(), it);
     }
+}
+
+template <>
+SparseSet<HierarchyComponent> &Registry::GetComponentSet<HierarchyComponent>()
+{
+    return HierarchyComponents;
 }
 
 template <>
@@ -158,7 +166,7 @@ bool Registry::LoadScene(const std::string &src)
                             scriptClass[key] = property.second.as<std::string>();
                         }
 
-                        ScriptComponent sc = ScriptComponent(scriptSrc, scriptClass);
+                        ScriptComponent sc = ScriptComponent(name, scriptClass);
                         RegisterComponent<ScriptComponent>(id, sc);
                     }
                 }

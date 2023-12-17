@@ -5,7 +5,7 @@ Tetrimino = {
         print("Tetrimino ready!")
     end,
 
-    moveTetrimino = function(self, delta, grid)
+   --[[  moveTetrimino = function(self, delta, grid)
         self.timeSinceLastMove = self.timeSinceLastMove + delta
         if self.timeSinceLastMove >= self.moveDownInterval then
             if self:canMoveDown(grid) then
@@ -16,9 +16,9 @@ Tetrimino = {
             end
             self.timeSinceLastMove = 0
         end
-    end,
+    end, ]]
 
-    placeTetrimino = function(grid, tetrimino, posX, posY)
+    --[[ placeTetrimino = function(grid, tetrimino, posX, posY)
         -- tetrimino.shape is a 2D array representing the shape of the Tetrimino
         -- posX and posY represent the Tetrimino's position on the grid
         for i = 1, #tetrimino.shape do
@@ -33,16 +33,16 @@ Tetrimino = {
                 end
             end
         end
-    end,
+    end, ]]
 
-    canMoveDown = function(self, grid)
+    --[[ canMoveDown = function(self, grid)
         -- Check grid for collision below the current Tetrimino
         -- Return true if it can move down, false otherwise
         return true
-    end,
+    end, ]]
 
     moveDown = function(self, grid)
         print("gravity")
         -- Move Tetrimino down and update the grid accordingly
-    end,
+    end
 }
