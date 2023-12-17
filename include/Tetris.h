@@ -41,7 +41,7 @@ namespace Tetris
 
     // a wee bit hacky way to avoid registering an additional component for this matrix
     // of which there will only ever be one of at a time
-    static glm::mat4 ActiveTetriminoChildMap = glm::mat4(-1.0f);
+    static glm::mat4 ActiveTetriminoChildMap = glm::mat4(-1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f);
 
     extern std::unordered_map<char, Tetrimino> TetriminoMap;
 
@@ -49,9 +49,11 @@ namespace Tetris
     EntityID RegisterTetrimino(RenderComponent rc, Tetrimino &tetriminoData);
     glm::mat4 GetTetriminoChildMap();
 
+    glm::mat4 CheckRotation(Rotations rotation);
     void RotateTetrimino(EntityID id, Rotations rotation);
     void MoveTetrimino(EntityID id, glm::vec2 dir);
     void TweenTetrimino(EntityID id, glm::vec3 dir, float duration);
+    bool TetriminoFinishedMovement(EntityID id);
 
     void LoadTetriminos(const std::string &src);
 }

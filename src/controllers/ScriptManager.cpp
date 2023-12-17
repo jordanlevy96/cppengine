@@ -130,5 +130,7 @@ namespace LuaBindings
         lua.set_function("RotateTetrimino", &Tetris::RotateTetrimino);
         lua.set_function("MoveTetrimino", &Tetris::MoveTetrimino);
         lua.set_function("TweenTetrimino", &Tetris::TweenTetrimino);
+        lua.set_function("CheckRotation", &Tetris::CheckRotation);
+        lua.set_function("TetriminoFinishedMovement", &Tetris::TetriminoFinishedMovement);
     }
 }

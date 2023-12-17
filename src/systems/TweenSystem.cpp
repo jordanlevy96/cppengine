@@ -16,7 +16,7 @@ void TweenSystem::Update(float delta)
 
 void TweenSystem::UpdateTween(EntityID id, float delta)
 {
-    Tween tween = registry->GetComponent<Tween>(id);
+    Tween &tween = registry->GetComponent<Tween>(id);
     tween.elapsed += delta;
 
     if (tween.elapsed >= tween.Duration)

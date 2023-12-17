@@ -95,6 +95,19 @@ void Tetris::LoadTetriminos(const std::string &src)
     }
 }
 
+glm::mat4 Tetris::CheckRotation(Rotations rotation)
+{
+    float angle = RotationMap[rotation];
+    glm::mat4 orientation = ActiveTetriminoChildMap;
+    PRINT("Before:")
+    PrintMat4(orientation);
+    glm::mat4 test = glm::rotate(orientation, glm::radians(angle), EulerAngles::Roll);
+    PRINT("After:")
+    PrintMat4(test);
+
+    return glm::rotate(orientation, glm::radians(angle), EulerAngles::Pitch);
+}
+
 void Tetris::RotateTetrimino(EntityID id, Rotations rotation)
 {
     float angle = RotationMap[rotation];
@@ -105,17 +118,26 @@ void Tetris::RotateTetrimino(EntityID id, Rotations rotation)
 
 void Tetris::MoveTetrimino(EntityID id, glm::vec2 dir)
 {
+    Tween &tween = registry->GetComponent<Tween>(id);
+    tween.Start.x += dir.x;
+    tween.End.x += dir.x;
     TransformUtils::translate(id, glm::vec3(dir, 0));
 }
 
 void Tetris::TweenTetrimino(EntityID id, glm::vec3 dir, float duration)
 {
-    Transform transform = registry->GetComponent<Transform>(id);
-    Tween tween = registry->GetComponent<Tween>(id);
+    Transform &transform = registry->GetComponent<Transform>(id);
+    Tween &tween = registry->GetComponent<Tween>(id);
     tween.elapsed = 0;
     tween.Start = transform.Pos;
     tween.End = transform.Pos + dir;
     tween.Duration = duration;
 
     tween.isActive = true;
+}
+
+bool Tetris::TetriminoFinishedMovement(EntityID id)
+{
+    Tween tween = registry->GetComponent<Tween>(id);
+    return !tween.isActive;
 }

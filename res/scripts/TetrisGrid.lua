@@ -27,6 +27,7 @@ TetrisGrid = {
     -- dynamic
     moveDownInterval = 1,
     timeSinceLastMove = 0,
+    moveSpeed = 500,
     
     ready = function(self)
         for i = 1, self.gridHeight do
@@ -81,27 +82,30 @@ TetrisGrid = {
             AttachScript(id, "Tetrimino", Tetrimino)
             self.activePiece = id
             MoveTetrimino(id, vec2(5, 17))
+        elseif (TetriminoFinishedMovement(self.activePiece)) then
+            -- check for collisions
+            TweenTetrimino(self.activePiece, vec3(0,-1,0), self.moveSpeed)
         end
     end,
 
-    --[[ canRotateTetrimino = function(tetriminoId, rotation)
-        local tetriminoMatrix = GetTetriminoChildMap(tetriminoId) -- Get current layout of Tetrimino 📍
-        local rotatedMatrix = self:rotateMatrix(tetriminoMatrix, rotation) -- Get the rotated layout 🔄
+    canRotateTetrimino = function(rotation)
+        local rotatedMatrix = CheckRotation(rotation)
     
         -- Check if the rotatedMatrix fits in the grid without colliding ⛔
         for i = 1, 4 do
             for j = 1, 4 do
-                if rotatedMatrix[i][j] ~= 0 then
+                if rotatedMatrix[i][j] ~= -1 then
                     -- Check if out of bounds or collides with other pieces
+                    print("Looking at " .. rotatedMatrix[i][j] .. " at " .. i .. " " .. j)
                     if j + tetriminoX < 1 or j + tetriminoX > self.gridWidth or 
                        i + tetriminoY > self.gridHeight or self.grid[i + tetriminoY][j + tetriminoX] ~= 0 then
-                        return false -- Rotation not possible ❌
+                        return false
                     end
                 end
             end
         end
     
-        return true -- Rotation is possible ✅
-    end ]]
+        return true 
+    end
     
 }

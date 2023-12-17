@@ -51,15 +51,19 @@ OnKeyPress = function(key)
     elseif key == "D" then
         camera:Move(CameraDirections.RIGHT, GameManager.delta)
     elseif key == "Z" then
-        RotateTetrimino(TetrisGrid.activePiece, Rotations.CCW)
+        if (TetrisGrid.canRotateTetrimino(Rotations.CCW)) then
+            RotateTetrimino(TetrisGrid.activePiece, Rotations.CCW)
+        end
     elseif key == "X" or key == "UP" then
-        RotateTetrimino(TetrisGrid.activePiece, Rotations.CW)
+        if (TetrisGrid.canRotateTetrimino(Rotations.CW)) then
+            RotateTetrimino(TetrisGrid.activePiece, Rotations.CW)
+        end
     elseif key == "LEFT" then
         MoveTetrimino(TetrisGrid.activePiece, vec2(-1, 0))
     elseif key == "RIGHT" then
         MoveTetrimino(TetrisGrid.activePiece, vec2(1, 0))
     elseif key == "P" then
-        TweenTetrimino(TetrisGrid.activePiece, vec3(0,1,0), 100)
+        -- TweenTetrimino(TetrisGrid.activePiece, vec3(0,-1,0), 300)
     end
 end
 
