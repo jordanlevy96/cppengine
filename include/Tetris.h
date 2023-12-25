@@ -55,5 +55,8 @@ namespace Tetris
     void TweenTetrimino(EntityID id, glm::vec3 dir, float duration);
     bool TetriminoFinishedMovement(EntityID id);
 
+    float mat4_get(glm::mat4 mat, size_t x, size_t y);
+    glm::vec2 GetTetriminoLoc(EntityID id);
+
     void LoadTetriminos(const std::string &src);
 }

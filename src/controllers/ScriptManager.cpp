@@ -82,6 +82,9 @@ namespace LuaBindings
                                     "y", &glm::vec3::y,
                                     "z", &glm::vec3::z);
 
+        lua.new_usertype<glm::mat4>("mat4",
+                                    "get", &Tetris::mat4_get);
+
         lua.new_usertype<Transform>("Transform",
                                     "Pos", &Transform::Pos);
 
@@ -132,5 +135,6 @@ namespace LuaBindings
         lua.set_function("TweenTetrimino", &Tetris::TweenTetrimino);
         lua.set_function("CheckRotation", &Tetris::CheckRotation);
         lua.set_function("TetriminoFinishedMovement", &Tetris::TetriminoFinishedMovement);
+        lua.set_function("GetTetriminoLoc", &Tetris::GetTetriminoLoc);
     }
 }

@@ -95,24 +95,51 @@ void Tetris::LoadTetriminos(const std::string &src)
     }
 }
 
+glm::mat4 turnMatrixCW()
+{
+    glm::mat4 rotated = glm::mat4(-1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f);
+
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            rotated[j][3 - i] = Tetris::ActiveTetriminoChildMap[i][j];
+        }
+    }
+
+    return rotated;
+}
+
+glm::mat4 turnMatrixCCW()
+{
+    glm::mat4 rotated = glm::mat4(-1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f);
+
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            rotated[3 - j][i] = Tetris::ActiveTetriminoChildMap[i][j];
+        }
+    }
+
+    return rotated;
+}
+
 glm::mat4 Tetris::CheckRotation(Rotations rotation)
 {
-    float angle = RotationMap[rotation];
-    glm::mat4 orientation = ActiveTetriminoChildMap;
-    PRINT("Before:")
-    PrintMat4(orientation);
-    glm::mat4 test = glm::rotate(orientation, glm::radians(angle), EulerAngles::Roll);
-    PRINT("After:")
-    PrintMat4(test);
-
-    return glm::rotate(orientation, glm::radians(angle), EulerAngles::Pitch);
+    switch (rotation)
+    {
+    case (Rotations::CCW):
+        return turnMatrixCCW();
+    case (Rotations::CW):
+        return turnMatrixCW();
+    }
 }
 
 void Tetris::RotateTetrimino(EntityID id, Rotations rotation)
 {
     float angle = RotationMap[rotation];
-    glm::mat4 &orientation = ActiveTetriminoChildMap;
-    orientation = glm::rotate(orientation, glm::radians(angle), EulerAngles::Pitch);
+    ActiveTetriminoChildMap = CheckRotation(rotation);
     TransformUtils::rotate(id, angle, EulerAngles::Pitch);
 }
 
@@ -140,4 +167,19 @@ bool Tetris::TetriminoFinishedMovement(EntityID id)
 {
     Tween tween = registry->GetComponent<Tween>(id);
     return !tween.isActive;
+}
+
+float Tetris::mat4_get(glm::mat4 mat, size_t x, size_t y)
+{
+    if (x < 0 || x >= 4 || y < 0 || y >= 4)
+    {
+        throw std::out_of_range("Index out of range");
+    }
+    return mat[x][y];
+}
+
+glm::vec2 Tetris::GetTetriminoLoc(EntityID id)
+{
+    Transform t = registry->GetComponent<Transform>(id);
+    return glm::vec2(t.Pos.x, t.Pos.y);
 }
