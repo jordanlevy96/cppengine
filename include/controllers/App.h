@@ -26,7 +26,7 @@ public:
     double delta = 0;
     Registry *registry;
     WindowManager *windowManager;
-    ScriptManager *lua;
+    ScriptManager *scriptManager;
 
     static App &GetInstance()
     {

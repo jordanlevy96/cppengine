@@ -3,30 +3,30 @@ set(CMAKE_CXX_STANDARD 17)
 project(cppengine)
 
 file(GLOB_RECURSE SOURCES
-"src/*.cpp",
-"src/controllers/*.cpp",
-"src/components/*.cpp",
-"src/entities/*.cpp",
-"src/systems/*.cpp",
-"src/util/*.cpp",
-"include/*.h",
-"include/controllers/*.h",
-"include/components/*.h",
-"include/entities/*.h",
-"include/systems/*.h",
-"include/util/*.h",
+"src/*.cpp"
+"src/controllers/*.cpp"
+"src/controllers/python/*.cpp"
+"src/components/*.cpp"
+"src/entities/*.cpp"
+"src/systems/*.cpp"
+"src/util/*.cpp"
+"include/*.h"
+"include/controllers/*.h"
+"include/components/*.h"
+"include/entities/*.h"
+"include/systems/*.h"
+"include/util/*.h"
 "external/glad/src/*.c"
 )
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
-# Handle Dependencies
+set(SCRIPTING_LANG "PYTHON")
+message(STATUS "SCRIPTING_LANG set to " ${SCRIPTING_LANG})
 
-set(OpenGL_GL_PREFERENCE "GLVND") # get latest version
+set(OpenGL_GL_PREFERENCE "GLVND") 
 find_package(OpenGL REQUIRED)
 
 add_subdirectory(external/yaml-cpp)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as static library" FORCE)
-add_subdirectory(external/lua-cmake)
 add_subdirectory(external/sol2)
 
 if (APPLE)
@@ -84,20 +84,46 @@ add_library(imgui
 target_include_directories(imgui PUBLIC ${IMGUI_DIR})
 target_link_libraries(imgui PUBLIC glfw)
 
+if(SCRIPTING_LANG STREQUAL "LUA")
+    message(STATUS "Configuring for Lua")
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as static library" FORCE)
+    add_subdirectory(external/lua-cmake)
+    target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
+        external/lua-cmake/upstream
+        external/sol2/include/sol
+    )
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE lua sol2)
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE USE_LUA_SCRIPTING)
+elseif(SCRIPTING_LANG STREQUAL "PYTHON")
+    find_package(PythonLibs REQUIRED)
+    # find_package(pybind11 REQUIRED)
+    include_directories(${PYTHON_INCLUDE_DIRS} external/pybind11/include)
+    set(Python_EXECUTABLE "${CONDA_PREFIX}/bin/python")
+    set(CONDA_PREFIX $ENV{CONDA_PREFIX})
+    if (CONDA_PREFIX)
+        set(Python_EXECUTABLE "${CONDA_PREFIX}/bin/python")
+        include_directories("${CONDA_PREFIX}/include/python3.12")
+    else()
+        message(FATAL_ERROR "CONDA_PREFIX env var not set.")
+    endif()
+    # pybind11_add_module(app_module src/controllers/python/app_bindings.cpp)
+    # pybind11_add_module(camera src/controllers/python/camera_bindings.cpp)
+    # pybind11_add_module(enums src/controllers/python/enum_bindings.cpp)
+    # pybind11_add_module(glm src/controllers/python/glm_bindings.cpp)
+    # pybind11_add_module(tetris src/controllers/python/tetris_bindings.cpp)
+
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${PYTHON_LIBRARIES})
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE USE_PYTHON_SCRIPTING)
+endif()
+
 include_directories(
     include
     external/headers
     external/glad/include
     external/yaml-cpp/include
-    external/lua-cmake/upstream
-    external/sol2/include
     ${GLFW_DIR}
     ${IMGUI_DIR}
-    )
-
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-    yaml-cpp::yaml-cpp
 )
+
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE external/glm)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glfw lua sol2 imgui)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glfw imgui yaml-cpp::yaml-cpp ${OPENGL_LIBRARIES})

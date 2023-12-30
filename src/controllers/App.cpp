@@ -39,12 +39,12 @@ bool App::Initialize()
 
     registry = &Registry::GetInstance();
 
-    // Lua must be initialized last, as it needs references to the other controllers
-    lua = &ScriptManager::GetInstance();
-    lua->Initialize();
-    lua->CreateTable(EVENT_QUEUE);
+    // Scripting must be initialized last, as it needs references to the other controllers
+    scriptManager = &ScriptManager::GetInstance();
+    scriptManager->Initialize();
+    scriptManager->CreateList(EVENT_QUEUE);
 
-    Tetris::LoadTetriminos(conf.ResourcePath + "conf/tetriminos.yaml");
+    // Tetris::LoadTetriminos(conf.ResourcePath + "conf/tetriminos.yaml");
 
     return true;
 }
@@ -63,6 +63,8 @@ void App::Run()
     /* --------- Initial State --------- */
     registry->LoadScene("scenes/MainScene.yaml");
 
+    std::cout << "Loaded Scene" << std::endl;
+
     while (!glfwWindowShouldClose(windowManager->window))
     {
         /* ------------- Main Loop -------------
@@ -77,7 +79,7 @@ void App::Run()
         */
 
         // Process
-        lua->ProcessInput();
+        scriptManager->ProcessInput();
         currentTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - previousTime).count();
         previousTime = currentTime;
@@ -175,7 +177,7 @@ void App::Shutdown()
 {
     delete cam;
 
-    lua->Shutdown();
+    scriptManager->Shutdown();
     registry->Shutdown();
 
     ImGui_ImplOpenGL3_Shutdown();

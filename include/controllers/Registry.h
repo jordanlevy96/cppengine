@@ -8,7 +8,6 @@
 #include "components/Tween.h"
 
 #include <yaml-cpp/yaml.h>
-#include <sol/sol.hpp>
 
 typedef size_t EntityID;
 
@@ -167,7 +166,12 @@ public:
 
     static std::shared_ptr<RenderComponent> CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc);
     static void CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 pos, glm::vec3 color);
+#ifdef USE_LUA_SCRIPTING
     static void AttachScript(EntityID entityId, const std::string &name, sol::table luaClass);
+#endif
+#ifdef USE_PYTHON_SCRIPTING
+    static void AttachScript(EntityID entityId, const std::string &name, py::object pythonClass);
+#endif
 
 private:
     EntityID i = 0;

@@ -8,6 +8,8 @@
 
 #include <iostream>
 
+#ifdef USE_LUA_SCRIPTING
+
 void ScriptManager::Run(const std::string &scriptSrc)
 {
     lua.script_file(scriptSrc);
@@ -138,3 +140,50 @@ namespace LuaBindings
         lua.set_function("GetTetriminoLoc", &Tetris::GetTetriminoLoc);
     }
 }
+
+#endif
+
+#ifdef USE_PYTHON_SCRIPTING
+void ScriptManager::Initialize()
+{
+    // py::initialize_interpreter();
+    guard = std::make_unique<py::scoped_interpreter>();
+
+    Run(App::GetInstance().conf.ResourcePath + "scripts/init.py");
+
+    std::cout << "Python initialized" << std::endl;
+}
+
+void ScriptManager::Shutdown()
+{
+    py::finalize_interpreter();
+}
+
+void ScriptManager::Run(const std::string &scriptSrc)
+{
+    py::eval_file(scriptSrc, py::globals());
+}
+
+void ScriptManager::CreateList(const std::string &key)
+{
+    PRINT("Creating List");
+    py::list targetList;
+    py::globals()[key.c_str()] = targetList;
+}
+
+void ScriptManager::ProcessInput()
+{
+    PRINT("Processing input");
+    try
+    {
+        py::object handleInputFunction = py::globals()[HANDLE_INPUT_F.c_str()];
+
+        handleInputFunction();
+    }
+    catch (const py::error_already_set &e)
+    {
+        std::cerr << "Error calling HandleInput: " << e.what() << std::endl;
+    }
+}
+
+#endif

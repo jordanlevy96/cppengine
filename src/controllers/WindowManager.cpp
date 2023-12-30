@@ -268,7 +268,6 @@ void WindowManager::resize_callback(GLFWwindow *window, int in_width, int in_hei
     // sm.AddToTable(EVENT_QUEUE, event);
 
     // Enforce 2:1 Aspect ratio for Tetris
-    // FIXME: Lua handling
     int aspectWidth = in_width;
     int aspectHeight = in_width * 2 / 1;
     glfwSetWindowSize(window, aspectWidth, aspectHeight);
