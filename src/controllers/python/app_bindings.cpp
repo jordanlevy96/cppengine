@@ -7,7 +7,7 @@ namespace py = pybind11;
 PYBIND11_MODULE(app_module, m)
 {
     py::class_<App>(m, "App")
-        .def_static("GetInstance", &App::GetInstance)
+        .def_static("GetInstance", &App::GetInstance, py::return_value_policy::reference)
         .def_readwrite("delta", &App::delta)
         .def_readwrite("camera", &App::cam)
         .def_readwrite("conf", &App::conf)

@@ -41,37 +41,6 @@ public:
         return dense[indices[sparse[entity]]];
     }
 
-    // void RemoveComponent(EntityID entity)
-    // {
-    //     if (entity >= sparse.size())
-    //     {
-    //         std::cerr << "Attemped to remove component from invalid entity " << entity << std::endl;
-    //         return;
-    //     }
-
-    //     if (sparse[entity] == std::numeric_limits<size_t>::max())
-    //     {
-    //         return;
-    //     }
-
-    //     if (entity > data.size())
-    //     {
-    //         std::cout << "something fishy is going on" << std::endl;
-    //     }
-
-    //     size_t temp = sparse[entity];
-    //     data[temp] = data.back();
-    //     data.pop_back();
-
-    //     sparse[entity] = -1; // implicitly converted to size_t's max value
-    //     dense[temp] = dense.back();
-    //     dense.pop_back();
-
-    //     sparse[dense[temp]] = temp;
-
-    //     entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
-    // }
-
     void RemoveComponent(EntityID entity)
     {
         // Check if the entity is present

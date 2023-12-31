@@ -210,8 +210,6 @@ bool Registry::LoadScene(const std::string &src)
     }
 }
 
-// For scripting
-
 #ifdef USE_LUA_SCRIPTING
 void Registry::AttachScript(EntityID entityId, const std::string &name, sol::table luaClass)
 {

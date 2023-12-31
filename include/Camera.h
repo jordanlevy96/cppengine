@@ -2,7 +2,6 @@
 
 #include "components/Transform.h"
 
-#include <glm/glm.hpp>
 #include <glad/glad.h>
 
 #include <vector>

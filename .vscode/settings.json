@@ -73,7 +73,20 @@
     "stack": "cpp",
     "strstream": "cpp",
     "variant": "cpp",
-    "internal.h": "c"
+    "internal.h": "c",
+    "__tree": "cpp",
+    "__verbose_abort": "cpp",
+    "any": "cpp",
+    "charconv": "cpp",
+    "condition_variable": "cpp",
+    "forward_list": "cpp",
+    "list": "cpp",
+    "map": "cpp",
+    "set": "cpp",
+    "thread": "cpp",
+    "typeindex": "cpp",
+    "unordered_set": "cpp",
+    "valarray": "cpp"
   },
   "nuxt.isNuxtApp": false
 }

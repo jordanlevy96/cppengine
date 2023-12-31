@@ -1,7 +1,7 @@
 import app_module
 import camera
 import enums
-import tetris_funcs
+import tetris
 import TetrisGrid
 
 GameManager = app_module.App.GetInstance()
@@ -55,9 +55,9 @@ def on_key_press(key):
     elif key in ["X", "UP"]:
         TetrisGrid.rotate_tetrimino(enums.Rotations.CW)
     elif key == "LEFT":
-        tetris_funcs.move_tetrimino(TetrisGrid.active_piece, {'x': -1, 'y': 0})
+        tetris.move_tetrimino(TetrisGrid.active_piece, {'x': -1, 'y': 0})
     elif key == "RIGHT":
-        tetris_funcs.move_tetrimino(TetrisGrid.active_piece, {'x': 1, 'y': 0})
+        tetris.move_tetrimino(TetrisGrid.active_piece, {'x': 1, 'y': 0})
     # elif key == "P": 
         # TODO: pause
 
