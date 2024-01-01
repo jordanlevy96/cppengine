@@ -7,19 +7,22 @@ import TetrisGrid
 GameManager = app_module.App.GetInstance()
 RES_PATH = GameManager.conf.resPath
 CameraRotateFlag = False
+event_queue = []
 
 def handle_input():
     global CameraRotateFlag  
+    global event_queue
+    
     while len(event_queue) > 0:
         event = event_queue.pop(0)
-        if event['type'] == enums.InputTypes.KEY:
-            on_key_press(event['input'])
-        elif event['type'] == enums.InputTypes.CURSOR:
+        if event.type == enums.InputTypes.KEY:
+            on_key_press(event.input)
+        elif event.type == enums.InputTypes.CURSOR:
             if CameraRotateFlag:
-                on_cursor(event['input'])
-        elif event['type'] == enums.InputTypes.SCROLL:
-            on_scroll(event['input'])
-
+                on_cursor(event.input)
+        elif event.type == enums.InputTypes.SCROLL:
+            on_scroll(event.input)
+    
 def on_scroll(input):
     camera = GameManager.camera
     size = GameManager.window.get_size()
@@ -60,4 +63,3 @@ def on_key_press(key):
         tetris.move_tetrimino(TetrisGrid.active_piece, {'x': 1, 'y': 0})
     # elif key == "P": 
         # TODO: pause
-

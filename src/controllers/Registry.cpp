@@ -190,8 +190,6 @@ bool Registry::LoadScene(const std::string &src)
                                 continue;
                             }
 
-                            // Assume all other keys are meant as strings for the Lua script
-                            PRINT("Setting scriptClass." << key << " to " << property.second.as<std::string>());
                             sm.SetClassAttribute(scriptName, key, property.second.as<std::string>());
                         }
                         ScriptComponent sc = ScriptComponent(name, scriptClass);
@@ -201,6 +199,7 @@ bool Registry::LoadScene(const std::string &src)
                 }
             }
         }
+        std::cout << "INIT - Registry: SUCCESS" << std::endl;
         return true;
     }
     catch (const YAML::Exception &e)

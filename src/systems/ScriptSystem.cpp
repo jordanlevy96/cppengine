@@ -7,8 +7,11 @@ void ScriptSystem::Update(float delta)
 {
     for (EntityID id : registry.GetComponentSet<ScriptComponent>().GetEntities())
     {
+        const char *update = "update";
         ScriptComponent sc = registry.GetComponent<ScriptComponent>(id);
-        PRINT("Running " << id << "'s update script");
-        sc.ScriptClass["process"](sc.ScriptClass, delta);
+
+        // TODO: more robust handling; what if the entity has an instance of a class?
+        py::object updateFunc = sc.ScriptClass.attr(sc.Name.c_str()).attr(update);
+        updateFunc(sc.ScriptClass, delta);
     }
 }

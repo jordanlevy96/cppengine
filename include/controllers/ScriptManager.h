@@ -39,6 +39,7 @@ public:
     void Initialize();
     void Shutdown();
     void Run(const std::string &scriptSrc);
+    void CreateList(const std::string &key);
 
 #ifdef USE_LUA_SCRIPTING
 
@@ -74,27 +75,73 @@ public:
 #endif
 
 #ifdef USE_PYTHON_SCRIPTING
-    void CreateList(const std::string &key);
-
     template <typename T>
     void AddToTable(const std::string &name, const T &value)
     {
         try
         {
-            std::cout << "appending to " << name << std::endl;
             py::object global_namespace = py::globals();
-            py::list py_list = global_namespace[name.c_str()].cast<py::list>();
+            py::object py_obj = global_namespace[name.c_str()];
 
-            std::cout << "accessed list" << std::endl;
+            if (py_obj.is_none())
+            {
+                throw std::runtime_error("List not found in the global namespace");
+            }
+            if (!py::isinstance<py::list>(py_obj))
+            {
+                throw std::runtime_error("Object is not a list");
+            }
 
+            py::list py_list = py_obj.cast<py::list>();
             py_list.append(value);
 
-            std::cout << "Success" << std::endl;
+            std::cout << "Successfully appended to list" << std::endl;
         }
-        catch (py::error_already_set &e)
+        catch (const py::error_already_set &e)
         {
-            std::cerr << "Error in accessing or modifying Python list '"
-                      << name << "': " << e.what() << std::endl;
+            std::cerr << "Error in accessing or modifying Python list '" << name << "': " << e.what() << std::endl;
+        }
+        catch (const std::runtime_error &e)
+        {
+            std::cerr << "Runtime error: " << e.what() << std::endl;
+        }
+    }
+
+    template <typename T>
+    void AddToList(const std::string &name, const T &value)
+    {
+        AddToTable(name, value);
+    }
+
+    template <typename T>
+    void AddToList(const std::string &name, const T &value, const std::string &module)
+    {
+        try
+        {
+            py::object module_namespace = ImportModule(module.c_str());
+            py::object py_obj = module_namespace.attr(name.c_str());
+
+            if (py_obj.is_none())
+            {
+                throw std::runtime_error("List not found in the global namespace");
+            }
+            if (!py::isinstance<py::list>(py_obj))
+            {
+                throw std::runtime_error("Object is not a list");
+            }
+
+            py::list py_list = py_obj.cast<py::list>();
+            py_list.append(value);
+
+            std::cout << "Successfully appended to list" << std::endl;
+        }
+        catch (const py::error_already_set &e)
+        {
+            std::cerr << "Error in accessing or modifying Python list '" << name << "': " << e.what() << std::endl;
+        }
+        catch (const std::runtime_error &e)
+        {
+            std::cerr << "Runtime error: " << e.what() << std::endl;
         }
     }
 

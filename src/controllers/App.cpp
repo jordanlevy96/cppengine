@@ -22,7 +22,7 @@ bool App::Initialize()
     windowManager = &WindowManager::GetInstance();
     if (!windowManager->Initialize(conf.WindowWidth, conf.WindowHeight))
     {
-        std::cerr << "Failed to Initialize Window Manager" << std::endl;
+        std::cerr << "INIT - Window Manager: FAIL" << std::endl;
         return false;
     }
 
@@ -39,12 +39,15 @@ bool App::Initialize()
 
     registry = &Registry::GetInstance();
 
-    // Scripting must be initialized last, as it needs references to the other controllers
+    // Scripting must be initialized last before the scene
+    // as it needs references to the other controllers
     scriptManager = &ScriptManager::GetInstance();
     scriptManager->Initialize();
-    scriptManager->CreateList(EVENT_QUEUE);
 
     // Tetris::LoadTetriminos(conf.ResourcePath + "conf/tetriminos.yaml");
+
+    // Scene is loaded last
+    registry->LoadScene("scenes/MainScene.yaml");
 
     return true;
 }
@@ -59,11 +62,6 @@ void App::Run()
     frameTime = 1.0 / conf.targetFPS;
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
-
-    /* --------- Initial State --------- */
-    registry->LoadScene("scenes/MainScene.yaml");
-
-    std::cout << "Loaded Scene" << std::endl;
 
     while (!glfwWindowShouldClose(windowManager->window))
     {
@@ -177,7 +175,6 @@ void App::Shutdown()
 {
     delete cam;
 
-    scriptManager->Shutdown();
     registry->Shutdown();
 
     ImGui_ImplOpenGL3_Shutdown();
@@ -185,4 +182,5 @@ void App::Shutdown()
     ImGui::DestroyContext();
 
     windowManager->Shutdown();
+    scriptManager->Shutdown();
 }

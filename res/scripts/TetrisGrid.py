@@ -1,9 +1,9 @@
-print("TetrisGrid")
-
 class TetrisGrid:
     model = None
     shader = None
 
-    def ready():
+    def ready(self):
         print("TetrisGrid ready")
         
+    def update(self, delta):
+        pass

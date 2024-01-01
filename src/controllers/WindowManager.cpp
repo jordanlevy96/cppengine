@@ -225,6 +225,13 @@ glm::vec2 WindowManager::GetSize()
     return glm::vec2(width, height);
 }
 
+#ifdef USE_LUA_SCRIPTING
+#define APPEND_EVENT() sm.AddToTable(EVENT_QUEUE, event);
+#endif
+#ifdef USE_PYTHON_SCRIPTING
+#define APPEND_EVENT() sm.AddToList(EVENT_QUEUE, event, "input");
+#endif
+
 void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     if (action == GLFW_PRESS || action == GLFW_REPEAT)
@@ -234,7 +241,7 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
         event.type = InputTypes::Key;
         event.input = GLFW_KEY(key);
 
-        sm.AddToTable(EVENT_QUEUE, event);
+        APPEND_EVENT()
     }
 }
 
@@ -245,7 +252,7 @@ void WindowManager::click_callback(GLFWwindow *window, int button, int action, i
     event.type = InputTypes::Click;
     event.input = "click";
 
-    sm.AddToTable(EVENT_QUEUE, event);
+    APPEND_EVENT()
 }
 
 void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double ypos)
@@ -255,7 +262,7 @@ void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double y
     event.type = InputTypes::Cursor;
     event.input = glm::vec2(xpos, ypos);
 
-    sm.AddToTable(EVENT_QUEUE, event);
+    APPEND_EVENT()
 }
 
 void WindowManager::resize_callback(GLFWwindow *window, int in_width, int in_height)
@@ -265,7 +272,7 @@ void WindowManager::resize_callback(GLFWwindow *window, int in_width, int in_hei
     // event.type = InputTypes::Resize;
     // event.input = glm::vec2(in_width, in_height);
 
-    // sm.AddToTable(EVENT_QUEUE, event);
+    // APPEND_EVENT()
 
     // Enforce 2:1 Aspect ratio for Tetris
     int aspectWidth = in_width;
@@ -280,5 +287,5 @@ void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double y
     event.type = InputTypes::Scroll;
     event.input = glm::vec2(xoffset, yoffset);
 
-    sm.AddToTable(EVENT_QUEUE, event);
+    APPEND_EVENT()
 }

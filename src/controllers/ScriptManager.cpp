@@ -144,19 +144,61 @@ namespace LuaBindings
 #endif
 
 #ifdef USE_PYTHON_SCRIPTING
+#include <fstream>
+#include <sstream>
+
+void exec_py_file(const std::string &path)
+{
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        throw std::runtime_error("Could not open Python script: " + path);
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string script_content = buffer.str();
+
+    std::cout << script_content << std::endl;
+    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+    py::exec(script_content, py::globals());
+}
+
 void ScriptManager::Initialize()
 {
-    // py::initialize_interpreter();
     guard = std::make_unique<py::scoped_interpreter>();
 
-    Run(App::GetInstance().conf.ResourcePath + "scripts/init.py");
+    std::cout << "Python: Running init.py" << std::endl;
+    exec_py_file(App::GetInstance().conf.ResourcePath + "scripts/init.py");
 
-    std::cout << "Python initialized" << std::endl;
+    std::cout << "INIT - Python: SUCCESS" << std::endl;
 }
 
 void ScriptManager::Shutdown()
 {
-    py::finalize_interpreter();
+    std::cout << "SHUTDOWN - Python" << std::endl;
+    try
+    {
+        py::dict globals = py::globals();
+        std::vector<std::string> keys_to_delete;
+
+        // Collect all keys; can't modify dict while iterating over it
+        for (auto item : globals)
+        {
+            std::string key = py::str(item.first).cast<std::string>();
+            keys_to_delete.push_back(key);
+        }
+
+        // Remove each global variable
+        for (const auto &key : keys_to_delete)
+        {
+            globals.attr("pop")(key, py::none());
+        }
+    }
+    catch (const py::error_already_set &e)
+    {
+        std::cerr << "Error clearing Python globals: " << e.what() << std::endl;
+    }
 }
 
 void ScriptManager::Run(const std::string &scriptSrc)
@@ -164,26 +206,12 @@ void ScriptManager::Run(const std::string &scriptSrc)
     py::eval_file(scriptSrc, py::globals());
 }
 
-void ScriptManager::CreateList(const std::string &key)
-{
-    PRINT("Creating List");
-    py::list targetList;
-    py::globals()[key.c_str()] = targetList;
-}
-
 void ScriptManager::ProcessInput()
 {
-    PRINT("Processing input");
-    try
-    {
-        py::object handleInputFunction = py::globals()[HANDLE_INPUT_F.c_str()];
+    py::object input_module = py::globals()["input"];
+    py::object handleInputFunction = input_module.attr(HANDLE_INPUT_F.c_str());
 
-        handleInputFunction();
-    }
-    catch (const py::error_already_set &e)
-    {
-        std::cerr << "Error calling HandleInput: " << e.what() << std::endl;
-    }
+    handleInputFunction();
 }
 
 #endif
