@@ -17,7 +17,7 @@ project(cppengine)
 # "external/glad/src/*.c"
 # )
 
-add_library(core_lib SHARED
+add_library(core SHARED
     "src/Camera.cpp"
     "src/Tetris.cpp"
     "src/controllers/App.cpp"
@@ -36,7 +36,7 @@ add_library(core_lib SHARED
     "external/glad/src/glad.c"
 )
 
-set(SCRIPTING_LANG "PYTHON")
+set(SCRIPTING_LANG "LUA")
 message(STATUS "SCRIPTING_LANG set to " ${SCRIPTING_LANG})
 
 set(OpenGL_GL_PREFERENCE "GLVND") 
@@ -99,7 +99,7 @@ add_library(imgui
 target_include_directories(imgui PUBLIC ${IMGUI_DIR})
 target_link_libraries(imgui PUBLIC glfw)
 
-set(CORE_LIB_INCLUDE_DIRS
+set(core_INCLUDE_DIRS
     include
     external/headers
     external/glm
@@ -109,32 +109,33 @@ set(CORE_LIB_INCLUDE_DIRS
     ${IMGUI_DIR}
 )
 
-set(CORE_LIB_LINKS
+set(core_LINKS
     glfw
     imgui
     yaml-cpp::yaml-cpp
     ${OPENGL_LIBRARIES}
 )
 
-target_include_directories(core_lib PUBLIC ${CORE_LIB_INCLUDE_DIRS})
-target_link_libraries(core_lib PUBLIC ${CORE_LIB_LINKS})
+target_include_directories(core PUBLIC ${core_INCLUDE_DIRS})
+target_link_libraries(core PUBLIC ${core_LINKS})
 
 if(SCRIPTING_LANG STREQUAL "LUA")
     message(STATUS "Configuring for Lua")
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as static library" FORCE)
-    target_add_subdirectory(core_lib external/lua-cmake)
-    target_include_directories(core_lib PUBLIC
+    target_include_directories(core PUBLIC
+        external/lua-cmake
         external/lua-cmake/upstream
         external/sol2/include/sol
     )
-    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE lua sol2)
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE USE_LUA_SCRIPTING)
+    find_package(lua)
+    target_link_libraries(core PUBLIC ${LUA_LIBRARY} sol2)
+    target_compile_definitions(core PUBLIC USE_LUA_SCRIPTING)
 elseif(SCRIPTING_LANG STREQUAL "PYTHON")
     find_package(pybind11 REQUIRED)
     find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
     message(STATUS "Configuring for Python")
     message(STATUS ${PYTHON_INCLUDE_DIRS})
-    target_include_directories(core_lib PUBLIC ${PYTHON_INCLUDE_DIRS} external/pybind11/include)
+    target_include_directories(core PUBLIC ${PYTHON_INCLUDE_DIRS} external/pybind11/include)
     set(Python_EXECUTABLE "${CONDA_PREFIX}/bin/python")
     set(CONDA_PREFIX $ENV{CONDA_PREFIX})
     if (CONDA_PREFIX)
@@ -151,13 +152,13 @@ elseif(SCRIPTING_LANG STREQUAL "PYTHON")
     pybind11_add_module(tetris src/controllers/python/tetris_bindings.cpp)
     
     foreach(module app_module camera enums glm tetris)
-        # target_include_directories(${module} PRIVATE ${CORE_LIB_INCLUDE_DIRS})
-        target_link_libraries(${module} PUBLIC core_lib) # ${CORE_LIB_LINKS}
+        # target_include_directories(${module} PRIVATE ${core_INCLUDE_DIRS})
+        target_link_libraries(${module} PUBLIC core) # ${core_LINKS}
     endforeach()
 
-    target_link_libraries(core_lib PUBLIC ${PYTHON_LIBRARIES})
-    target_compile_definitions(core_lib PUBLIC USE_PYTHON_SCRIPTING)
+    target_link_libraries(core PUBLIC ${PYTHON_LIBRARIES})
+    target_compile_definitions(core PUBLIC USE_PYTHON_SCRIPTING)
 endif()
 
 add_executable(${CMAKE_PROJECT_NAME} src/main.cpp)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE core_lib)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE core)

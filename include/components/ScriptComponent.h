@@ -10,12 +10,12 @@ struct ScriptComponent
 {
     std::string Name;
     sol::table ScriptClass;
-    ScriptComponent(std::string name, sol::table luaCLass) : Name(name), ScriptClass(luaCLass)
+    ScriptComponent(std::string name, sol::table luaClass) : Name(name), ScriptClass(luaClass)
     {
-        sol::function ready = scriptClass["ready"];
+        sol::function ready = luaClass["ready"];
         try
         {
-            ready(scriptClass);
+            ready(luaClass);
         }
         catch (const sol::error &e)
         {

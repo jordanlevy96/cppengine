@@ -9,9 +9,15 @@ void ScriptSystem::Update(float delta)
     {
         const char *update = "update";
         ScriptComponent sc = registry.GetComponent<ScriptComponent>(id);
+#ifdef USE_LUA_SCRIPTING
+        sol::function updateFunc = sc.ScriptClass["process"];
+        updateFunc(delta);
+#endif
 
+#ifdef USE_PYTHON_SCRIPTING
         // TODO: more robust handling; what if the entity has an instance of a class?
         py::object updateFunc = sc.ScriptClass.attr(sc.Name.c_str()).attr(update);
         updateFunc(sc.ScriptClass, delta);
+#endif
     }
 }

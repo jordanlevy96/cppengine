@@ -21,6 +21,7 @@ void ScriptManager::Initialize()
     LuaBindings::RegisterTypes(lua);
     LuaBindings::RegisterFunctions(lua);
     lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math);
+    CreateList(EVENT_QUEUE);
 
     Run(App::GetInstance().conf.ResourcePath + "scripts/init.lua");
 }
@@ -35,6 +36,12 @@ void ScriptManager::Shutdown()
 
     // The Lua state itself will be destroyed when the ScriptManager instance goes out of scope
 }
+
+void ScriptManager::CreateList(const std::string &key)
+{
+    sol::table targetTable = lua.create_table();
+    lua[key] = targetTable;
+};
 
 void ScriptManager::ProcessInput()
 {

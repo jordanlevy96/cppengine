@@ -42,13 +42,6 @@ public:
     void CreateList(const std::string &key);
 
 #ifdef USE_LUA_SCRIPTING
-
-    void CreateList(const std::string &key)
-    {
-        sol::table targetTable = lua.create_table();
-        lua[key] = targetTable;
-    };
-
     template <typename T>
     void AddToTable(const std::string &tableName, const T &value)
     {

@@ -1,6 +1,6 @@
 HandleInput = function()
-    while #eventQueue > 0 do
-        local event = table.remove(eventQueue, 1)
+    while #event_queue > 0 do
+        local event = table.remove(event_queue, 1)
         if event.type == InputTypes.KEY then
             OnKeyPress(event.input)
         elseif event.type == InputTypes.CURSOR then
