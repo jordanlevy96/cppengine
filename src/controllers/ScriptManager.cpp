@@ -159,8 +159,6 @@ void exec_py_file(const std::string &path)
     buffer << file.rdbuf();
     std::string script_content = buffer.str();
 
-    std::cout << script_content << std::endl;
-    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
     py::exec(script_content, py::globals());
 }
 
@@ -170,6 +168,7 @@ void ScriptManager::Initialize()
 
     std::cout << "Python: Running init.py" << std::endl;
     exec_py_file(App::GetInstance().conf.ResourcePath + "scripts/init.py");
+    py::globals()["input"] = ImportModule("input");
 
     std::cout << "INIT - Python: SUCCESS" << std::endl;
 }
@@ -179,6 +178,7 @@ void ScriptManager::Shutdown()
     std::cout << "SHUTDOWN - Python" << std::endl;
     try
     {
+        // Clear globals
         py::dict globals = py::globals();
         std::vector<std::string> keys_to_delete;
 
@@ -189,7 +189,6 @@ void ScriptManager::Shutdown()
             keys_to_delete.push_back(key);
         }
 
-        // Remove each global variable
         for (const auto &key : keys_to_delete)
         {
             globals.attr("pop")(key, py::none());
@@ -204,6 +203,22 @@ void ScriptManager::Shutdown()
 void ScriptManager::Run(const std::string &scriptSrc)
 {
     py::eval_file(scriptSrc, py::globals());
+}
+
+py::object ScriptManager::ImportModule(const std::string &moduleName)
+{
+    // Check if the module is already imported
+    py::dict sys_modules = py::module::import("sys").attr("modules").cast<py::dict>();
+    if (sys_modules.contains(moduleName.c_str()))
+    {
+        // Module is already imported, return the existing module
+        return sys_modules[moduleName.c_str()];
+    }
+    else
+    {
+        // Module is not imported yet, import and return the module
+        return py::module::import(moduleName.c_str());
+    }
 }
 
 void ScriptManager::ProcessInput()

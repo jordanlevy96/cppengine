@@ -25,6 +25,7 @@ bool App::Initialize()
         std::cerr << "INIT - Window Manager: FAIL" << std::endl;
         return false;
     }
+    test = "changed test val";
 
     ui = &UI::GetInstance();
     ui->Initialize(windowManager->window);
@@ -54,7 +55,6 @@ bool App::Initialize()
 
 void App::Run()
 {
-    std::cout << "Starting main loop" << std::endl;
 
     std::chrono::high_resolution_clock::time_point currentTime, previousTime;
     double frameTime, loopTime;
@@ -63,12 +63,14 @@ void App::Run()
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
+    std::cout << "Starting main loop" << std::endl;
+    std::cout << "App.test set to '" << test << "'" << std::endl;
     while (!glfwWindowShouldClose(windowManager->window))
     {
         /* ------------- Main Loop -------------
             1. Process Game Logic
             2. Input Handling
-            3. Other Systems (Script)
+            3. Other Systems (Script, Tween)
             4. Render Pipeline
             Render order:
                 1. Background
@@ -77,12 +79,12 @@ void App::Run()
         */
 
         // Process
-        scriptManager->ProcessInput();
         currentTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - previousTime).count();
         previousTime = currentTime;
-
         loopTime += delta;
+
+        scriptManager->ProcessInput();
 
         while (loopTime >= frameTime)
         {

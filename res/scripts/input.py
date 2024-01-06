@@ -1,11 +1,14 @@
+import sys
+sys.path.append('../res/scripts')
+
 import app_module
 import camera
 import enums
 import tetris
 import TetrisGrid
 
-GameManager = app_module.App.GetInstance()
-RES_PATH = GameManager.conf.resPath
+# GameManager = app_module.App.get_instance()
+Window = app_module.Window.instance
 CameraRotateFlag = False
 event_queue = []
 
@@ -23,26 +26,21 @@ def handle_input():
         elif event.type == enums.InputTypes.SCROLL:
             on_scroll(event.input)
     
-def on_scroll(input):
-    camera = GameManager.camera
-    size = GameManager.window.get_size()
-    fov = camera.fov - input['y']
-    fov = max(1, min(fov, 45))  # Clamp the fov between 1 and 45
-
-    camera.set_perspective(fov, size['x'], size['y'])
-
-def on_cursor(input):
-    GameManager.camera.rotate_by_mouse(input['x'], input['y'])
-
 def on_key_press(key):
     global CameraRotateFlag  
     if key is None:
         return
 
-    camera = GameManager.camera
+    # camera = GameManager.camera
 
     if key == "ESCAPE":
-        GameManager.window.close_window()
+        print('# # #')
+        print('New App created :(' if app_module.App.test() == 'test string' else 'SUCCESS')
+        print(app_module.App.test())
+        print('===')
+        print(Window.GetSize())
+        Window.CloseWindow()
+        print('* * * * *')
     elif key == "SPACE":
         CameraRotateFlag = not CameraRotateFlag
     elif key == "W":
@@ -53,13 +51,24 @@ def on_key_press(key):
         camera.move(enums.CameraDirections.LEFT, GameManager.delta)
     elif key == "D":
         camera.move(enums.CameraDirections.RIGHT, GameManager.delta)
-    elif key == "Z":
-        TetrisGrid.rotate_tetrimino(enums.Rotations.CCW)
-    elif key in ["X", "UP"]:
-        TetrisGrid.rotate_tetrimino(enums.Rotations.CW)
-    elif key == "LEFT":
-        tetris.move_tetrimino(TetrisGrid.active_piece, {'x': -1, 'y': 0})
-    elif key == "RIGHT":
-        tetris.move_tetrimino(TetrisGrid.active_piece, {'x': 1, 'y': 0})
+    # elif key == "Z":
+    #     TetrisGrid.RotateTetrimino(enums.Rotations.CCW)
+    # elif key in ["X", "UP"]:
+    #     TetrisGrid.RotateTetrimino(enums.Rotations.CW)
+    # elif key == "LEFT":
+    #     tetris.MoveTetrimino(TetrisGrid.active_piece, {'x': -1, 'y': 0})
+    # elif key == "RIGHT":
+    #     tetris.MoveTetrimino(TetrisGrid.active_piece, {'x': 1, 'y': 0})
     # elif key == "P": 
         # TODO: pause
+
+def on_scroll(input):
+    camera = GameManager.camera
+    size = Window.GetSize()
+    fov = camera.fov - input['y']
+    fov = max(1, min(fov, 45))  # Clamp the fov between 1 and 45
+
+    camera.SetPerspective(fov, size['x'], size['y'])
+
+def on_cursor(input):
+    GameManager.camera.RotateByMouse(input['x'], input['y'])

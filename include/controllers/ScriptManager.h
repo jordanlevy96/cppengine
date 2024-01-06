@@ -94,8 +94,6 @@ public:
 
             py::list py_list = py_obj.cast<py::list>();
             py_list.append(value);
-
-            std::cout << "Successfully appended to list" << std::endl;
         }
         catch (const py::error_already_set &e)
         {
@@ -132,8 +130,6 @@ public:
 
             py::list py_list = py_obj.cast<py::list>();
             py_list.append(value);
-
-            std::cout << "Successfully appended to list" << std::endl;
         }
         catch (const py::error_already_set &e)
         {
@@ -145,21 +141,7 @@ public:
         }
     }
 
-    py::object ImportModule(const std::string &moduleName)
-    {
-        // Check if the module is already imported
-        py::dict sys_modules = py::module::import("sys").attr("modules").cast<py::dict>();
-        if (sys_modules.contains(moduleName.c_str()))
-        {
-            // Module is already imported, return the existing module
-            return sys_modules[moduleName.c_str()];
-        }
-        else
-        {
-            // Module is not imported yet, import and return the module
-            return py::module::import(moduleName.c_str());
-        }
-    }
+    py::object ImportModule(const std::string &moduleName);
 
     void SetClassAttribute(const std::string &className, const std::string &attribute, const std::string &value)
     {

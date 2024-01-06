@@ -2,23 +2,39 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
 project(cppengine)
 
-file(GLOB_RECURSE SOURCES
-"src/*.cpp"
-"src/controllers/*.cpp"
-"src/controllers/python/*.cpp"
-"src/components/*.cpp"
-"src/entities/*.cpp"
-"src/systems/*.cpp"
-"src/util/*.cpp"
-"include/*.h"
-"include/controllers/*.h"
-"include/components/*.h"
-"include/entities/*.h"
-"include/systems/*.h"
-"include/util/*.h"
-"external/glad/src/*.c"
+# file(GLOB_RECURSE SOURCES
+# "src/*.cpp"
+# "src/controllers/*.cpp"
+# "src/controllers/python/*.cpp"
+# "src/components/*.cpp"
+# "src/systems/*.cpp"
+# "src/util/*.cpp"
+# "include/*.h"
+# "include/controllers/*.h"
+# "include/components/*.h"
+# "include/systems/*.h"
+# "include/util/*.h"
+# "external/glad/src/*.c"
+# )
+
+add_library(core_lib SHARED
+    "src/Camera.cpp"
+    "src/Tetris.cpp"
+    "src/controllers/App.cpp"
+    "src/controllers/Registry.cpp"
+    "src/controllers/ResourceManager.cpp"
+    "src/controllers/ScriptManager.cpp"
+    "src/controllers/WindowManager.cpp"
+    "src/main.cpp"
+    "src/systems/RenderSystem.cpp"
+    "src/systems/ScriptSystem.cpp"
+    "src/systems/TweenSystem.cpp"
+    "src/systems/UI.cpp"
+    "src/util/Mesh.cpp"
+    "src/util/Shader.cpp"
+    "src/util/TransformUtils.cpp"
+    "external/glad/src/glad.c"
 )
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
 set(SCRIPTING_LANG "PYTHON")
 message(STATUS "SCRIPTING_LANG set to " ${SCRIPTING_LANG})
@@ -83,11 +99,31 @@ add_library(imgui
 target_include_directories(imgui PUBLIC ${IMGUI_DIR})
 target_link_libraries(imgui PUBLIC glfw)
 
+set(CORE_LIB_INCLUDE_DIRS
+    include
+    external/headers
+    external/glm
+    external/glad/include
+    external/yaml-cpp/include
+    ${GLFW_DIR}
+    ${IMGUI_DIR}
+)
+
+set(CORE_LIB_LINKS
+    glfw
+    imgui
+    yaml-cpp::yaml-cpp
+    ${OPENGL_LIBRARIES}
+)
+
+target_include_directories(core_lib PUBLIC ${CORE_LIB_INCLUDE_DIRS})
+target_link_libraries(core_lib PUBLIC ${CORE_LIB_LINKS})
+
 if(SCRIPTING_LANG STREQUAL "LUA")
     message(STATUS "Configuring for Lua")
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as static library" FORCE)
-    add_subdirectory(external/lua-cmake)
-    target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
+    target_add_subdirectory(core_lib external/lua-cmake)
+    target_include_directories(core_lib PUBLIC
         external/lua-cmake/upstream
         external/sol2/include/sol
     )
@@ -95,8 +131,10 @@ if(SCRIPTING_LANG STREQUAL "LUA")
     target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE USE_LUA_SCRIPTING)
 elseif(SCRIPTING_LANG STREQUAL "PYTHON")
     find_package(pybind11 REQUIRED)
-    find_package(PythonLibs REQUIRED)
-    include_directories(${PYTHON_INCLUDE_DIRS} external/pybind11/include)
+    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+    message(STATUS "Configuring for Python")
+    message(STATUS ${PYTHON_INCLUDE_DIRS})
+    target_include_directories(core_lib PUBLIC ${PYTHON_INCLUDE_DIRS} external/pybind11/include)
     set(Python_EXECUTABLE "${CONDA_PREFIX}/bin/python")
     set(CONDA_PREFIX $ENV{CONDA_PREFIX})
     if (CONDA_PREFIX)
@@ -105,43 +143,21 @@ elseif(SCRIPTING_LANG STREQUAL "PYTHON")
     else()
         message(FATAL_ERROR "CONDA_PREFIX env var not set.")
     endif()
+
     pybind11_add_module(app_module src/controllers/python/app_bindings.cpp)
-    target_include_directories(app_module PRIVATE external/glm)
-    target_link_libraries(app_module PRIVATE glfw ${OPENGL_LIBRARIES})
-    target_compile_definitions(app_module PRIVATE USE_PYTHON_SCRIPTING)
-
     pybind11_add_module(camera src/controllers/python/camera_bindings.cpp)
-    target_include_directories(camera PRIVATE external/glm)
-    target_link_libraries(camera PRIVATE glfw ${OPENGL_LIBRARIES})
-    target_compile_definitions(camera PRIVATE USE_PYTHON_SCRIPTING)
-
     pybind11_add_module(enums src/controllers/python/enum_bindings.cpp)
-    target_include_directories(enums PRIVATE external/glm)
-    target_link_libraries(enums PRIVATE glfw ${OPENGL_LIBRARIES})
-    target_compile_definitions(enums PRIVATE USE_PYTHON_SCRIPTING)
-
     pybind11_add_module(glm src/controllers/python/glm_bindings.cpp)
-    target_include_directories(glm PRIVATE external/glm)
-    target_link_libraries(glm PRIVATE glfw ${OPENGL_LIBRARIES})
-    target_compile_definitions(glm PRIVATE USE_PYTHON_SCRIPTING)
-
     pybind11_add_module(tetris src/controllers/python/tetris_bindings.cpp)
-    target_include_directories(tetris PRIVATE external/glm)
-    target_link_libraries(tetris PRIVATE glfw ${OPENGL_LIBRARIES})
-    target_compile_definitions(tetris PRIVATE USE_PYTHON_SCRIPTING)
+    
+    foreach(module app_module camera enums glm tetris)
+        # target_include_directories(${module} PRIVATE ${CORE_LIB_INCLUDE_DIRS})
+        target_link_libraries(${module} PUBLIC core_lib) # ${CORE_LIB_LINKS}
+    endforeach()
 
-    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${PYTHON_LIBRARIES})
-    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE USE_PYTHON_SCRIPTING)
+    target_link_libraries(core_lib PUBLIC ${PYTHON_LIBRARIES})
+    target_compile_definitions(core_lib PUBLIC USE_PYTHON_SCRIPTING)
 endif()
 
-include_directories(
-    include
-    external/headers
-    external/glad/include
-    external/yaml-cpp/include
-    ${GLFW_DIR}
-    ${IMGUI_DIR}
-)
-
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE external/glm)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glfw imgui yaml-cpp::yaml-cpp ${OPENGL_LIBRARIES})
+add_executable(${CMAKE_PROJECT_NAME} src/main.cpp)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE core_lib)

@@ -215,6 +215,10 @@ void WindowManager::Shutdown()
 
 void WindowManager::CloseWindow()
 {
+    if (window == nullptr)
+    {
+        std::cerr << "ERROR: GLFW window invalid" << std::endl;
+    }
     glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 

@@ -7,12 +7,15 @@ namespace py = pybind11;
 PYBIND11_MODULE(app_module, m)
 {
     py::class_<App>(m, "App")
-        .def_static("GetInstance", &App::GetInstance, py::return_value_policy::reference)
+        .def_static(
+            "test", []()
+            { 
+                App &app = App::GetInstance();
+                return app.test; },
+            py::return_value_policy::reference)
         .def_readwrite("delta", &App::delta)
         .def_readwrite("camera", &App::cam)
-        .def_readwrite("conf", &App::conf)
-        .def_readwrite("registry", &App::registry)
-        .def_readwrite("window", &App::windowManager);
+        .def_readwrite("conf", &App::conf);
 
     py::class_<Config>(m, "Config")
         .def_readwrite("resPath", &Config::ResourcePath);
@@ -21,9 +24,13 @@ PYBIND11_MODULE(app_module, m)
         .def_static("GetInstance", &Registry::GetInstance, py::return_value_policy::reference)
         .def("GetEntityByName", &Registry::GetEntityByName);
 
-    py::class_<WindowManager>(m, "Window")
-        .def("CloseWindow", &WindowManager::CloseWindow)
-        .def("GetSize", &WindowManager::GetSize);
+    py::class_<WindowManager, std::unique_ptr<WindowManager, py::nodelete>>(m, "Window")
+        .def_property_readonly_static(
+            "instance", [](py::object /* self */)
+            { return &WindowManager::GetInstance(); },
+            py::return_value_policy::reference)
+        .def("GetSize", &WindowManager::GetSize)
+        .def("CloseWindow", &WindowManager::CloseWindow);
 
     py::class_<InputEvent>(m, "InputEvent")
         .def(py::init<>())
@@ -60,7 +67,7 @@ PYBIND11_MODULE(app_module, m)
                 }
             });
 
-    py::class_<glm::vec2>(m, "vec2")
+    py::class_<glm::vec2>(m, "vec2") // return type of Window.GetSize()
         .def(py::init<float, float>())
         .def_readwrite("x", &glm::vec2::x)
         .def_readwrite("y", &glm::vec2::y);

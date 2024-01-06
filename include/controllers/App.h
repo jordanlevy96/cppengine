@@ -28,6 +28,8 @@ public:
     WindowManager *windowManager;
     ScriptManager *scriptManager;
 
+    std::string test = "test string";
+
     static App &GetInstance()
     {
         static App instance;
