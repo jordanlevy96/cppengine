@@ -4,6 +4,9 @@
 
 #ifdef USE_LUA_SCRIPTING
 #include <sol/sol.hpp>
+
+static const std::string &EVENT_QUEUE = "EventQueue";
+static const std::string &HANDLE_INPUT_F = "HandleInput";
 namespace LuaBindings
 {
     void RegisterEnums(sol::state &lua);
@@ -17,12 +20,11 @@ namespace LuaBindings
 #include <pybind11/embed.h>
 
 namespace py = pybind11;
+static const std::string &EVENT_QUEUE = "event_queue";
+static const std::string &HANDLE_INPUT_F = "handle_input";
 #endif
 
 #include <iostream>
-
-static const std::string &EVENT_QUEUE = "event_queue";
-static const std::string &HANDLE_INPUT_F = "handle_input";
 
 class ScriptManager
 {
