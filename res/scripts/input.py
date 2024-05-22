@@ -35,8 +35,11 @@ def on_key_press(key):
 
     if key == "ESCAPE":
         print('# # #')
-        print('New App created :(' if app_module.App.test() == 'test string' else 'SUCCESS')
-        print(app_module.App.test())
+        app = app_module.App.get_instance()
+        print('New App created :(' if app.test == 'test string' else 'SUCCESS')
+        print(app.test)
+        app_module.App.get_instance().test = 'replaced from a new reference'
+        print(app.test)
         print('===')
         print(Window.GetSize())
         Window.CloseWindow()

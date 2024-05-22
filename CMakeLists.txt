@@ -2,21 +2,6 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
 project(cppengine)
 
-# file(GLOB_RECURSE SOURCES
-# "src/*.cpp"
-# "src/controllers/*.cpp"
-# "src/controllers/python/*.cpp"
-# "src/components/*.cpp"
-# "src/systems/*.cpp"
-# "src/util/*.cpp"
-# "include/*.h"
-# "include/controllers/*.h"
-# "include/components/*.h"
-# "include/systems/*.h"
-# "include/util/*.h"
-# "external/glad/src/*.c"
-# )
-
 add_library(core SHARED
     "src/Camera.cpp"
     "src/Tetris.cpp"
@@ -36,7 +21,7 @@ add_library(core SHARED
     "external/glad/src/glad.c"
 )
 
-set(SCRIPTING_LANG "LUA")
+set(SCRIPTING_LANG "PYTHON")
 message(STATUS "SCRIPTING_LANG set to " ${SCRIPTING_LANG})
 
 set(OpenGL_GL_PREFERENCE "GLVND") 

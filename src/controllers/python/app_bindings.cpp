@@ -8,11 +8,12 @@ PYBIND11_MODULE(app_module, m)
 {
     py::class_<App>(m, "App")
         .def_static(
-            "test", []()
+            "get_instance", []()
             { 
-                App &app = App::GetInstance();
-                return app.test; },
+                py::object app = App::GetPyInstance();
+                return app; },
             py::return_value_policy::reference)
+        .def_readwrite("test", &App::test)
         .def_readwrite("delta", &App::delta)
         .def_readwrite("camera", &App::cam)
         .def_readwrite("conf", &App::conf);

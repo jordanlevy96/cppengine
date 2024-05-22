@@ -5,6 +5,10 @@
 #include "controllers/Registry.h"
 #include "systems/UI.h"
 
+#ifdef USE_PYTHON_SCRIPTING
+#include <pybind11/pybind11.h>
+#endif
+
 extern "C" void stbi_set_flip_vertically_on_load(int flag);
 
 struct Config
@@ -35,6 +39,14 @@ public:
         static App instance;
         return instance;
     }
+
+#ifdef USE_PYTHON_SCRIPTING
+    static py::object GetPyInstance()
+    {
+        static py::object instance = py::cast(&GetInstance(), py::return_value_policy::reference);
+        return instance;
+    }
+#endif
 
     App(App const &) = delete;
     void operator=(App const &) = delete;
