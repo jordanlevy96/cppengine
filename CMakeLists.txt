@@ -59,7 +59,7 @@ elseif(WIN32)
 	FetchContent_MakeAvailable(GLFW)
 else() # Linux
     add_subdirectory(external/glad)
-    find_package(glfw3 REQUIRED)
+    find_package(glfw3 REQUIRED) # may need to be installed with brew
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dl -ldl)
 endif()
 
