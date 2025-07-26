@@ -109,8 +109,8 @@ void App::Run()
         // TODO: implement UISystem
         // ui->RenderWindow();
 
-        glfwPollEvents();
         glfwSwapBuffers(windowManager->window);
+        glfwPollEvents();
     }
 
     std::cout << "Exited main loop" << std::endl;

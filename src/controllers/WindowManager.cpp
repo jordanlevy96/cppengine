@@ -155,6 +155,14 @@ bool WindowManager::Initialize(int const width, int const height)
 {
     glfwSetErrorCallback(error_callback);
 
+    // Wayland is not fully supported in GLFW
+    // this will force using X11 on wayland (XWayland)
+#ifdef __linux__
+    std::cout << "linux detected, using x11" << std::endl;
+    glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+#endif
+
+
     if (!glfwInit())
     {
         std::cerr << "Failed to initialize GLFW" << std::endl;
