@@ -17,8 +17,6 @@ public:
     std::shared_ptr<Shader> GetShader(const std::string &shaderSrc);
     std::shared_ptr<Mesh> GetMesh(const std::string &meshSrc);
 
-    // ... other resource management functions
-
 private:
     ResourceManager() = default;
     std::unordered_map<std::string, std::shared_ptr<Shader>> shaders;

@@ -1,5 +1,12 @@
 input:
   keyMappings:
+    # spinLeft: [Z, ArrowUp]
+    # spinRight: [X]
+    # down: [ArrowDown]
+    # left: [ArrowLeft]
+    # right: [ArrowRight]
+    # place: [Space]
+    # pause: [ESC, p]
     forward: [W, ArrowUp]
     left: [A, ArrowLeft]
     back: [S, ArrowDown]
@@ -9,3 +16,9 @@ input:
     zoomIn: [ScrollUp]
     zoomOut: [ScrollDown]
   scriptPath: input.lua
+  resourcePath: ../res/
+
+window:
+  targetFPS: 60
+  windowWidth: 440
+  windowHeight: 840

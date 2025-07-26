@@ -1,22 +1,28 @@
 #pragma once
 
 #include "Camera.h"
-#include "components/RenderComponent.h"
 #include "controllers/WindowManager.h"
 #include "controllers/Registry.h"
 #include "systems/UI.h"
-#include "systems/ScriptSystem.h"
-#include "systems/RenderSystem.h"
-
-#include "util/globals.h"
 
 extern "C" void stbi_set_flip_vertically_on_load(int flag);
+
+struct Config
+{
+    // default values can be overwritten via YAML
+    float WindowWidth = 800;
+    float WindowHeight = 600;
+    float targetFPS = 60;
+    std::string ResourcePath = "../res/";
+};
 
 class App
 {
 public:
+    Config conf;
     Camera *cam;
     UI *ui;
+    // time since last frame
     double delta = 0;
     Registry *registry;
     WindowManager *windowManager;
@@ -38,5 +44,5 @@ public:
 
 private:
     App(){};
-    bool LoadConfig();
+    bool LoadConfig(const std::string &configPath);
 };

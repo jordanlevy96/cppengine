@@ -2,8 +2,8 @@
 
 #include <sol/sol.hpp>
 
-const std::string EVENT_QUEUE = "eventQueue";
-const std::string HANDLE_INPUT_F = "HandleInput";
+static const std::string &EVENT_QUEUE = "eventQueue";
+static const std::string &HANDLE_INPUT_F = "HandleInput";
 
 class ScriptManager
 {
@@ -18,6 +18,7 @@ public:
     void operator=(ScriptManager const &) = delete;
 
     void Initialize();
+    void Shutdown();
     void Run(const std::string &scriptSrc);
 
     void CreateTable(const std::string &key)

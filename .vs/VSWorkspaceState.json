@@ -8,9 +8,12 @@
   "ExpandedNodes": [
     "",
     "\\include",
+    "\\include\\util",
     "\\res",
-    "\\res\\shaders"
+    "\\res\\scripts",
+    "\\src",
+    "\\src\\controllers"
   ],
-  "SelectedNode": "\\res\\shaders\\Basic.shader",
+  "SelectedNode": "\\res\\scripts\\TetrisGrid.lua",
   "PreviewInSolutionExplorer": false
 }

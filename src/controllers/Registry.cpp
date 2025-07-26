@@ -1,113 +1,122 @@
+#include "controllers/App.h"
 #include "controllers/Registry.h"
 #include "controllers/ScriptManager.h"
 
 void Registry::Shutdown()
 {
-    for (auto entity : entities)
+    for (size_t i = 0; i < entityNames.size(); i++)
     {
-        unsigned int id = entity.first;
-        DestroyEntity(id);
+        DestroyEntity(i);
     }
 }
 
-unsigned int Registry::RegisterEntity()
+EntityID Registry::RegisterEntity(EntityID parent)
 {
     std::string name = std::to_string(i);
 
-    return RegisterEntity(name);
+    return RegisterEntity(name, parent);
 }
 
-unsigned int Registry::RegisterEntity(const std::string &name)
+EntityID Registry::RegisterEntity(const std::string &name, EntityID parent)
 {
-    entities[i] = name;
-    std::shared_ptr<Transform> t = std::make_shared<Transform>();
+    entityNames.push_back(name);
+    Transform t = Transform();
     RegisterComponent(i, t);
+    HierarchyComponent hc = HierarchyComponent(parent);
+    RegisterComponent(i, hc);
     return i++;
 }
 
-void Registry::DestroyEntity(unsigned int id)
+void Registry::DestroyEntity(EntityID id)
 {
-    CompositeComponents.erase(id);
-    LightingComponents.erase(id);
-    RenderComponents.erase(id);
-    TransformComponents.erase(id);
-    entities.erase(id);
+    LightingComponents.RemoveComponent(id);
+    RenderComponents.RemoveComponent(id);
+    ScriptComponents.RemoveComponent(id);
+    TransformComponents.RemoveComponent(id);
+    TweenComponents.RemoveComponent(id);
 }
 
-unsigned int Registry::GetEntityByName(const std::string &name)
+EntityID Registry::GetEntityByName(const std::string &name)
 {
-    for (const auto &pair : entities)
+    auto it = std::find(entityNames.begin(), entityNames.end(), name);
+    if (it == entityNames.end())
     {
-        if (pair.second == name)
-        {
-            return pair.first;
-        }
+        return -1;
     }
-
-    return -1;
+    else
+    {
+        return std::distance(entityNames.begin(), it);
+    }
 }
 
 template <>
-std::unordered_map<unsigned int, std::shared_ptr<CompositeEntity>> &Registry::GetComponentMap<CompositeEntity>()
+SparseSet<HierarchyComponent> &Registry::GetComponentSet<HierarchyComponent>()
 {
-    return CompositeComponents;
+    return HierarchyComponents;
 }
 
 template <>
-std::unordered_map<unsigned int, std::shared_ptr<Lighting>> &Registry::GetComponentMap<Lighting>()
+SparseSet<Lighting> &Registry::GetComponentSet<Lighting>()
 {
     return LightingComponents;
 }
 
 template <>
-std::unordered_map<unsigned int, std::shared_ptr<RenderComponent>> &Registry::GetComponentMap<RenderComponent>()
+SparseSet<RenderComponent> &Registry::GetComponentSet<RenderComponent>()
 {
     return RenderComponents;
 }
 
 template <>
-std::unordered_map<unsigned int, std::shared_ptr<ScriptComponent>> &Registry::GetComponentMap<ScriptComponent>()
+SparseSet<ScriptComponent> &Registry::GetComponentSet<ScriptComponent>()
 {
     return ScriptComponents;
 }
 
 template <>
-std::unordered_map<unsigned int, std::shared_ptr<Transform>> &Registry::GetComponentMap<Transform>()
+SparseSet<Transform> &Registry::GetComponentSet<Transform>()
 {
     return TransformComponents;
 }
 
+template <>
+SparseSet<Tween> &Registry::GetComponentSet<Tween>()
+{
+    return TweenComponents;
+}
+
 bool Registry::LoadScene(const std::string &src)
 {
+    const std::string &res = App::GetInstance().conf.ResourcePath;
     try
     {
-        YAML::Node yaml = YAML::LoadFile(src);
+        YAML::Node yaml = YAML::LoadFile(res + src);
 
         const YAML::Node &objectsNode = yaml["scene"]["objects"];
         for (const auto &objectNode : objectsNode)
         {
             const std::string &name = objectNode["name"].as<std::string>();
-            unsigned int id = RegisterEntity(name);
-            std::shared_ptr<Transform> transform = GetComponent<Transform>(id);
+            EntityID id = RegisterEntity(name);
+            Transform &transform = GetComponent<Transform>(id);
             if (objectNode["transform"])
             {
                 if (objectNode["transform"]["pos"])
                 {
-                    transform->Pos.x = objectNode["transform"]["pos"]["x"].as<float>();
-                    transform->Pos.y = objectNode["transform"]["pos"]["y"].as<float>();
-                    transform->Pos.z = objectNode["transform"]["pos"]["z"].as<float>();
+                    transform.Pos.x = objectNode["transform"]["pos"]["x"].as<float>();
+                    transform.Pos.y = objectNode["transform"]["pos"]["y"].as<float>();
+                    transform.Pos.z = objectNode["transform"]["pos"]["z"].as<float>();
                 }
                 if (objectNode["transform"]["scale"])
                 {
-                    transform->Scale.x = objectNode["transform"]["scale"]["x"].as<float>();
-                    transform->Scale.y = objectNode["transform"]["scale"]["y"].as<float>();
-                    transform->Scale.z = objectNode["transform"]["scale"]["z"].as<float>();
+                    transform.Scale.x = objectNode["transform"]["scale"]["x"].as<float>();
+                    transform.Scale.y = objectNode["transform"]["scale"]["y"].as<float>();
+                    transform.Scale.z = objectNode["transform"]["scale"]["z"].as<float>();
                 }
                 if (objectNode["transform"]["color"])
                 {
-                    transform->Color.r = objectNode["transform"]["color"]["r"].as<float>();
-                    transform->Color.g = objectNode["transform"]["color"]["g"].as<float>();
-                    transform->Color.b = objectNode["transform"]["color"]["b"].as<float>();
+                    transform.Color.r = objectNode["transform"]["color"]["r"].as<float>();
+                    transform.Color.g = objectNode["transform"]["color"]["g"].as<float>();
+                    transform.Color.b = objectNode["transform"]["color"]["b"].as<float>();
                 }
             }
 
@@ -119,26 +128,26 @@ bool Registry::LoadScene(const std::string &src)
                     const std::string componentType = componentNode["type"].as<std::string>();
                     if (componentType == "Lighting")
                     {
-                        const std::string &shaderSrc = (const std::string &)(RES_PATH) + "/shaders/" + componentNode["shader"].as<std::string>();
-                        const std::string &modelSrc = (const std::string &)(RES_PATH) + "/models/" + componentNode["model"].as<std::string>();
+                        const std::string &shaderSrc = (const std::string &)(res) + "shaders/" + componentNode["shader"].as<std::string>();
+                        const std::string &modelSrc = (const std::string &)(res) + "models/" + componentNode["model"].as<std::string>();
                         const std::string &lightName = componentNode["light"].as<std::string>();
 
-                        unsigned int light = GetEntityByName(lightName);
-                        std::shared_ptr<Transform> lightTrans = GetComponent<Transform>(light);
-                        std::shared_ptr<RenderComponent> rc = std::make_shared<RenderComponent>(shaderSrc, modelSrc);
-                        std::shared_ptr<Lighting> lightComp = std::make_shared<Lighting>(rc, &transform->Color, lightTrans);
+                        EntityID light = GetEntityByName(lightName);
+                        RenderComponent rc = RenderComponent(shaderSrc, modelSrc);
+                        RegisterComponent<RenderComponent>(id, rc);
+                        Lighting lightComp = Lighting(light);
                         RegisterComponent<Lighting>(id, lightComp);
                     }
                     else if (componentType == "RenderComponent")
                     {
-                        const std::string &shaderSrc = (const std::string &)(RES_PATH) + "/shaders/" + componentNode["shader"].as<std::string>();
-                        const std::string &modelSrc = (const std::string &)(RES_PATH) + "/models/" + componentNode["model"].as<std::string>();
-                        std::shared_ptr<RenderComponent> rc = std::make_shared<RenderComponent>(shaderSrc, modelSrc);
+                        const std::string &shaderSrc = (const std::string &)(res) + "shaders/" + componentNode["shader"].as<std::string>();
+                        const std::string &modelSrc = (const std::string &)(res) + "models/" + componentNode["model"].as<std::string>();
+                        RenderComponent rc = RenderComponent(shaderSrc, modelSrc);
                         RegisterComponent<RenderComponent>(id, rc);
                     }
                     else if (componentType == "Script")
                     {
-                        const std::string &scriptSrc = (const std::string &)(RES_PATH) + "/scripts/" + componentNode["script"].as<std::string>();
+                        const std::string &scriptSrc = (const std::string &)(res) + "scripts/" + componentNode["script"].as<std::string>();
                         ScriptManager &sm = ScriptManager::GetInstance();
                         // Load the script and call the ready function
                         // Be careful with this ready call, if it relies on stuff that hasn't been initialized yet, it'll fail.
@@ -157,8 +166,7 @@ bool Registry::LoadScene(const std::string &src)
                             scriptClass[key] = property.second.as<std::string>();
                         }
 
-                        scriptClass["ready"](scriptClass);
-                        std::shared_ptr<ScriptComponent> sc = std::make_shared<ScriptComponent>(scriptSrc, scriptClass);
+                        ScriptComponent sc = ScriptComponent(name, scriptClass);
                         RegisterComponent<ScriptComponent>(id, sc);
                     }
                 }
@@ -175,21 +183,38 @@ bool Registry::LoadScene(const std::string &src)
 
 // For Lua scripting
 
+void Registry::AttachScript(EntityID entityId, const std::string &name, sol::table luaClass)
+{
+    ScriptComponent sc = ScriptComponent(name, luaClass);
+
+    Registry *r = &GetInstance();
+    r->RegisterComponent<ScriptComponent>(entityId, sc);
+}
+
 std::shared_ptr<RenderComponent> Registry::CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
 {
-    std::string shaderPath = (RES_PATH) + "/shaders/" + shaderSrc;
-    std::string meshPath = (RES_PATH) + "/models/" + meshSrc;
+    const std::string &res = App::GetInstance().conf.ResourcePath;
+    std::string shaderPath = (res) + "shaders/" + shaderSrc;
+    std::string meshPath = (res) + "models/" + meshSrc;
 
-    return std::make_shared<RenderComponent>(shaderPath, meshPath);
+    std::shared_ptr<RenderComponent> rc = std::make_shared<RenderComponent>(shaderPath, meshPath);
+
+    return rc;
 }
 
 void Registry::CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 pos, glm::vec3 color)
 {
     // static reference to registry for Lua binding
     Registry *r = &GetInstance();
-    int id = r->RegisterEntity();
-    std::shared_ptr<Transform> transform = r->GetComponent<Transform>(id);
-    transform->Pos = pos;
-    transform->Color = color;
-    r->RegisterComponent<RenderComponent>(id, cubeComp);
+    EntityID id = r->RegisterEntity();
+    Transform &transform = r->GetComponent<Transform>(id);
+    transform.Pos = pos;
+    transform.Color = color;
+
+    r->RegisterComponent<RenderComponent>(id, *cubeComp);
+
+    // FIXME: hardcoded value
+    EntityID lightID = r->GetEntityByName("light");
+    Lighting lightComp = Lighting(lightID);
+    r->RegisterComponent<Lighting>(id, lightComp);
 }

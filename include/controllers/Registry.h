@@ -1,16 +1,114 @@
 #pragma once
 
-#include "components/CompositeEntity.h"
+#include "components/HierarchyComponent.h"
 #include "components/Lighting.h"
 #include "components/RenderComponent.h"
 #include "components/ScriptComponent.h"
 #include "components/Transform.h"
-#include "util/globals.h"
+#include "components/Tween.h"
 
 #include <yaml-cpp/yaml.h>
 #include <sol/sol.hpp>
 
-#include <memory>
+typedef size_t EntityID;
+
+template <typename T>
+struct SparseSet
+{
+public:
+    ~SparseSet<T>()
+    {
+        sparse.clear();
+        dense.clear();
+        entities.clear();
+    };
+
+    void AddComponent(EntityID entity, T &component)
+    {
+        while (entity >= maxEntities)
+        {
+            maxEntities *= 2; // Double the maxEntities until it can accommodate the new one
+            sparse.resize(maxEntities, -1);
+        }
+
+        indices.push_back(dense.size());
+        dense.push_back(component);
+        sparse[entity] = dense.size() - 1;
+        entities.push_back(entity);
+    }
+
+    T &GetComponent(EntityID entity)
+    {
+        return dense[indices[sparse[entity]]];
+    }
+
+    // void RemoveComponent(EntityID entity)
+    // {
+    //     if (entity >= sparse.size())
+    //     {
+    //         std::cerr << "Attemped to remove component from invalid entity " << entity << std::endl;
+    //         return;
+    //     }
+
+    //     if (sparse[entity] == std::numeric_limits<size_t>::max())
+    //     {
+    //         return;
+    //     }
+
+    //     if (entity > data.size())
+    //     {
+    //         std::cout << "something fishy is going on" << std::endl;
+    //     }
+
+    //     size_t temp = sparse[entity];
+    //     data[temp] = data.back();
+    //     data.pop_back();
+
+    //     sparse[entity] = -1; // implicitly converted to size_t's max value
+    //     dense[temp] = dense.back();
+    //     dense.pop_back();
+
+    //     sparse[dense[temp]] = temp;
+
+    //     entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
+    // }
+
+    void RemoveComponent(EntityID entity)
+    {
+        // Check if the entity is present
+        if (sparse.size() <= entity || sparse[entity] >= dense.size() || indices[sparse[entity]] != entity)
+            return;
+
+        // Swap and remove
+        size_t indexInDense = sparse[entity];
+        size_t lastEntity = indices.back();
+
+        std::swap(dense[indexInDense], dense.back());
+        std::swap(indices[indexInDense], indices.back());
+
+        dense.pop_back();
+        indices.pop_back();
+
+        // Update the sparse array
+        sparse[lastEntity] = indexInDense;
+    }
+
+    std::vector<EntityID> GetEntities() { return entities; };
+
+private:
+    size_t maxEntities = 100; // dynamically updated as needed
+    // the real maximum is size_t's max value
+
+    // sparse contains the indices of the related component
+    // e.g. if entity id 6 has a component, sparse[6] will be the index
+    // of that component in the dense array
+    std::vector<size_t> sparse = std::vector<size_t>(maxEntities, -1);
+    std::vector<size_t> indices;
+    std::vector<T> dense;
+
+    std::vector<size_t> entities;
+};
+
 class Registry
 {
 public:
@@ -23,52 +121,64 @@ public:
     void Shutdown();
 
     // Registers a new entity and corresponding Transform where name = id
-    unsigned int RegisterEntity();
+    EntityID RegisterEntity(EntityID parent = -1);
     // Registers a new entity and corresponding Transform
-    unsigned int RegisterEntity(const std::string &name);
-    unsigned int GetEntityByName(const std::string &name);
-    void DestroyEntity(unsigned int id);
+    EntityID RegisterEntity(const std::string &name, EntityID parent = -1);
+    EntityID GetEntityByName(const std::string &name);
+    void DestroyEntity(EntityID id);
 
     bool LoadScene(const std::string &src);
-    static std::shared_ptr<RenderComponent> CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc);
-    static void CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 pos, glm::vec3 color);
 
     template <typename T>
-    void RegisterComponent(const std::string &name, std::shared_ptr<T> comp)
+    void RegisterComponent(const std::string &name, T &comp)
     {
-        unsigned int id = GetEntityByName(name);
+        EntityID id = GetEntityByName(name);
         RegisterComponent(id, comp);
     }
 
     template <typename T>
-    void RegisterComponent(unsigned int id, std::shared_ptr<T> comp)
+    void RegisterComponent(EntityID id, T &comp)
     {
-        auto &componentMap = GetComponentMap<T>();
-        componentMap[id] = comp;
+        auto &componentSet = GetComponentSet<T>();
+        componentSet.AddComponent(id, comp);
     }
 
     template <typename T>
-    std::shared_ptr<T> GetComponent(unsigned int entityID)
+    bool HasComponent(EntityID id)
     {
-        auto &componentMap = GetComponentMap<T>();
-        auto it = componentMap.find(entityID);
-        return (it != componentMap.end()) ? it->second : nullptr;
+        auto &componentSet = GetComponentSet<T>();
+        return componentSet.find(id) != componentSet.end();
     }
 
     template <typename T>
-    std::unordered_map<unsigned int, std::shared_ptr<T>> &GetComponentMap();
+    T &GetComponent(EntityID id)
+    {
+        SparseSet<T> &components = GetComponentSet<T>();
+        T &component = components.GetComponent(id);
+        return component;
+    }
 
-    std::unordered_map<unsigned int, std::string> entities;
+    template <typename T>
+    SparseSet<T> &GetComponentSet();
+
+    std::vector<std::string> entityNames;
+
+    // Lua Helper Functions
+
+    static std::shared_ptr<RenderComponent> CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc);
+    static void CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 pos, glm::vec3 color);
+    static void AttachScript(EntityID entityId, const std::string &name, sol::table luaClass);
 
 private:
-    unsigned int i = 0;
+    EntityID i = 0;
     Registry(){};
     Registry(Registry const &) = delete;
     void operator=(Registry const &) = delete;
 
-    std::unordered_map<unsigned int, std::shared_ptr<CompositeEntity>> CompositeComponents;
-    std::unordered_map<unsigned int, std::shared_ptr<Lighting>> LightingComponents;
-    std::unordered_map<unsigned int, std::shared_ptr<RenderComponent>> RenderComponents;
-    std::unordered_map<unsigned int, std::shared_ptr<ScriptComponent>> ScriptComponents;
-    std::unordered_map<unsigned int, std::shared_ptr<Transform>> TransformComponents;
+    SparseSet<HierarchyComponent> HierarchyComponents;
+    SparseSet<Lighting> LightingComponents;
+    SparseSet<RenderComponent> RenderComponents;
+    SparseSet<ScriptComponent> ScriptComponents;
+    SparseSet<Transform> TransformComponents;
+    SparseSet<Tween> TweenComponents;
 };

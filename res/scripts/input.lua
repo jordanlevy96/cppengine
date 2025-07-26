@@ -38,9 +38,9 @@ OnKeyPress = function(key)
 
     local camera = GameManager.camera
 
-    if key == "Escape" then
+    if key == "ESCAPE" then
         GameManager.window:CloseWindow()
-    elseif key == "Space" then
+    elseif key == "SPACE" then
         CameraRotateFlag = not CameraRotateFlag
     elseif key == "W" then
         camera:Move(CameraDirections.FORWARD, GameManager.delta)
@@ -50,6 +50,16 @@ OnKeyPress = function(key)
         camera:Move(CameraDirections.LEFT, GameManager.delta)
     elseif key == "D" then
         camera:Move(CameraDirections.RIGHT, GameManager.delta)
+    elseif key == "Z" then
+        TetrisGrid:rotateTetrimino(Rotations.CCW)
+    elseif key == "X" or key == "UP" then
+        TetrisGrid:rotateTetrimino(Rotations.CW)
+    elseif key == "LEFT" then
+        MoveTetrimino(TetrisGrid.activePiece, vec2(-1, 0))
+    elseif key == "RIGHT" then
+        MoveTetrimino(TetrisGrid.activePiece, vec2(1, 0))
+    elseif key == "P" then
+        -- TODO: pause
     end
 end
 

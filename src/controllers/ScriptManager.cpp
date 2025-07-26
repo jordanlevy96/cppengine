@@ -4,6 +4,8 @@
 #include "controllers/ScriptManager.h"
 #include "util/Uniform.h"
 
+#include "Tetris.h"
+
 #include <iostream>
 
 void ScriptManager::Run(const std::string &scriptSrc)
@@ -18,7 +20,18 @@ void ScriptManager::Initialize()
     LuaBindings::RegisterFunctions(lua);
     lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math);
 
-    Run("../res/scripts/init.lua");
+    Run(App::GetInstance().conf.ResourcePath + "scripts/init.lua");
+}
+
+void ScriptManager::Shutdown()
+{
+    // Clear Lua references to C++ singletons
+    lua["GameManager"] = sol::lua_nil;
+
+    // Run garbage collector
+    lua.collect_garbage();
+
+    // The Lua state itself will be destroyed when the ScriptManager instance goes out of scope
 }
 
 void ScriptManager::ProcessInput()
@@ -50,6 +63,10 @@ namespace LuaBindings
                      "BACK", CameraDirections::BACK,
                      "LEFT", CameraDirections::LEFT,
                      "RIGHT", CameraDirections::RIGHT);
+
+        lua.new_enum("Rotations",
+                     "CW", Tetris::Rotations::CW,
+                     "CCW", Tetris::Rotations::CCW);
     }
 
     void RegisterTypes(sol::state &lua)
@@ -60,12 +77,23 @@ namespace LuaBindings
                                     "y", &glm::vec2::y);
 
         lua.new_usertype<glm::vec3>("vec3",
-                                    sol::call_constructor, sol::constructors<glm::vec3(), glm::vec3(float), glm::vec3(float, float, float)>());
+                                    sol::call_constructor, sol::constructors<glm::vec3(), glm::vec3(float), glm::vec3(float, float, float)>(),
+                                    "x", &glm::vec3::x,
+                                    "y", &glm::vec3::y,
+                                    "z", &glm::vec3::z);
+
+        lua.new_usertype<glm::mat4>("mat4",
+                                    "get", &Tetris::mat4_get);
+
+        lua.new_usertype<Transform>("Transform",
+                                    "Pos", &Transform::Pos);
 
         lua.new_usertype<Camera>("Camera",
                                  "transform", &Camera::transform,
                                  "fov", &Camera::fov,
-                                 "SetPerspective", &Camera::SetPerspective,
+                                 "front", &Camera::front,
+                                 // casting is necessary here because the function is overloaded, which Lua does not support
+                                 "SetPerspective", std::function<void(Camera *, float)>(static_cast<void (Camera::*)(float)>(&Camera::SetPerspective)),
                                  "Move", &Camera::Move,
                                  "RotateByMouse", &Camera::RotateByMouse);
 
@@ -74,7 +102,11 @@ namespace LuaBindings
                               "delta", &App::delta,
                               "registry", &App::registry,
                               "camera", &App::cam,
+                              "conf", &App::conf,
                               "window", &App::windowManager);
+
+        lua.new_usertype<Config>("Config",
+                                 "resPath", &Config::ResourcePath);
 
         lua.new_usertype<WindowManager>("Window",
                                         "CloseWindow", &WindowManager::CloseWindow,
@@ -93,6 +125,16 @@ namespace LuaBindings
     void RegisterFunctions(sol::state &lua)
     {
         lua.set_function("CreateRenderComponent", &Registry::CreateRenderComponent);
+        lua.set_function("AttachScript", &Registry::AttachScript);
         lua.set_function("CreateCube", &Registry::CreateCube);
+
+        lua.set_function("CreateTetrimino", &Tetris::CreateTetrimino);
+        lua.set_function("GetTetriminoChildMap", &Tetris::GetTetriminoChildMap);
+        lua.set_function("RotateTetrimino", &Tetris::RotateTetrimino);
+        lua.set_function("MoveTetrimino", &Tetris::MoveTetrimino);
+        lua.set_function("TweenTetrimino", &Tetris::TweenTetrimino);
+        lua.set_function("CheckRotation", &Tetris::CheckRotation);
+        lua.set_function("TetriminoFinishedMovement", &Tetris::TetriminoFinishedMovement);
+        lua.set_function("GetTetriminoLoc", &Tetris::GetTetriminoLoc);
     }
 }

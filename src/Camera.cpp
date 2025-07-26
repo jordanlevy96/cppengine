@@ -2,9 +2,16 @@
 
 #include <iostream>
 
+void Camera::SetPerspective(float fov)
+{
+    SetPerspective(fov, lastWidth, lastHeight);
+}
+
 void Camera::SetPerspective(float fovInDegrees, float width, float height)
 {
     fov = fovInDegrees;
+    lastWidth = width;
+    lastHeight = height;
     Projection = glm::perspective(glm::radians(fov), width / height, 0.1f, 100.0f); // TODO: settings for near and far
 }
 
@@ -35,9 +42,9 @@ void Camera::RotateByMouse(double xpos, double ypos)
         pitch = -89.0f;
 
     glm::vec3 direction;
-    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.x = -cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     direction.y = sin(glm::radians(pitch));
-    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.z = -sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     front = glm::normalize(direction);
 }
 
