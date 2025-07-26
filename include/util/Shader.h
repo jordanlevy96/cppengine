@@ -6,6 +6,7 @@
 #include <glad/glad.h>
 
 #include <string>
+#include <unordered_map>
 
 struct ShaderProgramSource
 {
