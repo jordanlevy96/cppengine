@@ -4,6 +4,7 @@
 #include "controllers/WindowManager.h"
 #include "controllers/Registry.h"
 #include "systems/UI.h"
+#include <memory>
 
 extern "C" void stbi_set_flip_vertically_on_load(int flag);
 

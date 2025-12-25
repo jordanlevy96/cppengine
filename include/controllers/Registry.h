@@ -31,7 +31,6 @@ public:
             sparse.resize(maxEntities, -1);
         }
 
-        indices.push_back(dense.size());
         dense.push_back(component);
         sparse[entity] = dense.size() - 1;
         entities.push_back(entity);
@@ -39,58 +38,37 @@ public:
 
     T &GetComponent(EntityID entity)
     {
-        return dense[indices[sparse[entity]]];
+        return dense[sparse[entity]];
     }
-
-    // void RemoveComponent(EntityID entity)
-    // {
-    //     if (entity >= sparse.size())
-    //     {
-    //         std::cerr << "Attemped to remove component from invalid entity " << entity << std::endl;
-    //         return;
-    //     }
-
-    //     if (sparse[entity] == std::numeric_limits<size_t>::max())
-    //     {
-    //         return;
-    //     }
-
-    //     if (entity > data.size())
-    //     {
-    //         std::cout << "something fishy is going on" << std::endl;
-    //     }
-
-    //     size_t temp = sparse[entity];
-    //     data[temp] = data.back();
-    //     data.pop_back();
-
-    //     sparse[entity] = -1; // implicitly converted to size_t's max value
-    //     dense[temp] = dense.back();
-    //     dense.pop_back();
-
-    //     sparse[dense[temp]] = temp;
-
-    //     entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
-    // }
 
     void RemoveComponent(EntityID entity)
     {
         // Check if the entity is present
-        if (sparse.size() <= entity || sparse[entity] >= dense.size() || indices[sparse[entity]] != entity)
+        if (sparse.size() <= entity || sparse[entity] >= dense.size())
             return;
 
-        // Swap and remove
-        size_t indexInDense = sparse[entity];
-        size_t lastEntity = indices.back();
+        // Swap-and-pop to maintain dense packing
+        size_t indexToRemove = sparse[entity];
+        EntityID lastEntity = entities.back();
 
-        std::swap(dense[indexInDense], dense.back());
-        std::swap(indices[indexInDense], indices.back());
+        // Move last element to removed position
+        dense[indexToRemove] = std::move(dense.back());
+        entities[indexToRemove] = lastEntity;
 
+        // Update sparse mapping for moved entity
+        sparse[lastEntity] = indexToRemove;
+        sparse[entity] = static_cast<size_t>(-1);
+
+        // Remove last elements
         dense.pop_back();
-        indices.pop_back();
+        entities.pop_back();
+    }
 
-        // Update the sparse array
-        sparse[lastEntity] = indexInDense;
+    bool HasComponent(EntityID entity) const
+    {
+        return entity < sparse.size() &&
+               sparse[entity] != static_cast<size_t>(-1) &&
+               sparse[entity] < dense.size();
     }
 
     std::vector<EntityID> GetEntities() { return entities; };
@@ -103,9 +81,7 @@ private:
     // e.g. if entity id 6 has a component, sparse[6] will be the index
     // of that component in the dense array
     std::vector<size_t> sparse = std::vector<size_t>(maxEntities, -1);
-    std::vector<size_t> indices;
     std::vector<T> dense;
-
     std::vector<size_t> entities;
 };
 
@@ -147,7 +123,7 @@ public:
     bool HasComponent(EntityID id)
     {
         auto &componentSet = GetComponentSet<T>();
-        return componentSet.find(id) != componentSet.end();
+        return componentSet.HasComponent(id);
     }
 
     template <typename T>
