@@ -4,7 +4,11 @@
 #include "controllers/ScriptManager.h"
 #include "util/Uniform.h"
 
-#include "Tetris.h"
+// Generic engine bindings
+#include "components/Tween.h"
+#include "components/Lighting.h"
+#include "util/SceneTraversal.h"
+#include "util/TransformUtils.h"
 
 #include <iostream>
 
@@ -64,9 +68,9 @@ namespace LuaBindings
                      "LEFT", CameraDirections::LEFT,
                      "RIGHT", CameraDirections::RIGHT);
 
-        lua.new_enum("Rotations",
-                     "CW", Tetris::Rotations::CW,
-                     "CCW", Tetris::Rotations::CCW);
+        lua.new_enum("TransitionType",
+                     "LINEAR", TransitionType::TRANS_LINEAR,
+                     "SINE", TransitionType::TRANS_SINE);
     }
 
     void RegisterTypes(sol::state &lua)
@@ -82,11 +86,18 @@ namespace LuaBindings
                                     "y", &glm::vec3::y,
                                     "z", &glm::vec3::z);
 
-        lua.new_usertype<glm::mat4>("mat4",
-                                    "get", &Tetris::mat4_get);
-
         lua.new_usertype<Transform>("Transform",
-                                    "Pos", &Transform::Pos);
+                                    "Pos", &Transform::Pos,
+                                    "Color", &Transform::Color,
+                                    "Scale", &Transform::Scale,
+                                    "Rotation", &Transform::Rotation);
+
+        lua.new_usertype<Tween>("Tween",
+                                "Start", &Tween::Start,
+                                "End", &Tween::End,
+                                "Duration", &Tween::Duration,
+                                "elapsed", &Tween::elapsed,
+                                "isActive", &Tween::isActive);
 
         lua.new_usertype<Camera>("Camera",
                                  "transform", &Camera::transform,
@@ -128,13 +139,57 @@ namespace LuaBindings
         lua.set_function("AttachScript", &Registry::AttachScript);
         lua.set_function("CreateCube", &Registry::CreateCube);
 
-        lua.set_function("CreateTetrimino", &Tetris::CreateTetrimino);
-        lua.set_function("GetTetriminoChildMap", &Tetris::GetTetriminoChildMap);
-        lua.set_function("RotateTetrimino", &Tetris::RotateTetrimino);
-        lua.set_function("MoveTetrimino", &Tetris::MoveTetrimino);
-        lua.set_function("TweenTetrimino", &Tetris::TweenTetrimino);
-        lua.set_function("CheckRotation", &Tetris::CheckRotation);
-        lua.set_function("TetriminoFinishedMovement", &Tetris::TetriminoFinishedMovement);
-        lua.set_function("GetTetriminoLoc", &Tetris::GetTetriminoLoc);
+        // ====================================================================
+        // GENERIC ENGINE BINDINGS - Entity & Component Management
+        // ====================================================================
+
+        // Entity Management
+        lua.set_function("RegisterEntity", sol::overload(
+            []() { return Registry::GetInstance().RegisterEntity(); },
+            [](EntityID parent) { return Registry::GetInstance().RegisterEntity(parent); }
+        ));
+
+        // Hierarchy Operations
+        lua.set_function("AddChild", &AddChild);
+        lua.set_function("GetParent", &GetParent);
+
+        // Component Access
+        lua.set_function("GetTransform", [](EntityID id) -> Transform& {
+            return Registry::GetInstance().GetComponent<Transform>(id);
+        });
+
+        lua.set_function("GetTween", [](EntityID id) -> Tween& {
+            return Registry::GetInstance().GetComponent<Tween>(id);
+        });
+
+        // Component Registration
+        lua.set_function("RegisterRenderComponent", [](EntityID id, std::shared_ptr<RenderComponent> rc) {
+            Registry::GetInstance().RegisterComponent<RenderComponent>(id, *rc);
+        });
+
+        lua.set_function("RegisterLighting", [](EntityID id, EntityID lightID) {
+            Lighting lightComp = Lighting(lightID);
+            Registry::GetInstance().RegisterComponent<Lighting>(id, lightComp);
+        });
+
+        // Transform Operations
+        lua.set_function("TranslateEntity", &TransformUtils::translate);
+        lua.set_function("RotateEntity", &TransformUtils::rotate);
+
+        // Tween Component Creation (creates tween with C++ move_to function)
+        lua.set_function("CreateTweenComponent", [](EntityID id, float duration) {
+            Transform& transform = Registry::GetInstance().GetComponent<Transform>(id);
+            Tween tween = Tween(&TransformUtils::move_to,
+                               transform.Pos,
+                               transform.Pos + glm::vec3(0, -2, 0),
+                               duration,
+                               TransitionType::TRANS_LINEAR);
+            Registry::GetInstance().RegisterComponent<Tween>(id, tween);
+        });
+
+        // Utility
+        lua.set_function("GetEntityByName", [](const std::string& name) -> EntityID {
+            return Registry::GetInstance().GetEntityByName(name);
+        });
     }
 }

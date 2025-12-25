@@ -6,8 +6,6 @@
 
 #include "util/TransformUtils.h"
 
-#include "Tetris.h"
-
 #include <iostream>
 #include <chrono>
 
@@ -43,8 +41,6 @@ bool App::Initialize()
     lua = &ScriptManager::GetInstance();
     lua->Initialize();
     lua->CreateTable(EVENT_QUEUE);
-
-    Tetris::LoadTetriminos(conf.ResourcePath + "conf/tetriminos.yaml");
 
     return true;
 }
