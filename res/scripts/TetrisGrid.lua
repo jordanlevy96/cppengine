@@ -89,7 +89,7 @@ CAMERA_Z_OFFSET = 1
 -- GAMEPLAY CONFIGURATION
 -- ----------------------------------------------------------------------------
 -- Time in milliseconds between automatic downward movements.
-MOVE_SPEED_MS = 100
+MOVE_SPEED_MS = 200
 
 -- Rounding offset for converting floating-point positions to integer grid indices.
 -- Using 0.5 ensures proper rounding (e.g., 2.3 + 0.5 = 2.8 → floor → 2).
@@ -328,6 +328,35 @@ TetrisGrid = {
     end,
 
     -- ========================================================================
+    -- HELPER FUNCTIONS
+    -- ========================================================================
+
+    updateChildPositions = function(self, parentID)
+        -- Get parent position and snap to grid to avoid floating-point errors
+        local parentTransform = GetTransform(parentID)
+        local parentPos = parentTransform.Pos
+
+        -- Snap parent to integer grid coordinates
+        local snappedX = math.floor(parentPos.x + GRID_POSITION_ROUNDING_OFFSET)
+        local snappedY = math.floor(parentPos.y + GRID_POSITION_ROUNDING_OFFSET)
+        parentTransform.Pos.x = snappedX
+        parentTransform.Pos.y = snappedY
+
+        -- Update each child's position based on childMap using snapped parent position
+        for i = 0, ROTATION_MATRIX_SIZE - 1 do
+            for j = 0, ROTATION_MATRIX_SIZE - 1 do
+                local childID = self.activeTetriminoChildMap[i][j]
+                if childID ~= GRID_EMPTY_CELL then
+                    local transform = GetTransform(childID)
+                    transform.Pos.x = snappedX + (j * TETRIMINO_SPACING)
+                    transform.Pos.y = snappedY + (i * TETRIMINO_SPACING)
+                    transform.Pos.z = parentPos.z
+                end
+            end
+        end
+    end,
+
+    -- ========================================================================
     -- ROTATION (replaces turnMatrixCW/CCW, CheckRotation, RotateTetrimino)
     -- ========================================================================
 
@@ -376,13 +405,12 @@ TetrisGrid = {
     end,
 
     rotateTetriminoInternal = function(self, entityID, rotation)
-        local angle = (rotation == Rotations.CW) and ROTATION_ANGLE_CW or ROTATION_ANGLE_CCW
+        -- Update the child map to new rotation
+        local newChildMap = self:checkRotation(rotation)
+        self.activeTetriminoChildMap = newChildMap
 
-        -- Update the child map
-        self.activeTetriminoChildMap = self:checkRotation(rotation)
-
-        -- Rotate the parent entity (children follow via hierarchy)
-        RotateEntity(entityID, angle, ROTATION_AXIS)
+        -- Update child positions to match new rotation
+        self:updateChildPositions(entityID)
     end,
 
     -- ========================================================================
@@ -393,21 +421,32 @@ TetrisGrid = {
         -- Get tween component and update it
         local tween = GetTween(entityID)
         tween.Start.x = tween.Start.x + direction.x
+        tween.Start.y = tween.Start.y + direction.y
         tween.End.x = tween.End.x + direction.x
+        tween.End.y = tween.End.y + direction.y
         tween.isActive = false  -- Instant movement, no animation
 
-        -- Translate entity immediately
+        -- Translate parent entity immediately
         TranslateEntity(entityID, vec3(direction.x, direction.y, 0))
+
+        -- Update all child positions to match parent's new position
+        self:updateChildPositions(entityID)
     end,
 
     tweenTetriminoInternal = function(self, entityID, direction, duration)
         local transform = GetTransform(entityID)
         local tween = GetTween(entityID)
 
+        -- Snap current position to grid to avoid accumulating floating-point errors
+        local startX = math.floor(transform.Pos.x + GRID_POSITION_ROUNDING_OFFSET)
+        local startY = math.floor(transform.Pos.y + GRID_POSITION_ROUNDING_OFFSET)
+        transform.Pos.x = startX
+        transform.Pos.y = startY
+
         tween.elapsed = 0
-        tween.Start = transform.Pos
-        tween.End = vec3(transform.Pos.x + direction.x,
-                          transform.Pos.y + direction.y,
+        tween.Start = vec3(startX, startY, transform.Pos.z)
+        tween.End = vec3(startX + direction.x,
+                          startY + direction.y,
                           transform.Pos.z + direction.z)
         tween.Duration = duration
         tween.isActive = true
@@ -449,6 +488,8 @@ TetrisGrid = {
                 return
             end
         elseif (self:tetriminoFinishedMovement(self.activePiece)) then
+            -- Snap position after tween completes to fix floating-point errors
+            self:updateChildPositions(self.activePiece)
             self:moveTetriminoDown()
         end
     end
