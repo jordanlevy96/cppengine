@@ -3,9 +3,9 @@
 -- ============================================================================
 
 -- Camera field of view limits for scroll zoom functionality.
--- FOV_MAX matches TetrisGrid.CAMERA_FOV_DEGREES (default camera FOV).
+-- FOV_MAX matches TetrisConstants.CAMERA_FOV_DEGREES (default camera FOV).
 FOV_MIN = 1
-FOV_MAX = 45
+FOV_MAX = TetrisConstants.CAMERA_FOV_DEGREES
 
 -- Directional movement vectors for lateral tetrimino movement.
 -- X-axis: -1 = left, +1 = right; Y-axis: 0 = no vertical movement.

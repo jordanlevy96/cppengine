@@ -8,8 +8,10 @@ Rotations = {
     CCW = 1
 }
 
--- Load tetrimino data
+-- Load Tetris modules (order matters: constants -> data -> classes)
+TetrisConstants = dofile(RES_PATH .. "scripts/TetrisConstants.lua")
 TetriminoData = dofile(RES_PATH .. "scripts/TetriminoData.lua")
+Tetrimino = dofile(RES_PATH .. "scripts/Tetrimino.lua")
 
 dofile(RES_PATH .. "scripts/input.lua")
 
