@@ -1,6 +1,24 @@
+-- ============================================================================
+-- INPUT CONSTANTS
+-- ============================================================================
+
+-- Camera field of view limits for scroll zoom functionality.
+-- FOV_MAX matches TetrisGrid.CAMERA_FOV_DEGREES (default camera FOV).
+FOV_MIN = 1
+FOV_MAX = 45
+
+-- Directional movement vectors for lateral tetrimino movement.
+-- X-axis: -1 = left, +1 = right; Y-axis: 0 = no vertical movement.
+DIRECTION_LEFT = vec2(-1, 0)
+DIRECTION_RIGHT = vec2(1, 0)
+
+-- ============================================================================
+-- END INPUT CONSTANTS
+-- ============================================================================
+
 HandleInput = function()
-    while #eventQueue > 0 do
-        local event = table.remove(eventQueue, 1)
+    while #EventQueue > 0 do
+        local event = table.remove(EventQueue, 1)
         if event.type == InputTypes.KEY then
             OnKeyPress(event.input)
         elseif event.type == InputTypes.CURSOR then
@@ -17,13 +35,13 @@ OnScroll = function(input)
     local camera = GameManager.camera
     local size = GameManager.window:GetSize()
     local fov = camera.fov - input.y
-    if fov < 1 then
-        fov = 1
+    if fov < FOV_MIN then
+        fov = FOV_MIN
     end
-    if fov > 45 then
-        fov = 45
+    if fov > FOV_MAX then
+        fov = FOV_MAX
     end
-    
+
     camera:SetPerspective(fov, size.x, size.y)
 end
 
@@ -55,9 +73,9 @@ OnKeyPress = function(key)
     elseif key == "X" or key == "UP" then
         TetrisGrid:rotateTetrimino(Rotations.CW)
     elseif key == "LEFT" then
-        MoveTetrimino(TetrisGrid.activePiece, vec2(-1, 0))
+        TetrisGrid:moveTetriminoLateral(DIRECTION_LEFT)
     elseif key == "RIGHT" then
-        MoveTetrimino(TetrisGrid.activePiece, vec2(1, 0))
+        TetrisGrid:moveTetriminoLateral(DIRECTION_RIGHT)
     elseif key == "P" then
         -- TODO: pause
     end

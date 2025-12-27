@@ -4,6 +4,8 @@
 #include "controllers/WindowManager.h"
 #include "controllers/Registry.h"
 #include "systems/UI.h"
+#include <memory>
+#include <pybind11/pybind11.h>
 
 extern "C" void stbi_set_flip_vertically_on_load(int flag);
 
@@ -26,11 +28,17 @@ public:
     double delta = 0;
     Registry *registry;
     WindowManager *windowManager;
-    ScriptManager *lua;
+    ScriptManager *scriptManager;
 
     static App &GetInstance()
     {
         static App instance;
+        return instance;
+    }
+
+    static py::object GetPyInstance()
+    {
+        static py::object instance = py::cast(&GetInstance(), py::return_value_policy::reference);
         return instance;
     }
 
@@ -43,6 +51,6 @@ public:
     void CloseWindow();
 
 private:
-    App(){};
+    App() {};
     bool LoadConfig(const std::string &configPath);
 };

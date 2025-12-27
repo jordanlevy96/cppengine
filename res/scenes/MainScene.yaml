@@ -13,7 +13,7 @@ scene:
 
     - name: "TetrisGrid"
       components:
-        - type: "Script"
+        - type: "LuaScript"
           script: "TetrisGrid.lua"
           shader: "Lighting.shader"
           model: "cube.obj"
