@@ -2,31 +2,29 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
 project(cppengine)
 
-file(GLOB_RECURSE SOURCES
-"src/*.cpp",
-"src/controllers/*.cpp",
-"src/components/*.cpp",
-"src/entities/*.cpp",
-"src/systems/*.cpp",
-"src/util/*.cpp",
-"include/*.h",
-"include/controllers/*.h",
-"include/components/*.h",
-"include/entities/*.h",
-"include/systems/*.h",
-"include/util/*.h",
-"external/glad/src/*.c"
+add_library(core SHARED
+    "src/Camera.cpp"
+    "src/controllers/App.cpp"
+    "src/controllers/Registry.cpp"
+    "src/controllers/ResourceManager.cpp"
+    "src/controllers/ScriptManager.cpp"
+    "src/controllers/WindowManager.cpp"
+    "src/main.cpp"
+    "src/systems/RenderSystem.cpp"
+    "src/systems/ScriptSystem.cpp"
+    "src/systems/TweenSystem.cpp"
+    "src/systems/UI.cpp"
+    "src/util/Mesh.cpp"
+    "src/util/SceneTraversal.cpp"
+    "src/util/Shader.cpp"
+    "src/util/TransformUtils.cpp"
+    "external/glad/src/glad.c"
 )
-add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 
-# Handle Dependencies
-
-set(OpenGL_GL_PREFERENCE "GLVND") # get latest version
+set(OpenGL_GL_PREFERENCE "GLVND")
 find_package(OpenGL REQUIRED)
 
 add_subdirectory(external/yaml-cpp)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as static library" FORCE)
-add_subdirectory(external/lua-cmake)
 add_subdirectory(external/sol2)
 
 if (APPLE)
@@ -47,7 +45,6 @@ if (APPLE)
     FetchContent_MakeAvailable(GLAD)
 
 elseif(WIN32)
-    # add_subdirectory(external/glad)
     include(FetchContent)
 
     FetchContent_Declare(
@@ -83,20 +80,74 @@ add_library(imgui
 target_include_directories(imgui PUBLIC ${IMGUI_DIR})
 target_link_libraries(imgui PUBLIC glfw)
 
-include_directories(
+set(core_INCLUDE_DIRS
     include
     external/headers
+    external/glm
     external/glad/include
     external/yaml-cpp/include
-    external/lua-cmake/upstream
-    external/sol2/include
     ${GLFW_DIR}
     ${IMGUI_DIR}
-    )
-
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-    yaml-cpp::yaml-cpp
 )
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE external/glm)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glfw lua sol2 imgui)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${OPENGL_LIBRARIES})
+
+set(core_LINKS
+    glfw
+    imgui
+    yaml-cpp::yaml-cpp
+    ${OPENGL_LIBRARIES}
+)
+
+target_include_directories(core PUBLIC ${core_INCLUDE_DIRS})
+target_link_libraries(core PUBLIC ${core_LINKS})
+
+# ============================================================================
+# Lua Scripting - Always enabled for game logic
+# ============================================================================
+message(STATUS "Configuring Lua scripting")
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build as static library" FORCE)
+add_subdirectory(external/lua-cmake)
+target_include_directories(core PUBLIC
+    external/lua-cmake
+    external/lua-cmake/upstream
+    external/sol2/include/sol
+)
+target_link_libraries(core PUBLIC lua sol2)
+target_compile_definitions(core PUBLIC USE_LUA_SCRIPTING)
+
+# ============================================================================
+# Python Scripting - Always enabled for data analysis
+# ============================================================================
+message(STATUS "Configuring Python scripting")
+
+# Find Python - support both conda and system installations
+set(CONDA_PREFIX $ENV{CONDA_PREFIX})
+if (CONDA_PREFIX)
+    message(STATUS "Using Conda environment: ${CONDA_PREFIX}")
+    set(Python3_ROOT_DIR "${CONDA_PREFIX}")
+    set(Python3_EXECUTABLE "${CONDA_PREFIX}/bin/python")
+endif()
+
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+
+# Try to find pybind11 as a system package first, fall back to submodule
+find_package(pybind11 CONFIG QUIET)
+if(NOT pybind11_FOUND)
+    message(STATUS "pybind11 not found in system, using submodule")
+    add_subdirectory(external/pybind11)
+else()
+    message(STATUS "Using system pybind11: ${pybind11_DIR}")
+endif()
+
+message(STATUS "Python executable: ${Python3_EXECUTABLE}")
+message(STATUS "Python include dirs: ${Python3_INCLUDE_DIRS}")
+
+# pybind11's add_subdirectory already sets up include paths
+target_link_libraries(core PUBLIC pybind11::embed)
+target_compile_definitions(core PUBLIC USE_PYTHON_SCRIPTING)
+
+# Create minimal Python module for data export
+pybind11_add_module(engine src/controllers/python/engine_bindings.cpp)
+target_link_libraries(engine PUBLIC core)
+
+add_executable(${CMAKE_PROJECT_NAME} src/main.cpp)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE core)

@@ -1,5 +1,7 @@
 **/.DS_Store
 
+# C++ Stuff
+
 # Build is different per OS
 build
 
@@ -35,3 +37,6 @@ build
 *.exe
 *.out
 *.app
+
+# Python Stuff
+**/__pycache__/*

@@ -73,7 +73,34 @@
     "stack": "cpp",
     "strstream": "cpp",
     "variant": "cpp",
-    "internal.h": "c"
+    "internal.h": "c",
+    "__tree": "cpp",
+    "__verbose_abort": "cpp",
+    "any": "cpp",
+    "charconv": "cpp",
+    "condition_variable": "cpp",
+    "forward_list": "cpp",
+    "list": "cpp",
+    "map": "cpp",
+    "set": "cpp",
+    "thread": "cpp",
+    "typeindex": "cpp",
+    "unordered_set": "cpp",
+    "valarray": "cpp"
   },
   "nuxt.isNuxtApp": false
+
+  // Optional: Uncomment to hide Lua files when working in Python mode
+  // "files.exclude": {
+  //   "**/*.lua": true,
+  //   "**/external/lua-cmake": true,
+  //   "**/external/sol2": true
+  // }
+
+  // Optional: Uncomment to hide Python files when working in Lua mode
+  "files.exclude": {
+    "**/*.py": true,
+    "**/external/pybind11": true,
+    "**/src/controllers/python": true
+  }
 }

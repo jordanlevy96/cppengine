@@ -2,6 +2,8 @@
 #include "controllers/Registry.h"
 #include "controllers/ScriptManager.h"
 
+#include <iostream>
+
 void Registry::Shutdown()
 {
     for (size_t i = 0; i < entityNames.size(); i++)
@@ -145,12 +147,13 @@ bool Registry::LoadScene(const std::string &src)
                         RenderComponent rc = RenderComponent(shaderSrc, modelSrc);
                         RegisterComponent<RenderComponent>(id, rc);
                     }
-                    else if (componentType == "Script")
+                    else if (componentType == "LuaScript")
                     {
-                        const std::string &scriptSrc = (const std::string &)(res) + "scripts/" + componentNode["script"].as<std::string>();
                         ScriptManager &sm = ScriptManager::GetInstance();
                         // Load the script and call the ready function
                         // Be careful with this ready call, if it relies on stuff that hasn't been initialized yet, it'll fail.
+
+                        const std::string &scriptSrc = (const std::string &)(res) + "scripts/" + componentNode["script"].as<std::string>();
                         sm.Run(scriptSrc);
                         sol::table scriptClass = sm.GetLuaTable(name);
                         for (const auto &property : componentNode)
@@ -169,9 +172,30 @@ bool Registry::LoadScene(const std::string &src)
                         ScriptComponent sc = ScriptComponent(name, scriptClass);
                         RegisterComponent<ScriptComponent>(id, sc);
                     }
+                    else if (componentType == "PythonScript")
+                    {
+                        const std::string &scriptName = componentNode["script"].as<std::string>();
+                        ScriptManager &sm = ScriptManager::GetInstance();
+
+                        py::object scriptClass = sm.ImportModule(scriptName);
+                        for (const auto &property : componentNode)
+                        {
+                            std::string key = property.first.as<std::string>();
+                            // "type" and "script" are already handled above
+                            if (key == "type" || key == "script")
+                            {
+                                continue;
+                            }
+
+                            sm.SetClassAttribute(scriptName, key, property.second.as<std::string>());
+                        }
+                        ScriptComponent sc = ScriptComponent(name, scriptClass);
+                        RegisterComponent<ScriptComponent>(id, sc);
+                    }
                 }
             }
         }
+        std::cout << "INIT - Registry: SUCCESS" << std::endl;
         return true;
     }
     catch (const YAML::Exception &e)
@@ -181,11 +205,17 @@ bool Registry::LoadScene(const std::string &src)
     }
 }
 
-// For Lua scripting
-
 void Registry::AttachScript(EntityID entityId, const std::string &name, sol::table luaClass)
 {
     ScriptComponent sc = ScriptComponent(name, luaClass);
+
+    Registry *r = &GetInstance();
+    r->RegisterComponent<ScriptComponent>(entityId, sc);
+}
+
+void Registry::AttachScript(EntityID entityId, const std::string &name, py::object pythonClass)
+{
+    ScriptComponent sc = ScriptComponent(name, pythonClass);
 
     Registry *r = &GetInstance();
     r->RegisterComponent<ScriptComponent>(entityId, sc);

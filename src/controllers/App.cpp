@@ -20,7 +20,7 @@ bool App::Initialize()
     windowManager = &WindowManager::GetInstance();
     if (!windowManager->Initialize(conf.WindowWidth, conf.WindowHeight))
     {
-        std::cerr << "Failed to Initialize Window Manager" << std::endl;
+        std::cerr << "INIT - Window Manager: FAIL" << std::endl;
         return false;
     }
 
@@ -37,17 +37,21 @@ bool App::Initialize()
 
     registry = &Registry::GetInstance();
 
-    // Lua must be initialized last, as it needs references to the other controllers
-    lua = &ScriptManager::GetInstance();
-    lua->Initialize();
-    lua->CreateTable(EVENT_QUEUE);
+    // Scripting must be initialized last before the scene
+    // as it needs references to the other controllers
+    scriptManager = &ScriptManager::GetInstance();
+    scriptManager->Initialize();
+
+    // Tetris::LoadTetriminos(conf.ResourcePath + "conf/tetriminos.yaml");
+
+    // Scene is loaded last
+    registry->LoadScene("scenes/MainScene.yaml");
 
     return true;
 }
 
 void App::Run()
 {
-    std::cout << "Starting main loop" << std::endl;
 
     std::chrono::high_resolution_clock::time_point currentTime, previousTime;
     double frameTime, loopTime;
@@ -56,15 +60,13 @@ void App::Run()
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
-    /* --------- Initial State --------- */
-    registry->LoadScene("scenes/MainScene.yaml");
-
+    std::cout << "Starting main loop" << std::endl;
     while (!glfwWindowShouldClose(windowManager->window))
     {
         /* ------------- Main Loop -------------
             1. Process Game Logic
             2. Input Handling
-            3. Other Systems (Script)
+            3. Other Systems (Script, Tween)
             4. Render Pipeline
             Render order:
                 1. Background
@@ -73,12 +75,12 @@ void App::Run()
         */
 
         // Process
-        lua->ProcessInput();
         currentTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - previousTime).count();
         previousTime = currentTime;
-
         loopTime += delta;
+
+        scriptManager->ProcessInput();
 
         while (loopTime >= frameTime)
         {
@@ -171,7 +173,6 @@ void App::Shutdown()
 {
     delete cam;
 
-    lua->Shutdown();
     registry->Shutdown();
 
     ImGui_ImplOpenGL3_Shutdown();
@@ -179,4 +180,5 @@ void App::Shutdown()
     ImGui::DestroyContext();
 
     windowManager->Shutdown();
+    scriptManager->Shutdown();
 }

@@ -11,31 +11,23 @@
 #include "util/TransformUtils.h"
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
+
+// ============================================================================
+// Lua Scripting
+// ============================================================================
 
 void ScriptManager::Run(const std::string &scriptSrc)
 {
+    // Run Lua script file (.lua files)
     lua.script_file(scriptSrc);
 }
 
-void ScriptManager::Initialize()
+void ScriptManager::CreateList(const std::string &key)
 {
-    LuaBindings::RegisterEnums(lua);
-    LuaBindings::RegisterTypes(lua);
-    LuaBindings::RegisterFunctions(lua);
-    lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math);
-
-    Run(App::GetInstance().conf.ResourcePath + "scripts/init.lua");
-}
-
-void ScriptManager::Shutdown()
-{
-    // Clear Lua references to C++ singletons
-    lua["GameManager"] = sol::lua_nil;
-
-    // Run garbage collector
-    lua.collect_garbage();
-
-    // The Lua state itself will be destroyed when the ScriptManager instance goes out of scope
+    sol::table targetTable = lua.create_table();
+    lua[key] = targetTable;
 }
 
 void ScriptManager::ProcessInput()
@@ -136,7 +128,7 @@ namespace LuaBindings
     void RegisterFunctions(sol::state &lua)
     {
         lua.set_function("CreateRenderComponent", &Registry::CreateRenderComponent);
-        lua.set_function("AttachScript", &Registry::AttachScript);
+        lua.set_function("AttachScript", sol::resolve<void(EntityID, const std::string &, sol::table)>(&Registry::AttachScript));
         lua.set_function("CreateCube", &Registry::CreateCube);
 
         // ====================================================================
@@ -191,5 +183,88 @@ namespace LuaBindings
         lua.set_function("GetEntityByName", [](const std::string& name) -> EntityID {
             return Registry::GetInstance().GetEntityByName(name);
         });
+    }
+}
+
+// ============================================================================
+// Python Scripting
+// ============================================================================
+
+py::object ScriptManager::ImportModule(const std::string &moduleName)
+{
+    // Check if the module is already imported
+    py::dict sys_modules = py::module::import("sys").attr("modules").cast<py::dict>();
+    if (sys_modules.contains(moduleName.c_str()))
+    {
+        // Module is already imported, return the existing module
+        return sys_modules[moduleName.c_str()];
+    }
+    else
+    {
+        // Module is not imported yet, import and return the module
+        return py::module::import(moduleName.c_str());
+    }
+}
+
+// ============================================================================
+// Initialization & Shutdown - Both Languages
+// ============================================================================
+
+void ScriptManager::Initialize()
+{
+    // Initialize Lua
+    LuaBindings::RegisterEnums(lua);
+    LuaBindings::RegisterTypes(lua);
+    LuaBindings::RegisterFunctions(lua);
+    lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math);
+    CreateList(EVENT_QUEUE);
+    Run(App::GetInstance().conf.ResourcePath + "scripts/init.lua");
+
+    // Initialize Python
+    guard = std::make_unique<py::scoped_interpreter>();
+    std::cout << "Python: Running init.py" << std::endl;
+
+    std::ifstream file(App::GetInstance().conf.ResourcePath + "scripts/init.py");
+    if (!file.is_open())
+    {
+        throw std::runtime_error("Could not open Python init script");
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string script_content = buffer.str();
+    py::exec(script_content, py::globals());
+
+    std::cout << "INIT - ScriptManager: SUCCESS" << std::endl;
+}
+
+void ScriptManager::Shutdown()
+{
+    // Shutdown Lua
+    lua["GameManager"] = sol::lua_nil;
+    lua.collect_garbage();
+
+    // Shutdown Python
+    std::cout << "SHUTDOWN - Python" << std::endl;
+    try
+    {
+        // Clear globals
+        py::dict globals = py::globals();
+        std::vector<std::string> keys_to_delete;
+
+        // Collect all keys; can't modify dict while iterating over it
+        for (auto item : globals)
+        {
+            std::string key = py::str(item.first).cast<std::string>();
+            keys_to_delete.push_back(key);
+        }
+
+        for (const auto &key : keys_to_delete)
+        {
+            globals.attr("pop")(key, py::none());
+        }
+    }
+    catch (const py::error_already_set &e)
+    {
+        std::cerr << "Error clearing Python globals: " << e.what() << std::endl;
     }
 }
