@@ -199,8 +199,9 @@ public:
 
             // Calculate position
             int xpos = x + glyph.bearingX;
-            // Since we flip the bitmap, adjust ypos to be the bottom of the glyph
-            int ypos = baseline_y - glyph.bearingY + glyph.height;
+            // When bitmap is flipped, the formula reverses: baseline = ypos + (height - bearingY)
+            // So: ypos = baseline - height + bearingY
+            int ypos = baseline_y - glyph.height + glyph.bearingY;
 
             // Draw glyph bitmap
             DrawGlyph(glyph, xpos, ypos, color);
