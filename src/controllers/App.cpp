@@ -7,6 +7,7 @@
 #include "util/TransformUtils.h"
 
 #include <iostream>
+#include <fstream>
 #include <chrono>
 
 bool App::Initialize()
@@ -27,6 +28,9 @@ bool App::Initialize()
     ui = &UI::GetInstance();
     ui->Initialize(windowManager->window);
 
+    htmlRenderer = &HTMLRendererMP::GetInstance();
+    htmlRenderer->Initialize(windowManager->window, conf.WindowWidth, conf.WindowHeight);
+
     stbi_set_flip_vertically_on_load(true);
 
     cam = new Camera(conf.WindowWidth, conf.WindowHeight);
@@ -46,6 +50,22 @@ bool App::Initialize()
 
     // Scene is loaded last
     registry->LoadScene("scenes/MainScene.yaml");
+
+    // Load FPS test HTML UI
+    std::string htmlPath = conf.ResourcePath + "ui/fps_test.html";
+    std::ifstream htmlFile(htmlPath);
+    if (htmlFile.is_open())
+    {
+        std::string htmlContent((std::istreambuf_iterator<char>(htmlFile)),
+                                std::istreambuf_iterator<char>());
+        htmlRenderer->LoadHTML(htmlContent);
+        htmlFile.close();
+        std::cout << "Loaded HTML UI from: " << htmlPath << std::endl;
+    }
+    else
+    {
+        std::cerr << "Failed to load HTML file: " << htmlPath << std::endl;
+    }
 
     return true;
 }
@@ -111,6 +131,7 @@ void App::Run()
         // 3. UI
         // TODO: implement UISystem
         // ui->RenderWindow();
+        htmlRenderer->Render();
 
         glfwSwapBuffers(windowManager->window);
         glfwPollEvents();
@@ -122,7 +143,26 @@ void App::Run()
         if (fpsTime >= 1000.0) // Update every second
         {
             double fps = frameCount / (fpsTime / 1000.0);
-            std::cout << "FPS: " << fps << " (frame time: " << (fpsTime / frameCount) << "ms)" << std::endl;
+            double frameTime = fpsTime / frameCount;
+            std::cout << "FPS: " << fps << " (frame time: " << frameTime << "ms)" << std::endl;
+
+            // Update HTML UI with current FPS
+            std::string updatedHTML =
+                "<!DOCTYPE html><html><head><style>"
+                "body { margin: 0; padding: 0; background: transparent; color: #00ff00; font-family: monospace; font-size: 16px; }"
+                ".fps-display { position: absolute; top: 10px; right: 10px; padding: 15px; background: rgba(0,0,0,0.9); border: 3px solid #00ff00; min-width: 150px; }"
+                ".fps-value { font-size: 32px; font-weight: bold; color: #00ff00; margin: 5px 0; }"
+                ".label { color: #00ff00; font-size: 14px; margin-top: 10px; }"
+                "</style></head><body>"
+                "<div class='fps-display'>"
+                "<div class='label'>FPS</div>"
+                "<div class='fps-value'>" + std::to_string((int)fps) + "</div>"
+                "<div class='label'>FrameTime</div>"
+                "<div class='fps-value'>" + std::to_string(frameTime).substr(0, 5) + "ms</div>"
+                "</div></body></html>";
+
+            htmlRenderer->UpdateHTML(updatedHTML);
+
             frameCount = 0;
             fpsUpdateTime = now;
         }
@@ -191,6 +231,8 @@ void App::Shutdown()
     delete cam;
 
     registry->Shutdown();
+
+    htmlRenderer->Shutdown();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

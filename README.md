@@ -24,6 +24,7 @@ make
 
 - C++ Compiler (G++)\*
 - CMake\*
+- FreeType\*
 - GLFW†
 - GLAD†
 - stb_image†
@@ -31,10 +32,29 @@ make
 - yaml-cpp‡
 - GLM‡
 - Dear ImGUI‡
+- litehtml‡
 - Lua‡
   - lua-cmake‡
   - sol2‡
+- Python 3.x\*
+  - pybind11‡
 
 \*<sub><sup>Required installation</sup></sub>\
 †<sub><sup>Included with CMake or in external</sup></sub>\
 ‡<sub><sup>Set up with a git submodule; run `cd external && git submodule update --init --recursive` to initialize.</sup></sub>
+
+#### Installing FreeType
+
+**macOS:**
+```sh
+brew install freetype
+```
+
+**Ubuntu/Debian:**
+```sh
+sudo apt-get install libfreetype6-dev
+```
+
+**Windows:**
+- Download from https://www.freetype.org/ or use vcpkg
+- Or build from source

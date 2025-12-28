@@ -4,6 +4,7 @@
 #include "controllers/WindowManager.h"
 #include "controllers/Registry.h"
 #include "systems/UI.h"
+#include "systems/HTMLRendererMP.h"
 #include <memory>
 #include <pybind11/pybind11.h>
 
@@ -24,6 +25,7 @@ public:
     Config conf;
     Camera *cam;
     UI *ui;
+    HTMLRendererMP *htmlRenderer;
     // time since last frame
     double delta = 0;
     Registry *registry;
