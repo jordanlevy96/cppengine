@@ -60,6 +60,11 @@ void App::Run()
     currentTime = previousTime = std::chrono::high_resolution_clock::now();
     loopTime = 0.0;
 
+    // FPS tracking
+    int frameCount = 0;
+    double fpsTime = 0.0;
+    auto fpsUpdateTime = std::chrono::high_resolution_clock::now();
+
     std::cout << "Starting main loop" << std::endl;
     while (!glfwWindowShouldClose(windowManager->window))
     {
@@ -109,6 +114,18 @@ void App::Run()
 
         glfwSwapBuffers(windowManager->window);
         glfwPollEvents();
+
+        // FPS tracking
+        frameCount++;
+        auto now = std::chrono::high_resolution_clock::now();
+        fpsTime = std::chrono::duration_cast<std::chrono::milliseconds>(now - fpsUpdateTime).count();
+        if (fpsTime >= 1000.0) // Update every second
+        {
+            double fps = frameCount / (fpsTime / 1000.0);
+            std::cout << "FPS: " << fps << " (frame time: " << (fpsTime / frameCount) << "ms)" << std::endl;
+            frameCount = 0;
+            fpsUpdateTime = now;
+        }
     }
 
     std::cout << "Exited main loop" << std::endl;
