@@ -137,6 +137,9 @@ public:
 
     void ProcessInput();
 
+    // Get reference to Lua state for UI system
+    sol::state& GetLuaState() { return lua; }
+
 private:
     ScriptManager(){};
 

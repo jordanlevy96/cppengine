@@ -15,7 +15,10 @@ add_library(core SHARED
     "src/systems/TweenSystem.cpp"
     "src/systems/UI.cpp"
     "src/systems/HTMLRenderer.cpp"
-    "src/systems/HTMLRendererMP.cpp"
+    "src/systems/HTMLRendererMT.cpp"
+    "src/systems/ReactiveUI.cpp"
+    "src/systems/LuaUIState.cpp"
+    "src/systems/TemplateParser.cpp"
     "src/util/Mesh.cpp"
     "src/util/SceneTraversal.cpp"
     "src/util/Shader.cpp"
@@ -159,8 +162,3 @@ target_link_libraries(engine PUBLIC core)
 
 add_executable(${CMAKE_PROJECT_NAME} src/main.cpp)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE core)
-
-# HTML Render Process (separate executable)
-add_executable(html_render_process src/html_render_process.cpp)
-target_link_libraries(html_render_process PRIVATE litehtml ${FREETYPE_LIBRARIES})
-target_include_directories(html_render_process PRIVATE ${core_INCLUDE_DIRS})

@@ -32,6 +32,58 @@ void ScriptManager::CreateList(const std::string &key)
 
 void ScriptManager::ProcessInput()
 {
+    App& app = App::GetInstance();
+    GLFWwindow* window = WindowManager::GetInstance().window;
+
+    // Static variables for key debouncing
+    static bool speedKeyPressed = false;
+
+    // Speed controls (only in VARIABLE mode)
+    if (app.GetGameMode() == GameMode::VARIABLE) {
+        bool anySpeedKeyPressed = false;
+
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            if (!speedKeyPressed) {
+                app.SetSimulationSpeed(SimulationSpeed::PAUSED);
+                std::cout << "[Speed] PAUSED" << std::endl;
+            }
+            anySpeedKeyPressed = true;
+        } else if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+            if (!speedKeyPressed) {
+                app.SetSimulationSpeed(SimulationSpeed::NORMAL);
+                std::cout << "[Speed] NORMAL (1x)" << std::endl;
+            }
+            anySpeedKeyPressed = true;
+        } else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+            if (!speedKeyPressed) {
+                app.SetSimulationSpeed(SimulationSpeed::FAST);
+                std::cout << "[Speed] FAST (2x)" << std::endl;
+            }
+            anySpeedKeyPressed = true;
+        } else if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+            if (!speedKeyPressed) {
+                app.SetSimulationSpeed(SimulationSpeed::FASTER);
+                std::cout << "[Speed] FASTER (3x)" << std::endl;
+            }
+            anySpeedKeyPressed = true;
+        } else if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+            if (!speedKeyPressed) {
+                app.SetSimulationSpeed(SimulationSpeed::FASTEST);
+                std::cout << "[Speed] FASTEST (5x)" << std::endl;
+            }
+            anySpeedKeyPressed = true;
+        } else if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
+            if (!speedKeyPressed) {
+                app.SetSimulationSpeed(SimulationSpeed::UNCAPPED);
+                std::cout << "[Speed] UNCAPPED (MAX)" << std::endl;
+            }
+            anySpeedKeyPressed = true;
+        }
+
+        speedKeyPressed = anySpeedKeyPressed;
+    }
+
+    // Call Lua input handler for game-specific input
     sol::function handleInputFunction = lua[HANDLE_INPUT_F];
     try
     {
