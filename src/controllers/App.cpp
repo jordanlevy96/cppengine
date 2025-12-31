@@ -175,12 +175,56 @@ bool App::Initialize()
         background: rgba(0, 0, 0, 0.95);
         z-index: 1000;
     }
+    .gameover-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 1000;
+    }
     .startup-title {
         font-size: 72px;
         font-weight: bold;
         color: #00ff00;
         margin-bottom: 40px;
         text-shadow: 0 0 20px #00ff00;
+    }
+    .gameover-title {
+        font-size: 72px;
+        font-weight: bold;
+        color: #ff0000;
+        margin-bottom: 30px;
+        text-shadow: 0 0 20px #ff0000;
+    }
+    .final-score {
+        font-size: 36px;
+        color: #00ff00;
+        margin-bottom: 50px;
+    }
+    .final-score-label {
+        color: #00aa00;
+        font-size: 24px;
+    }
+    .final-score-value {
+        font-size: 48px;
+        font-weight: bold;
+        text-shadow: 0 0 10px #00ff00;
+    }
+    .menu-button {
+        padding: 15px 50px;
+        font-size: 28px;
+        font-family: monospace;
+        background: transparent;
+        color: #00ff00;
+        border: 4px solid #00ff00;
+        margin: 10px;
+        box-shadow: 0 0 15px #00ff00;
     }
     .start-button {
         padding: 20px 60px;
@@ -207,14 +251,26 @@ bool App::Initialize()
 </head>
 <body>
     <!-- Startup Screen -->
-    <div v-if="data.gameStarted == false" class="startup-screen">
+    <div v-if="data.gameStarted == false and data.gameOver == false" class="startup-screen">
         <div class="startup-title">TETRIS</div>
         <div class="start-button">START GAME</div>
         <div class="instructions">Press ENTER to start</div>
     </div>
 
+    <!-- Game Over Screen -->
+    <div v-if="data.gameOver" class="gameover-screen">
+        <div class="gameover-title">GAME OVER</div>
+        <div class="final-score">
+            <div class="final-score-label">FINAL SCORE</div>
+            <div class="final-score-value">{{ data.finalScore }}</div>
+        </div>
+        <div class="menu-button">RESTART</div>
+        <div class="menu-button">MAIN MENU</div>
+        <div class="instructions">Press R to restart | M for main menu</div>
+    </div>
+
     <!-- Game UI -->
-    <div v-if="data.gameStarted" class="game-container">
+    <div v-if="data.gameStarted and data.gameOver == false" class="game-container">
         <!-- Left Panel: Game Stats -->
         <div class="side-panel left-panel">
             <div class="panel-title">GAME STATS</div>
@@ -449,7 +505,7 @@ void App::TrackFPS() {
         int currentFPS = (int)(m_frameCount / (m_fpsTime / 1000.0));
         double currentFrameTime = m_fpsTime / m_frameCount;
 
-        std::cout << "FPS: " << currentFPS << " (frame time: " << currentFrameTime << "ms)" << std::endl;
+        // std::cout << "FPS: " << currentFPS << " (frame time: " << currentFrameTime << "ms)" << std::endl;
 
         // Get reactive UI and Lua state
         ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
@@ -503,10 +559,56 @@ void App::StartGame() {
     auto luaState = reactiveUI.GetLuaState();
 
     if (luaState) {
-        // Update gameStarted flag in UI state
-        luaState->SetValue("data.gameStarted", "true");
+        // Update game state flags in UI (use boolean values, not strings!)
+        luaState->SetValue("data.gameStarted", true);
+        luaState->SetValue("data.gameOver", false);
+
+        // Initialize game stats (will be updated by Lua when first piece spawns)
+        luaState->SetValue("data.score", 0);
+        luaState->SetValue("data.lines", 0);
+        luaState->SetValue("data.level", 1);
 
         // Force re-render of UI to hide startup screen
+        htmlRenderer->UpdateHTML(reactiveUI.GetRenderedHTML());
+    }
+}
+
+void App::ResetGame() {
+    std::cout << "Restarting game..." << std::endl;
+
+    // Get reactive UI and Lua state
+    ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
+    auto luaState = reactiveUI.GetLuaState();
+
+    if (luaState) {
+        // Reset UI state for restart (keep game started)
+        luaState->SetValue("data.gameOver", false);
+        luaState->SetValue("data.gameStarted", true);
+        luaState->SetValue("data.score", 0);
+        luaState->SetValue("data.lines", 0);
+        luaState->SetValue("data.level", 1);
+
+        // Force re-render of UI
+        htmlRenderer->UpdateHTML(reactiveUI.GetRenderedHTML());
+    }
+}
+
+void App::ReturnToMainMenu() {
+    std::cout << "Returning to main menu..." << std::endl;
+
+    // Get reactive UI and Lua state
+    ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
+    auto luaState = reactiveUI.GetLuaState();
+
+    if (luaState) {
+        // Reset UI state back to startup screen
+        luaState->SetValue("data.gameOver", false);
+        luaState->SetValue("data.gameStarted", false);
+        luaState->SetValue("data.score", 0);
+        luaState->SetValue("data.lines", 0);
+        luaState->SetValue("data.level", 1);
+
+        // Force re-render of UI
         htmlRenderer->UpdateHTML(reactiveUI.GetRenderedHTML());
     }
 }

@@ -248,4 +248,19 @@ function Tetrimino:getEntityID()
     return self.entityID
 end
 
+-- Destroy the tetrimino and all its child cubes
+function Tetrimino:destroy()
+    -- Destroy all child cube entities
+    for i = 0, 3 do
+        for j = 0, 3 do
+            if self.childMap[i][j] ~= -1 then
+                DestroyEntity(self.childMap[i][j])
+            end
+        end
+    end
+
+    -- Destroy parent entity
+    DestroyEntity(self.entityID)
+end
+
 return Tetrimino

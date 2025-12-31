@@ -40,7 +40,7 @@ void ReactiveUI::ForceRender() {
 }
 
 void ReactiveUI::RenderTemplate() {
-    std::cout << "[ReactiveUI] Rendering template (legacy mode, dirty)" << std::endl;
+    // std::cout << "[ReactiveUI] Rendering template (legacy mode, dirty)" << std::endl;
 
     m_cachedHTML = m_template;
 
@@ -91,7 +91,7 @@ void ReactiveUI::RenderWithLua() {
         return;
     }
 
-    std::cout << "[ReactiveUI] Rendering template (Lua mode, dirty)" << std::endl;
+    // std::cout << "[ReactiveUI] Rendering template (Lua mode, dirty)" << std::endl;
 
     // Use TemplateParser to evaluate directives with current Lua state
     m_cachedHTML = m_parser->Evaluate(*m_luaState);

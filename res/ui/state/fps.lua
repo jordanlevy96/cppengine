@@ -16,12 +16,14 @@ return {
 
         -- Startup screen control
         gameStarted = false,      -- Controls game start state
+        gameOver = false,         -- Controls game over screen
 
         -- Tetris game stats
         score = 0,
         lines = 0,
         level = 1,
         nextPiece = "I",         -- Next tetromino type
+        finalScore = 0,          -- Score displayed on game over screen
 
         -- Example list for v-for directive
         metrics = {

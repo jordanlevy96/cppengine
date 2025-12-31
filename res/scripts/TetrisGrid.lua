@@ -187,7 +187,7 @@ TetrisGrid = {
         end
 
         -- Check for completed lines after placing
-        self:clearLines()
+        -- self:clearLines()  -- TODO: Implement properly (currently buggy, disabled for UI work)
     end,
 
     -- ========================================================================
@@ -310,12 +310,50 @@ TetrisGrid = {
             -- Check if new piece immediately collides (game over)
             if self:isCollision(vec2(C.SPAWN_COLUMN, C.SPAWN_ROW), self.activeTetrimino:getChildMap()) then
                 self.gameOver = true
+                UpdateGameOver(self.score)
                 return
             end
+
+            -- Start the piece falling immediately
+            self:moveTetriminoDown()
         elseif self.activeTetrimino:isMovementFinished() then
             -- Snap position after tween completes to fix floating-point errors
             self.activeTetrimino:updateChildPositions()
             self:moveTetriminoDown()
         end
+    end,
+
+    -- ========================================================================
+    -- GAME RESET
+    -- ========================================================================
+
+    reset = function(self)
+        -- Destroy all entities in the grid
+        for x = 0, C.GRID_WIDTH - 1 do
+            for y = 0, C.GRID_HEIGHT - 1 do
+                if self.grid[x][y] ~= C.GRID_EMPTY_CELL then
+                    DestroyEntity(self.grid[x][y])
+                    self.grid[x][y] = C.GRID_EMPTY_CELL
+                end
+            end
+        end
+
+        -- Destroy active tetrimino if it exists
+        if self.activeTetrimino ~= nil then
+            self.activeTetrimino:destroy()
+            self.activeTetrimino = nil
+        end
+
+        -- Reset game stats
+        self.score = 0
+        self.lines = 0
+        self.level = 1
+        self.gameOver = false
+
+        -- Generate new next piece
+        self.nextPieceType = selectRandomTetrimino()
+
+        -- Update UI
+        UpdateGameUI(self.score, self.lines, self.level, self.nextPieceType)
     end
 }

@@ -11,8 +11,18 @@ void ScriptSystem::Update(float delta)
 
         if (sc.Type == ScriptType::Lua)
         {
-            sol::function updateFunc = sc.LuaClass["process"];
-            updateFunc(sc.LuaClass, delta);
+            try
+            {
+                sol::function updateFunc = sc.LuaClass["process"];
+                if (updateFunc.valid())
+                {
+                    updateFunc(sc.LuaClass, delta);
+                }
+            }
+            catch (const sol::error &e)
+            {
+                std::cerr << "Lua script error in " << sc.Name << ": " << e.what() << std::endl;
+            }
         }
         else if (sc.Type == ScriptType::Python)
         {

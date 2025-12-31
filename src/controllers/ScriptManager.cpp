@@ -160,7 +160,9 @@ namespace LuaBindings
                               "camera", &App::cam,
                               "conf", &App::conf,
                               "window", &App::windowManager,
-                              "StartGame", &App::StartGame);
+                              "StartGame", &App::StartGame,
+                              "ResetGame", &App::ResetGame,
+                              "ReturnToMainMenu", &App::ReturnToMainMenu);
 
         lua.new_usertype<Config>("Config",
                                  "resPath", &Config::ResourcePath);
@@ -201,11 +203,26 @@ namespace LuaBindings
             }
         });
 
+        lua.set_function("UpdateGameOver", [](int finalScore) {
+            std::cout << "GAME OVER - Final Score: " << finalScore << std::endl;
+            ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
+            auto luaState = reactiveUI.GetLuaState();
+
+            if (luaState) {
+                luaState->SetValue("data.gameOver", true);
+                luaState->SetValue("data.finalScore", finalScore);
+            }
+        });
+
         // Entity Management
         lua.set_function("RegisterEntity", sol::overload(
             []() { return Registry::GetInstance().RegisterEntity(); },
             [](EntityID parent) { return Registry::GetInstance().RegisterEntity(parent); }
         ));
+
+        lua.set_function("DestroyEntity", [](EntityID id) {
+            Registry::GetInstance().DestroyEntity(id);
+        });
 
         // Hierarchy Operations
         lua.set_function("AddChild", &AddChild);

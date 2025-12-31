@@ -80,6 +80,8 @@ public:
 
     // Game state controls
     void StartGame();
+    void ResetGame();
+    void ReturnToMainMenu();
 
 private:
     App() {};

@@ -56,12 +56,33 @@ OnKeyPress = function(key)
 
     local camera = GameManager.camera
 
+    -- Game Over Screen Handlers
+    if TetrisGrid.gameOver then
+        if key == "R" then
+            -- Restart the game
+            TetrisGrid:reset()
+            GameStarted = true
+            GameManager:ResetGame()
+        elseif key == "M" then
+            -- Return to main menu
+            TetrisGrid:reset()
+            GameStarted = false
+            GameManager:ReturnToMainMenu()
+        elseif key == "ESCAPE" then
+            -- Allow closing window from game over screen
+            GameManager.window:CloseWindow()
+        end
+        return
+    end
+
+    -- Normal Game Handlers
     if key == "ESCAPE" then
         GameManager.window:CloseWindow()
     elseif key == "ENTER" then
         -- Start the game when ENTER is pressed
         if not GameStarted then
             GameStarted = true
+            TetrisGrid:reset()  -- Reset grid before starting
             GameManager:StartGame()
         end
     elseif key == "SPACE" then

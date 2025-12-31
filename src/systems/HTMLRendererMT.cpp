@@ -58,17 +58,17 @@ public:
     {
         try
         {
-            std::cout << "[SoftwareRenderer] Creating document from HTML (" << html.size() << " bytes)" << std::endl;
+            // std::cout << "[SoftwareRenderer] Creating document from HTML (" << html.size() << " bytes)" << std::endl;
 
             // Create document
             m_document = litehtml::document::createFromString(html.c_str(), this);
             if (m_document)
             {
-                std::cout << "[SoftwareRenderer] Rendering document" << std::endl;
+                // std::cout << "[SoftwareRenderer] Rendering document" << std::endl;
                 m_document->render(m_buffer->width);
-                std::cout << "[SoftwareRenderer] Drawing to buffer" << std::endl;
+                // std::cout << "[SoftwareRenderer] Drawing to buffer" << std::endl;
                 RenderToBuffer();
-                std::cout << "[SoftwareRenderer] Render complete" << std::endl;
+                // std::cout << "[SoftwareRenderer] Render complete" << std::endl;
             }
             else
             {
@@ -621,7 +621,7 @@ void HTMLRendererMT::SetupGL()
 void HTMLRendererMT::LoadHTML(const std::string &html)
 {
     auto start = std::chrono::high_resolution_clock::now();
-    std::cout << "[HTMLRendererMT] Loading HTML (" << html.size() << " bytes)" << std::endl;
+    // std::cout << "[HTMLRendererMT] Loading HTML (" << html.size() << " bytes)" << std::endl;
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -632,7 +632,7 @@ void HTMLRendererMT::LoadHTML(const std::string &html)
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "[HTMLRendererMT] LoadHTML took " << duration << "ms" << std::endl;
+    // std::cout << "[HTMLRendererMT] LoadHTML took " << duration << "ms" << std::endl;
 }
 
 void HTMLRendererMT::UpdateHTML(const std::string &html)
@@ -651,7 +651,7 @@ void HTMLRendererMT::Render()
         std::lock_guard<std::mutex> lock(m_bufferMutex);
         if (m_frontBuffer.frameNumber != m_lastFrameNumber)
         {
-            std::cout << "[HTMLRendererMT] Uploading new frame " << m_frontBuffer.frameNumber << std::endl;
+            // std::cout << "[HTMLRendererMT] Uploading new frame " << m_frontBuffer.frameNumber << std::endl;
             UpdateTextureFromPixelBuffer();
             m_lastFrameNumber = m_frontBuffer.frameNumber;
         }
@@ -831,7 +831,7 @@ void HTMLRendererMT::RenderThreadLoop()
         if (needsRender && !currentHTML.empty())
         {
             auto renderStart = std::chrono::high_resolution_clock::now();
-            std::cout << "[RenderThread] Rendering HTML" << std::endl;
+            // std::cout << "[RenderThread] Rendering HTML" << std::endl;
 
             renderer.RenderHTML(currentHTML);
 
@@ -848,7 +848,7 @@ void HTMLRendererMT::RenderThreadLoop()
             needsRender = false;
             auto totalEnd = std::chrono::high_resolution_clock::now();
             auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(totalEnd - renderStart).count();
-            std::cout << "[RenderThread] Render complete (render: " << renderDuration << "ms, total: " << totalDuration << "ms)" << std::endl;
+            // std::cout << "[RenderThread] Render complete (render: " << renderDuration << "ms, total: " << totalDuration << "ms)" << std::endl;
         }
     }
 
