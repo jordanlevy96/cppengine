@@ -7,8 +7,8 @@
 #include "systems/LuaUIState.h"
 
 #include "util/TransformUtils.h"
+#include "util/Logger.h"
 
-#include <iostream>
 #include <fstream>
 #include <chrono>
 #include <thread>
@@ -22,12 +22,18 @@ bool App::Initialize()
     std::string settingsPath = userSettingsPath ? userSettingsPath : defaultSettingsPath;
     LoadConfig(settingsPath);
 
+    // Initialize logging system first
+    cppengine::Logger::GetInstance().Initialize("logs/cppengine.log");
+    LOG_INFO("=== cppengine starting ===");
+    LOG_INFO("Loaded config from {}", settingsPath);
+
     windowManager = &WindowManager::GetInstance();
     if (!windowManager->Initialize(conf.WindowWidth, conf.WindowHeight))
     {
-        std::cerr << "INIT - Window Manager: FAIL" << std::endl;
+        LOG_ERROR("Window Manager initialization failed");
         return false;
     }
+    LOG_INFO("Window Manager initialized: {}x{}", conf.WindowWidth, conf.WindowHeight);
 
     ui = &UI::GetInstance();
     ui->Initialize(windowManager->window);
@@ -61,7 +67,7 @@ bool App::Initialize()
     // Create Lua UI state and load state file
     auto luaState = std::make_shared<LuaUIState>();
     if (!luaState->LoadStateFile("../res/ui/state/fps.lua")) {
-        std::cerr << "Failed to load UI state file" << std::endl;
+        LOG_ERROR("Failed to load UI state file");
         return false;
     }
 
@@ -338,7 +344,7 @@ bool App::Initialize()
 
     // Initial render happens automatically in RegisterTemplateWithDirectives
     htmlRenderer->LoadHTML(reactiveUI.GetRenderedHTML());
-    std::cout << "Initialized Lua-based reactive HTML UI" << std::endl;
+    LOG_INFO("Lua-based reactive HTML UI initialized");
 
     // Initialize FPS tracking
     m_fpsUpdateTime = std::chrono::high_resolution_clock::now();
@@ -360,8 +366,7 @@ float App::GetSimulationMultiplier() const {
 }
 
 void App::Run() {
-    std::cout << "Starting main loop in " <<
-        (m_gameMode == GameMode::FIXED ? "FIXED" : "VARIABLE") << " mode" << std::endl;
+    LOG_INFO("Starting main loop in {} mode", m_gameMode == GameMode::FIXED ? "FIXED" : "VARIABLE");
 
     if (m_gameMode == GameMode::VARIABLE) {
         RunVariableLoop();
@@ -406,7 +411,7 @@ void App::RunFixedLoop() {
         TrackFPS();
     }
 
-    std::cout << "Exited main loop" << std::endl;
+    LOG_INFO("Exited main loop");
 }
 
 void App::RunVariableLoop() {
@@ -473,7 +478,7 @@ void App::RunVariableLoop() {
         }
     }
 
-    std::cout << "Exited main loop" << std::endl;
+    LOG_INFO("Exited main loop");
 }
 
 void App::Render() {
@@ -505,7 +510,7 @@ void App::TrackFPS() {
         int currentFPS = (int)(m_frameCount / (m_fpsTime / 1000.0));
         double currentFrameTime = m_fpsTime / m_frameCount;
 
-        // std::cout << "FPS: " << currentFPS << " (frame time: " << currentFrameTime << "ms)" << std::endl;
+        // LOG_DEBUG("FPS: {} (frame time: {}ms)", currentFPS, currentFrameTime);
 
         // Get reactive UI and Lua state
         ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
@@ -552,7 +557,7 @@ void App::TrackFPS() {
 }
 
 void App::StartGame() {
-    std::cout << "Game started!" << std::endl;
+    LOG_INFO("Game started");
 
     // Get reactive UI and Lua state
     ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
@@ -574,7 +579,7 @@ void App::StartGame() {
 }
 
 void App::ResetGame() {
-    std::cout << "Restarting game..." << std::endl;
+    LOG_INFO("Restarting game");
 
     // Get reactive UI and Lua state
     ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
@@ -594,7 +599,7 @@ void App::ResetGame() {
 }
 
 void App::ReturnToMainMenu() {
-    std::cout << "Returning to main menu..." << std::endl;
+    LOG_INFO("Returning to main menu");
 
     // Get reactive UI and Lua state
     ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
@@ -619,7 +624,7 @@ bool App::LoadConfig(const std::string &configPath)
 
     if (!config)
     {
-        std::cerr << "Failed to read config from " << configPath << std::endl;
+        LOG_ERROR("Failed to read config from {}", configPath);
         return false;
     }
 
@@ -654,7 +659,7 @@ void App::CloseWindow()
 
 void App::Shutdown()
 {
-    std::cout << "Shutting down..." << std::endl;
+    LOG_INFO("Shutting down");
     htmlRenderer->Shutdown();
     windowManager->Shutdown();
     scriptManager->Shutdown();

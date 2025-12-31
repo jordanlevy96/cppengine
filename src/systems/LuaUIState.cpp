@@ -1,6 +1,7 @@
 #include "systems/LuaUIState.h"
+#include "util/Logger.h"
 #include "controllers/ScriptManager.h"
-#include <iostream>
+#include "util/Logger.h"
 #include <sstream>
 
 LuaUIState::LuaUIState()
@@ -13,19 +14,19 @@ LuaUIState::LuaUIState()
 
 bool LuaUIState::LoadStateFile(const std::string& path) {
     if (!m_lua) {
-        std::cerr << "[LuaUIState] Error: Lua state not initialized" << std::endl;
+        LOG_ERROR("[LuaUIState] Lua state not initialized");
         return false;
     }
 
     try {
-        std::cout << "[LuaUIState] Loading state file: " << path << std::endl;
+        LOG_INFO("[LuaUIState] Loading state file: {}", path);
 
         // Execute the Lua file which should return a table
         sol::load_result loadResult = m_lua->load_file(path);
 
         if (!loadResult.valid()) {
             sol::error err = loadResult;
-            std::cerr << "[LuaUIState] Failed to load file: " << err.what() << std::endl;
+            LOG_ERROR("[LuaUIState] Failed to load file: {}", err.what());
             return false;
         }
 
@@ -34,13 +35,13 @@ bool LuaUIState::LoadStateFile(const std::string& path) {
 
         if (!result.valid()) {
             sol::error err = result;
-            std::cerr << "[LuaUIState] Failed to execute file: " << err.what() << std::endl;
+            LOG_ERROR("[LuaUIState] Failed to execute file: {}", err.what());
             return false;
         }
 
         // The result should be a table
         if (!result[0].is<sol::table>()) {
-            std::cerr << "[LuaUIState] File did not return a table" << std::endl;
+            LOG_ERROR("[LuaUIState] File did not return a table");
             return false;
         }
 
@@ -48,11 +49,11 @@ bool LuaUIState::LoadStateFile(const std::string& path) {
         m_isReady = true;
         m_isDirty = true;
 
-        std::cout << "[LuaUIState] State file loaded successfully" << std::endl;
+        LOG_INFO("[LuaUIState] State file loaded successfully");
         return true;
     }
     catch (const std::exception& e) {
-        std::cerr << "[LuaUIState] Exception loading state file: " << e.what() << std::endl;
+        LOG_ERROR("[LuaUIState] Exception loading state file: {}", e.what());
         return false;
     }
 }
@@ -78,7 +79,7 @@ bool LuaUIState::EvaluateCondition(const std::string& expression) {
         sol::load_result loadResult = m_lua->load(luaCode);
         if (!loadResult.valid()) {
             sol::error err = loadResult;
-            std::cerr << "[LuaUIState] Failed to load expression: " << err.what() << std::endl;
+            LOG_ERROR("[LuaUIState] Failed to load expression: {}", err.what());
             return false;
         }
 
@@ -92,7 +93,7 @@ bool LuaUIState::EvaluateCondition(const std::string& expression) {
 
         if (!result.valid()) {
             sol::error err = result;
-            std::cerr << "[LuaUIState] Failed to evaluate expression: " << err.what() << std::endl;
+            LOG_ERROR("[LuaUIState] Failed to evaluate expression: {}", err.what());
             return false;
         }
 
@@ -116,7 +117,7 @@ bool LuaUIState::EvaluateCondition(const std::string& expression) {
         return true;
     }
     catch (const std::exception& e) {
-        std::cerr << "[LuaUIState] Exception evaluating condition: " << e.what() << std::endl;
+        LOG_ERROR("[LuaUIState] Exception evaluating condition: {}", e.what());
         return false;
     }
 }
@@ -134,7 +135,7 @@ std::string LuaUIState::EvaluateAsString(const std::string& expression) {
         sol::load_result loadResult = m_lua->load(luaCode);
         if (!loadResult.valid()) {
             sol::error err = loadResult;
-            std::cerr << "[LuaUIState] Failed to load expression: " << err.what() << std::endl;
+            LOG_ERROR("[LuaUIState] Failed to load expression: {}", err.what());
             return "";
         }
 
@@ -148,7 +149,7 @@ std::string LuaUIState::EvaluateAsString(const std::string& expression) {
 
         if (!result.valid()) {
             sol::error err = result;
-            std::cerr << "[LuaUIState] Failed to evaluate expression: " << err.what() << std::endl;
+            LOG_ERROR("[LuaUIState] Failed to evaluate expression: {}", err.what());
             return "";
         }
 
@@ -171,7 +172,7 @@ std::string LuaUIState::EvaluateAsString(const std::string& expression) {
         return "<object>";
     }
     catch (const std::exception& e) {
-        std::cerr << "[LuaUIState] Exception evaluating as string: " << e.what() << std::endl;
+        LOG_ERROR("[LuaUIState] Exception evaluating as string: {}", e.what());
         return "";
     }
 }
@@ -197,7 +198,7 @@ sol::object LuaUIState::NavigatePath(const std::string& path) {
 
         if (!current.valid() || current.get_type() == sol::type::lua_nil) {
             // Key doesn't exist
-            std::cerr << "[LuaUIState] Key not found: " << key << " in path: " << path << std::endl;
+            LOG_ERROR("[LuaUIState] Key not found: {} in path: {}", key, path);
             return sol::nil;
         }
     }

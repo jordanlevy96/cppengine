@@ -5,6 +5,10 @@
 # Build is different per OS
 build
 
+# Quill logs
+logs/
+*.log
+
 # Prerequisites
 *.d
 

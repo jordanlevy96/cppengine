@@ -1,6 +1,7 @@
 #include "systems/TemplateParser.h"
+#include "util/Logger.h"
 #include <gumbo.h>
-#include <iostream>
+#include "util/Logger.h"
 #include <regex>
 #include <sstream>
 
@@ -11,14 +12,14 @@ void TemplateParser::Parse(const std::string& html) {
     m_template = html;
     m_directives.clear();
 
-    std::cout << "[TemplateParser] Parsing template (" << html.size() << " bytes) with Gumbo" << std::endl;
+    LOG_DEBUG("[TemplateParser] Parsing template ({} bytes) with Gumbo", html.size());
 
     // Template is stored as-is, parsing happens during evaluation
 }
 
 std::string TemplateParser::Evaluate(LuaUIState& state) {
     if (!state.IsReady()) {
-        std::cerr << "[TemplateParser] Lua state not ready" << std::endl;
+        LOG_ERROR("[TemplateParser] Lua state not ready");
         return "";
     }
 
@@ -27,7 +28,7 @@ std::string TemplateParser::Evaluate(LuaUIState& state) {
     GumboOutput* output = gumbo_parse_with_options(&options, m_template.data(), m_template.length());
 
     if (!output) {
-        std::cerr << "[TemplateParser] Failed to parse HTML with Gumbo" << std::endl;
+        LOG_ERROR("[TemplateParser] Failed to parse HTML with Gumbo");
         return "";
     }
 
@@ -135,7 +136,7 @@ std::string TemplateParser::ProcessVForElement(GumboNode* node, const std::strin
     std::smatch match;
 
     if (!std::regex_match(expression, match, forExprRegex)) {
-        std::cerr << "[TemplateParser] Invalid v-for expression: " << expression << std::endl;
+        LOG_ERROR("[TemplateParser] Invalid v-for expression: {}", expression);
         return "";
     }
 
@@ -146,7 +147,7 @@ std::string TemplateParser::ProcessVForElement(GumboNode* node, const std::strin
     sol::object collection = state.GetValue(collectionExpr);
 
     if (!collection.is<sol::table>()) {
-        std::cerr << "[TemplateParser] v-for collection not found or not a table: " << collectionExpr << std::endl;
+        LOG_ERROR("[TemplateParser] v-for collection not found or not a table: {}", collectionExpr);
         return "";
     }
 

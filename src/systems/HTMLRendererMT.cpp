@@ -1,7 +1,7 @@
 #include <glad/glad.h>
 #include "systems/HTMLRendererMT.h"
+#include "util/Logger.h"
 
-#include <iostream>
 #include <cstring>
 #include <algorithm>
 #include <chrono>
@@ -33,11 +33,11 @@ public:
         // Initialize FreeType
         if (FT_Init_FreeType(&m_ft_library))
         {
-            std::cerr << "[SoftwareRenderer] Failed to initialize FreeType" << std::endl;
+            LOG_ERROR("[SoftwareRenderer] Failed to initialize FreeType");
         }
         else
         {
-            std::cout << "[SoftwareRenderer] FreeType initialized" << std::endl;
+            LOG_INFO("[SoftwareRenderer] FreeType initialized");
         }
     }
 
@@ -58,26 +58,26 @@ public:
     {
         try
         {
-            // std::cout << "[SoftwareRenderer] Creating document from HTML (" << html.size() << " bytes)" << std::endl;
+            LOG_DEBUG("[SoftwareRenderer] Creating document from HTML ({} bytes)", html.size());
 
             // Create document
             m_document = litehtml::document::createFromString(html.c_str(), this);
             if (m_document)
             {
-                // std::cout << "[SoftwareRenderer] Rendering document" << std::endl;
+                LOG_DEBUG("[SoftwareRenderer] Rendering document");
                 m_document->render(m_buffer->width);
-                // std::cout << "[SoftwareRenderer] Drawing to buffer" << std::endl;
+                LOG_DEBUG("[SoftwareRenderer] Drawing to buffer");
                 RenderToBuffer();
-                // std::cout << "[SoftwareRenderer] Render complete" << std::endl;
+                LOG_DEBUG("[SoftwareRenderer] Render complete");
             }
             else
             {
-                std::cerr << "[SoftwareRenderer] Failed to create document" << std::endl;
+                LOG_ERROR("[SoftwareRenderer] Failed to create document");
             }
         }
         catch (const std::exception &e)
         {
-            std::cerr << "[SoftwareRenderer] Exception: " << e.what() << std::endl;
+            LOG_ERROR("[SoftwareRenderer] Exception: {}", e.what());
         }
     }
 
@@ -135,7 +135,7 @@ public:
         else if (!FT_New_Face(m_ft_library, fontPath.c_str(), 0, &face))
         {
             m_ft_faces[fontPath] = face;
-            std::cout << "[SoftwareRenderer] Loaded font face: " << fontPath << std::endl;
+            LOG_INFO("[SoftwareRenderer] Loaded font face: {}", fontPath);
         }
 
         if (face)
@@ -173,7 +173,7 @@ public:
 
             auto glyphLoadEnd = std::chrono::high_resolution_clock::now();
             auto glyphLoadDuration = std::chrono::duration_cast<std::chrono::milliseconds>(glyphLoadEnd - glyphLoadStart).count();
-            std::cout << "[SoftwareRenderer] Loaded " << fontInfo.glyphs.size() << " glyphs at size " << descr.size << " in " << glyphLoadDuration << "ms" << std::endl;
+            LOG_DEBUG("[SoftwareRenderer] Loaded {} glyphs at size {} in {}ms", fontInfo.glyphs.size(), descr.size, glyphLoadDuration);
 
             // Set font metrics
             if (fm)
@@ -187,7 +187,7 @@ public:
         }
         else
         {
-            std::cerr << "[SoftwareRenderer] Failed to load font" << std::endl;
+            LOG_ERROR("[SoftwareRenderer] Failed to load font");
             fontInfo.ascent = descr.size * 0.8f;
         }
 
@@ -544,7 +544,7 @@ void HTMLRendererMT::Initialize(GLFWwindow *window, int width, int height)
     m_width = width;
     m_height = height;
 
-    std::cout << "[HTMLRendererMT] Initializing multi-threaded HTML renderer" << std::endl;
+    LOG_INFO("[HTMLRendererMT] Initializing multi-threaded HTML renderer");
 
     try
     {
@@ -568,11 +568,11 @@ void HTMLRendererMT::Initialize(GLFWwindow *window, int width, int height)
         m_running = true;
         m_renderThread = std::make_unique<std::thread>(&HTMLRendererMT::RenderThreadLoop, this);
 
-        std::cout << "[HTMLRendererMT] Initialization complete" << std::endl;
+        LOG_INFO("[HTMLRendererMT] Initialization complete");
     }
     catch (const std::exception &e)
     {
-        std::cerr << "[HTMLRendererMT] Initialization failed: " << e.what() << std::endl;
+        LOG_ERROR("[HTMLRendererMT] Initialization failed: {}", e.what());
         Shutdown();
         throw;
     }
@@ -621,7 +621,7 @@ void HTMLRendererMT::SetupGL()
 void HTMLRendererMT::LoadHTML(const std::string &html)
 {
     auto start = std::chrono::high_resolution_clock::now();
-    // std::cout << "[HTMLRendererMT] Loading HTML (" << html.size() << " bytes)" << std::endl;
+    LOG_DEBUG("[HTMLRendererMT] Loading HTML ({} bytes)", html.size());
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -632,7 +632,7 @@ void HTMLRendererMT::LoadHTML(const std::string &html)
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    // std::cout << "[HTMLRendererMT] LoadHTML took " << duration << "ms" << std::endl;
+    LOG_DEBUG("[HTMLRendererMT] LoadHTML took {}ms", duration);
 }
 
 void HTMLRendererMT::UpdateHTML(const std::string &html)
@@ -651,7 +651,7 @@ void HTMLRendererMT::Render()
         std::lock_guard<std::mutex> lock(m_bufferMutex);
         if (m_frontBuffer.frameNumber != m_lastFrameNumber)
         {
-            // std::cout << "[HTMLRendererMT] Uploading new frame " << m_frontBuffer.frameNumber << std::endl;
+            LOG_DEBUG("[HTMLRendererMT] Uploading new frame {}", m_frontBuffer.frameNumber);
             UpdateTextureFromPixelBuffer();
             m_lastFrameNumber = m_frontBuffer.frameNumber;
         }
@@ -695,7 +695,7 @@ void HTMLRendererMT::UpdateTextureFromPixelBuffer()
 
 void HTMLRendererMT::Resize(int width, int height)
 {
-    std::cout << "[HTMLRendererMT] Resize to " << width << "x" << height << std::endl;
+    LOG_INFO("[HTMLRendererMT] Resize to {}x{}", width, height);
 
     m_width = width;
     m_height = height;
@@ -748,7 +748,7 @@ void HTMLRendererMT::Shutdown()
         return; // Already shut down
     m_isShutdown = true;
 
-    std::cout << "[HTMLRendererMT] Shutting down" << std::endl;
+    LOG_INFO("[HTMLRendererMT] Shutting down");
 
     // Stop render thread
     if (m_renderThread)
@@ -784,12 +784,12 @@ void HTMLRendererMT::Shutdown()
         m_compositeShader = nullptr;
     }
 
-    std::cout << "[HTMLRendererMT] Shutdown complete" << std::endl;
+    LOG_INFO("[HTMLRendererMT] Shutdown complete");
 }
 
 void HTMLRendererMT::RenderThreadLoop()
 {
-    std::cout << "[RenderThread] Starting" << std::endl;
+    LOG_INFO("[RenderThread] Starting");
 
     // Create renderer
     SoftwareRenderer renderer(&m_backBuffer);
@@ -831,7 +831,7 @@ void HTMLRendererMT::RenderThreadLoop()
         if (needsRender && !currentHTML.empty())
         {
             auto renderStart = std::chrono::high_resolution_clock::now();
-            // std::cout << "[RenderThread] Rendering HTML" << std::endl;
+            LOG_DEBUG("[RenderThread] Rendering HTML");
 
             renderer.RenderHTML(currentHTML);
 
@@ -848,9 +848,9 @@ void HTMLRendererMT::RenderThreadLoop()
             needsRender = false;
             auto totalEnd = std::chrono::high_resolution_clock::now();
             auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(totalEnd - renderStart).count();
-            // std::cout << "[RenderThread] Render complete (render: " << renderDuration << "ms, total: " << totalDuration << "ms)" << std::endl;
+            LOG_DEBUG("[RenderThread] Render complete (render: {}ms, total: {}ms)", renderDuration, totalDuration);
         }
     }
 
-    std::cout << "[RenderThread] Exiting" << std::endl;
+    LOG_INFO("[RenderThread] Exiting");
 }

@@ -3,6 +3,7 @@
 #include <string>
 #include <sol/sol.hpp>
 #include <pybind11/pybind11.h>
+#include "util/Logger.h"
 
 namespace py = pybind11;
 
@@ -32,7 +33,7 @@ struct ScriptComponent
         }
         catch (const sol::error &e)
         {
-            std::cerr << "Error calling Lua Ready: " << e.what() << std::endl;
+            LOG_ERROR("Error calling Lua Ready: {}", e.what());
         }
     }
 

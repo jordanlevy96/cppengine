@@ -1,12 +1,12 @@
 #include "systems/ReactiveUI.h"
-#include <iostream>
+#include "util/Logger.h"
 
 // === Legacy API Implementation ===
 
 void ReactiveUI::RegisterTemplate(const std::string& name, const std::string& htmlTemplate) {
     m_template = htmlTemplate;
     m_isDirty = true;
-    std::cout << "[ReactiveUI] Template registered: " << name << std::endl;
+    LOG_INFO("[ReactiveUI] Template registered: {}", name);
 }
 
 const std::string& ReactiveUI::GetRenderedHTML() {
@@ -40,7 +40,7 @@ void ReactiveUI::ForceRender() {
 }
 
 void ReactiveUI::RenderTemplate() {
-    // std::cout << "[ReactiveUI] Rendering template (legacy mode, dirty)" << std::endl;
+    LOG_DEBUG("[ReactiveUI] Rendering template (legacy mode, dirty)");
 
     m_cachedHTML = m_template;
 
@@ -61,12 +61,12 @@ void ReactiveUI::RenderTemplate() {
 void ReactiveUI::BindLuaState(std::shared_ptr<LuaUIState> state) {
     m_luaState = state;
     m_useLuaMode = true;
-    std::cout << "[ReactiveUI] Lua state bound, switching to Lua mode" << std::endl;
+    LOG_INFO("[ReactiveUI] Lua state bound, switching to Lua mode");
 }
 
 void ReactiveUI::RegisterTemplateWithDirectives(const std::string& name, const std::string& htmlTemplate) {
     if (!m_luaState) {
-        std::cerr << "[ReactiveUI] Error: Must bind Lua state before registering template with directives" << std::endl;
+        LOG_ERROR("[ReactiveUI] Must bind Lua state before registering template with directives");
         return;
     }
 
@@ -79,7 +79,7 @@ void ReactiveUI::RegisterTemplateWithDirectives(const std::string& name, const s
     m_parser->Parse(htmlTemplate);
     m_useLuaMode = true;
 
-    std::cout << "[ReactiveUI] Template with directives registered: " << name << std::endl;
+    LOG_INFO("[ReactiveUI] Template with directives registered: {}", name);
 
     // Force initial render
     ForceRender();
@@ -87,11 +87,11 @@ void ReactiveUI::RegisterTemplateWithDirectives(const std::string& name, const s
 
 void ReactiveUI::RenderWithLua() {
     if (!m_parser || !m_luaState) {
-        std::cerr << "[ReactiveUI] Error: Parser or Lua state not initialized" << std::endl;
+        LOG_ERROR("[ReactiveUI] Parser or Lua state not initialized");
         return;
     }
 
-    // std::cout << "[ReactiveUI] Rendering template (Lua mode, dirty)" << std::endl;
+    LOG_DEBUG("[ReactiveUI] Rendering template (Lua mode, dirty)");
 
     // Use TemplateParser to evaluate directives with current Lua state
     m_cachedHTML = m_parser->Evaluate(*m_luaState);

@@ -1,4 +1,5 @@
 #include "systems/ScriptSystem.h"
+#include "util/Logger.h"
 
 static ScriptManager &sm = ScriptManager::GetInstance();
 static Registry &registry = Registry::GetInstance();
@@ -21,7 +22,7 @@ void ScriptSystem::Update(float delta)
             }
             catch (const sol::error &e)
             {
-                std::cerr << "Lua script error in " << sc.Name << ": " << e.what() << std::endl;
+                LOG_ERROR("Lua script error in {}: {}", sc.Name, e.what());
             }
         }
         else if (sc.Type == ScriptType::Python)

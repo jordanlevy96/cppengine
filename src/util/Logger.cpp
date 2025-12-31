@@ -1,0 +1,55 @@
+#include "util/Logger.h"
+#include "quill/Backend.h"
+#include "quill/Frontend.h"
+#include "quill/sinks/ConsoleSink.h"
+#include "quill/sinks/FileSink.h"
+
+namespace cppengine {
+
+Logger& Logger::GetInstance() {
+    static Logger instance;
+    return instance;
+}
+
+void Logger::Initialize(const std::string& log_file) {
+    if (m_initialized) return;
+
+    // Start the backend thread
+    quill::BackendOptions backend_options;
+    quill::Backend::start(backend_options);
+
+    // Create console sink
+    auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("console");
+
+    // Create file sink
+    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
+        log_file,
+        []() {
+            quill::FileSinkConfig config;
+            config.set_open_mode('w');  // Overwrite on each run
+            config.set_filename_append_option(quill::FilenameAppendOption::None);
+            return config;
+        }(),
+        quill::FileEventNotifier{}
+    );
+
+    // Create logger with both console and file output
+    m_logger = quill::Frontend::create_or_get_logger(
+        "root",
+        {std::move(console_sink), std::move(file_sink)}
+    );
+
+    m_initialized = true;
+}
+
+quill::Logger* Logger::GetLogger() {
+    return m_logger;
+}
+
+void Logger::Shutdown() {
+    if (!m_initialized) return;
+    quill::Backend::stop();
+    m_initialized = false;
+}
+
+} // namespace cppengine
