@@ -1,6 +1,7 @@
 GameManager = App:GetInstance()
 RES_PATH = GameManager.conf.resPath;
 CameraRotateFlag = false
+GameStarted = false  -- Controls whether Tetris game has started
 
 -- Rotations enum (moved from C++)
 Rotations = {

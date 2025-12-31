@@ -20,5 +20,5 @@ input:
 
 window:
   targetFPS: 60
-  windowWidth: 440
+  windowWidth: 1400
   windowHeight: 840

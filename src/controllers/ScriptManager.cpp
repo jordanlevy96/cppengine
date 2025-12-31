@@ -9,6 +9,7 @@
 #include "components/Lighting.h"
 #include "util/SceneTraversal.h"
 #include "util/TransformUtils.h"
+#include "systems/ReactiveUI.h"
 
 #include <iostream>
 #include <fstream>
@@ -158,7 +159,8 @@ namespace LuaBindings
                               "registry", &App::registry,
                               "camera", &App::cam,
                               "conf", &App::conf,
-                              "window", &App::windowManager);
+                              "window", &App::windowManager,
+                              "StartGame", &App::StartGame);
 
         lua.new_usertype<Config>("Config",
                                  "resPath", &Config::ResourcePath);
@@ -186,6 +188,18 @@ namespace LuaBindings
         // ====================================================================
         // GENERIC ENGINE BINDINGS - Entity & Component Management
         // ====================================================================
+
+        // UI State Update
+        lua.set_function("UpdateGameUI", [](int score, int lines, int level, const std::string& nextPiece) {
+            ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
+            auto luaState = reactiveUI.GetLuaState();
+            if (luaState) {
+                luaState->SetValue("data.score", score);
+                luaState->SetValue("data.lines", lines);
+                luaState->SetValue("data.level", level);
+                luaState->SetValue("data.nextPiece", nextPiece);
+            }
+        });
 
         // Entity Management
         lua.set_function("RegisterEntity", sol::overload(

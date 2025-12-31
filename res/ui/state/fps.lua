@@ -14,6 +14,15 @@ return {
         simSpeed = "NORMAL",      -- Speed name (PAUSED, NORMAL, FAST, etc.)
         simMultiplier = "1.0x",   -- Speed multiplier string
 
+        -- Startup screen control
+        gameStarted = false,      -- Controls game start state
+
+        -- Tetris game stats
+        score = 0,
+        lines = 0,
+        level = 1,
+        nextPiece = "I",         -- Next tetromino type
+
         -- Example list for v-for directive
         metrics = {
             { label = "FPS", value = "0", unit = "" },

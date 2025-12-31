@@ -78,6 +78,9 @@ public:
     void SetGameMode(GameMode mode) { m_gameMode = mode; }
     GameMode GetGameMode() const { return m_gameMode; }
 
+    // Game state controls
+    void StartGame();
+
 private:
     App() {};
     bool LoadConfig(const std::string &configPath);

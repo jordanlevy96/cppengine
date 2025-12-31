@@ -68,8 +68,8 @@ bool App::Initialize()
     // Bind Lua state to ReactiveUI
     reactiveUI.BindLuaState(luaState);
 
-    // Register FPS display template with Vue-style directives
-    std::string fpsTemplate = R"(
+    // Register UI template with startup screen, game stats, and debug display
+    std::string uiTemplate = R"(
 <!DOCTYPE html>
 <html>
 <head>
@@ -82,51 +82,203 @@ bool App::Initialize()
         font-family: monospace;
         font-size: 16px;
     }
-    .fps-display {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        padding: 15px;
-        background: rgba(0,0,0,0.9);
-        border: 3px solid #00ff00;
-        min-width: 150px;
+    .game-container {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        justify-content: space-between;
     }
-    .fps-value {
-        font-size: 32px;
+    .side-panel {
+        width: 280px;
+        padding: 20px;
+        background: rgba(0,0,0,0.85);
+        border: 3px solid #00ff00;
+        box-shadow: 0 0 20px rgba(0,255,0,0.3);
+    }
+    .left-panel {
+        margin: 20px 0 20px 20px;
+    }
+    .right-panel {
+        margin: 20px 20px 20px 0;
+    }
+    .panel-title {
+        font-size: 24px;
         font-weight: bold;
         color: #00ff00;
-        margin: 5px 0;
+        text-align: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #00ff00;
+        text-shadow: 0 0 10px #00ff00;
     }
-    .label {
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 15px 0;
+        padding: 10px;
+        background: rgba(0,255,0,0.05);
+        border-left: 3px solid #00ff00;
+    }
+    .stat-label {
+        color: #00aa00;
+        font-size: 18px;
+    }
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
         color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+    }
+    .next-piece-container {
+        margin-top: 30px;
+        padding: 15px;
+        background: rgba(0,255,0,0.05);
+        border: 2px solid #00ff00;
+        text-align: center;
+    }
+    .next-piece-label {
+        font-size: 18px;
+        color: #00aa00;
+        margin-bottom: 10px;
+    }
+    .next-piece-display {
+        font-size: 48px;
+        font-weight: bold;
+        color: #00ff00;
+        text-shadow: 0 0 15px #00ff00;
+        padding: 20px;
+    }
+    .debug-section {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 2px solid #00ff00;
+    }
+    .debug-label {
         font-size: 14px;
-        margin-top: 10px;
+        color: #00aa00;
+    }
+    .debug-value {
+        font-size: 20px;
+        font-weight: bold;
+        color: #00ff00;
+    }
+    .startup-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 1000;
+    }
+    .startup-title {
+        font-size: 72px;
+        font-weight: bold;
+        color: #00ff00;
+        margin-bottom: 40px;
+        text-shadow: 0 0 20px #00ff00;
+    }
+    .start-button {
+        padding: 20px 60px;
+        font-size: 32px;
+        font-family: monospace;
+        background: transparent;
+        color: #00ff00;
+        border: 4px solid #00ff00;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 0 20px #00ff00;
+    }
+    .start-button:hover {
+        background: #00ff00;
+        color: #000000;
+        box-shadow: 0 0 30px #00ff00;
+    }
+    .instructions {
+        margin-top: 40px;
+        font-size: 20px;
+        color: #00aa00;
     }
     </style>
 </head>
 <body>
-    <div v-if="data.showDebug" class="fps-display">
-        <div class="label">Mode</div>
-        <div class="fps-value" style="font-size: 20px;">{{ data.gameMode }}</div>
+    <!-- Startup Screen -->
+    <div v-if="data.gameStarted == false" class="startup-screen">
+        <div class="startup-title">TETRIS</div>
+        <div class="start-button">START GAME</div>
+        <div class="instructions">Press ENTER to start</div>
+    </div>
 
-        <div class="label">FPS</div>
-        <div class="fps-value">{{ data.fps }}</div>
+    <!-- Game UI -->
+    <div v-if="data.gameStarted" class="game-container">
+        <!-- Left Panel: Game Stats -->
+        <div class="side-panel left-panel">
+            <div class="panel-title">GAME STATS</div>
 
-        <div class="label">FrameTime</div>
-        <div class="fps-value" style="font-size: 20px;">{{ data.frameTime }}ms</div>
+            <div class="stat-row">
+                <span class="stat-label">SCORE</span>
+                <span class="stat-value">{{ data.score }}</span>
+            </div>
 
-        <div v-if="data.gameMode == 'VARIABLE'">
-            <div class="label">Speed</div>
-            <div class="fps-value" style="font-size: 20px;">{{ data.simSpeed }}</div>
-            <div class="label">Multiplier</div>
-            <div class="fps-value" style="font-size: 20px;">{{ data.simMultiplier }}</div>
+            <div class="stat-row">
+                <span class="stat-label">LINES</span>
+                <span class="stat-value">{{ data.lines }}</span>
+            </div>
+
+            <div class="stat-row">
+                <span class="stat-label">LEVEL</span>
+                <span class="stat-value">{{ data.level }}</span>
+            </div>
+        </div>
+
+        <!-- Right Panel: Next Piece & Debug -->
+        <div class="side-panel right-panel">
+            <div class="panel-title">NEXT PIECE</div>
+
+            <div class="next-piece-container">
+                <div class="next-piece-display">{{ data.nextPiece }}</div>
+            </div>
+
+            <div v-if="data.showDebug" class="debug-section">
+                <div class="panel-title" style="font-size: 18px; margin-bottom: 15px;">DEBUG</div>
+
+                <div class="stat-row">
+                    <span class="debug-label">Mode</span>
+                    <span class="debug-value" style="font-size: 16px;">{{ data.gameMode }}</span>
+                </div>
+
+                <div class="stat-row">
+                    <span class="debug-label">FPS</span>
+                    <span class="debug-value" style="font-size: 16px;">{{ data.fps }}</span>
+                </div>
+
+                <div class="stat-row">
+                    <span class="debug-label">Frame Time</span>
+                    <span class="debug-value" style="font-size: 16px;">{{ data.frameTime }}ms</span>
+                </div>
+
+                <div v-if="data.gameMode == 'VARIABLE'">
+                    <div class="stat-row">
+                        <span class="debug-label">Speed</span>
+                        <span class="debug-value" style="font-size: 16px;">{{ data.simSpeed }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="debug-label">Multiplier</span>
+                        <span class="debug-value" style="font-size: 16px;">{{ data.simMultiplier }}</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </body>
 </html>
 )";
 
-    reactiveUI.RegisterTemplateWithDirectives("fps_display", fpsTemplate);
+    reactiveUI.RegisterTemplateWithDirectives("ui_template", uiTemplate);
 
     // Initial render happens automatically in RegisterTemplateWithDirectives
     htmlRenderer->LoadHTML(reactiveUI.GetRenderedHTML());
@@ -340,6 +492,22 @@ void App::TrackFPS() {
 
         m_frameCount = 0;
         m_fpsUpdateTime = now;
+    }
+}
+
+void App::StartGame() {
+    std::cout << "Game started!" << std::endl;
+
+    // Get reactive UI and Lua state
+    ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
+    auto luaState = reactiveUI.GetLuaState();
+
+    if (luaState) {
+        // Update gameStarted flag in UI state
+        luaState->SetValue("data.gameStarted", "true");
+
+        // Force re-render of UI to hide startup screen
+        htmlRenderer->UpdateHTML(reactiveUI.GetRenderedHTML());
     }
 }
 

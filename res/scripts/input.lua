@@ -58,6 +58,12 @@ OnKeyPress = function(key)
 
     if key == "ESCAPE" then
         GameManager.window:CloseWindow()
+    elseif key == "ENTER" then
+        -- Start the game when ENTER is pressed
+        if not GameStarted then
+            GameStarted = true
+            GameManager:StartGame()
+        end
     elseif key == "SPACE" then
         CameraRotateFlag = not CameraRotateFlag
     elseif key == "W" then

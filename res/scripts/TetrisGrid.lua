@@ -29,6 +29,7 @@ TetrisGrid = {
     cube = nil,
     grid = {},
     activeTetrimino = nil,  -- Tetrimino instance (OOP)
+    nextPieceType = nil,     -- Next piece to spawn
 
     -- Static
     borderColor = vec3(C.BORDER_COLOR_GRAY, C.BORDER_COLOR_GRAY, C.BORDER_COLOR_GRAY),
@@ -36,6 +37,9 @@ TetrisGrid = {
     -- Dynamic
     timeSinceLastMove = 0,
     gameOver = false,
+    score = 0,
+    lines = 0,
+    level = 1,
 
     ready = function(self)
         -- Initialize grid
@@ -49,6 +53,9 @@ TetrisGrid = {
         self.cube = CreateRenderComponent(self.shader, self.model)
         TetrisGrid:setCamera()
         TetrisGrid:renderBorder()
+
+        -- Generate first next piece
+        self.nextPieceType = selectRandomTetrimino()
     end,
 
     setCamera = function(self)
@@ -178,6 +185,90 @@ TetrisGrid = {
                 end
             end
         end
+
+        -- Check for completed lines after placing
+        self:clearLines()
+    end,
+
+    -- ========================================================================
+    -- LINE CLEARING
+    -- ========================================================================
+
+    clearLines = function(self)
+        local linesCleared = 0
+        local y = 0
+
+        while y < C.GRID_HEIGHT do
+            local lineComplete = true
+
+            -- Check if this line is complete
+            for x = 0, C.GRID_WIDTH - 1 do
+                if self.grid[x][y] == C.GRID_EMPTY_CELL then
+                    lineComplete = false
+                    break
+                end
+            end
+
+            if lineComplete then
+                linesCleared = linesCleared + 1
+
+                -- Remove cubes in this line
+                for x = 0, C.GRID_WIDTH - 1 do
+                    local entityID = self.grid[x][y]
+                    if entityID ~= C.GRID_EMPTY_CELL then
+                        DestroyEntity(entityID)
+                        self.grid[x][y] = C.GRID_EMPTY_CELL
+                    end
+                end
+
+                -- Shift all lines above down
+                for shiftY = y, C.GRID_HEIGHT - 2 do
+                    for x = 0, C.GRID_WIDTH - 1 do
+                        self.grid[x][shiftY] = self.grid[x][shiftY + 1]
+
+                        -- Move the entity down if it exists
+                        if self.grid[x][shiftY] ~= C.GRID_EMPTY_CELL then
+                            local transform = GetTransform(self.grid[x][shiftY])
+                            transform.Pos.y = transform.Pos.y - C.CUBE_SIZE
+                        end
+                    end
+                end
+
+                -- Clear the top line
+                for x = 0, C.GRID_WIDTH - 1 do
+                    self.grid[x][C.GRID_HEIGHT - 1] = C.GRID_EMPTY_CELL
+                end
+
+                -- Don't increment y, check this line again
+            else
+                y = y + 1
+            end
+        end
+
+        -- Update score and stats
+        if linesCleared > 0 then
+            self.lines = self.lines + linesCleared
+
+            -- Tetris scoring system (original NES)
+            local points = 0
+            if linesCleared == 1 then
+                points = 40 * self.level
+            elseif linesCleared == 2 then
+                points = 100 * self.level
+            elseif linesCleared == 3 then
+                points = 300 * self.level
+            elseif linesCleared >= 4 then
+                points = 1200 * self.level  -- TETRIS!
+            end
+
+            self.score = self.score + points
+
+            -- Level up every 10 lines
+            self.level = math.floor(self.lines / 10) + 1
+
+            -- Update UI after scoring
+            UpdateGameUI(self.score, self.lines, self.level, self.nextPieceType)
+        end
     end,
 
     -- ========================================================================
@@ -194,13 +285,24 @@ TetrisGrid = {
     -- ========================================================================
 
     process = function(self, delta)
+        -- Wait for game to start before spawning tetriminos
+        if not GameStarted then
+            return
+        end
+
         if self.gameOver then
             return
         end
 
         if self.activeTetrimino == nil then
-            -- Create new tetrimino
-            self.activeTetrimino = self:createTetrimino("I") --selectRandomTetrimino())
+            -- Create new tetrimino using nextPieceType
+            self.activeTetrimino = self:createTetrimino(self.nextPieceType)
+
+            -- Generate next piece for preview
+            self.nextPieceType = selectRandomTetrimino()
+
+            -- Update UI with new next piece
+            UpdateGameUI(self.score, self.lines, self.level, self.nextPieceType)
 
             -- Move to spawn position
             self.activeTetrimino:move(vec2(C.SPAWN_COLUMN, C.SPAWN_ROW))
