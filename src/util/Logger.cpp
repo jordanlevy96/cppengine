@@ -4,7 +4,7 @@
 #include "quill/sinks/ConsoleSink.h"
 #include "quill/sinks/FileSink.h"
 
-namespace cppengine {
+namespace imhotep {
 
 Logger& Logger::GetInstance() {
     static Logger instance;
@@ -52,4 +52,4 @@ void Logger::Shutdown() {
     m_initialized = false;
 }
 
-} // namespace cppengine
+} // namespace imhotep

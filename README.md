@@ -1,8 +1,6 @@
-# Jordan's cppengine
+# Imhotep
 
-This is an experimental project to explore C++ and OpenGL.
-
-TODO: come up with a name
+An experimental C++ game engine exploring declarative UI systems for complex, data-driven games.
 
 ## Development Setup
 
@@ -17,7 +15,7 @@ mkdir build
 cd build
 cmake ..
 make
-./cppengine
+./imhotep
 ```
 
 ### External Dependencies
@@ -25,36 +23,39 @@ make
 - C++ Compiler (G++)\*
 - CMake\*
 - FreeType\*
-- GLFW†
+- Python 3.x\*
+- OpenGL†
+- GLFW† (Linux: may need `brew install glfw` or `apt-get install libglfw3-dev`)
 - GLAD†
-- stb_image†
-- tiny_obj_loader†
+- Quill†
 - yaml-cpp‡
 - GLM‡
-- Dear ImGUI‡
+- Dear ImGui‡
 - litehtml‡
 - Lua‡
   - lua-cmake‡
   - sol2‡
-- Python 3.x\*
-  - pybind11‡
+- pybind11‡ (for Python bindings)
 
-\*<sub><sup>Required installation</sup></sub>\
-†<sub><sup>Included with CMake or in external</sup></sub>\
-‡<sub><sup>Set up with a git submodule; run `cd external && git submodule update --init --recursive` to initialize.</sup></sub>
+\*<sub><sup>System dependency - required installation</sup></sub>\
+†<sub><sup>Auto-downloaded via CMake FetchContent</sup></sub>\
+‡<sub><sup>Git submodule - run `cd external && git submodule update --init --recursive` to initialize</sup></sub>
 
 #### Installing FreeType
 
 **macOS:**
+
 ```sh
 brew install freetype
 ```
 
 **Ubuntu/Debian:**
+
 ```sh
 sudo apt-get install libfreetype6-dev
 ```
 
 **Windows:**
+
 - Download from https://www.freetype.org/ or use vcpkg
 - Or build from source

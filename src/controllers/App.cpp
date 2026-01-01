@@ -23,8 +23,8 @@ bool App::Initialize()
     LoadConfig(settingsPath);
 
     // Initialize logging system first
-    cppengine::Logger::GetInstance().Initialize("logs/cppengine.log");
-    LOG_INFO("=== cppengine starting ===");
+    imhotep::Logger::GetInstance().Initialize("logs/imhotep.log");
+    LOG_INFO("=== Imhotep starting ===");
     LOG_INFO("Loaded config from {}", settingsPath);
 
     windowManager = &WindowManager::GetInstance();

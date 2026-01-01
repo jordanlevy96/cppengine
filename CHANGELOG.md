@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to cppengine documented in chronological order.
+All notable changes to Imhotep documented in chronological order.
 
 ---
 
@@ -10,23 +10,12 @@ All notable changes to cppengine documented in chronological order.
 - **Initial Commit** - Project created
 - Set up basic C++ OpenGL framework
 
-### October 11-17, 2023
-- Added GameManager singleton pattern
-- Achieved working build on macOS
-- Fixed CMake for WSL (Windows Subsystem for Linux)
-- Created GLFW window ("Hello window!")
-- Rendered first triangle
-- Created WindowManager class and refactoring
-- Refactored triangle into GameObject class and Renderer
-- Set up GLM dependency for mathematics
-- Rendered rectangle using Element Buffer Objects (EBO)
-- Loaded and rendered textures
-
-### October 19-25, 2023
-- Rendered two textures simultaneously
-- Implemented basic transformations (translate, rotate, scale)
-- Refactored input system for camera support
-- Windows build support (cross-platform development)
+### October 11-25, 2023
+- **Basic Rendering Pipeline** - Triangle → rectangle → textures
+- **GameManager & WindowManager** - Singleton pattern for core systems
+- **Cross-platform builds** - macOS, Windows (WSL), Linux support
+- **Mathematics & Transformations** - GLM integration for translate/rotate/scale
+- **Input System** - Keyboard and mouse handling foundation
 
 ### October 30 - November 7, 2023
 - **Camera Implementation** - Working 3D camera controls
@@ -98,17 +87,12 @@ All notable changes to cppengine documented in chronological order.
 - Major cleanup and refactoring
 
 ### July 2025
-- Windows debugging session
-- Fixed relative path references
-- Spawned tetris grid and aligned camera
-- **Colored Tetriminos** - Spawned colored pieces in Lua
-- Tetrimino movement controls working
-- **Tween System** - Simple animation/interpolation implementation
+- Windows debugging session and path fixes
+- Tetris grid rendering and camera alignment
+- **Colored Tetriminos** - Spawned pieces in Lua with colors
+- Tetrimino movement controls
+- **Tween System** - Animation/interpolation implementation
 - Enforced 16:9 aspect ratio
-
----
-
-## [2025-07] - ECS Optimization & Python Support
 
 ### July 26, 2025
 - **Sparse Set Optimization** - Replaced std::map with custom SparseSet for ECS
@@ -164,41 +148,15 @@ All notable changes to cppengine documented in chronological order.
 ### December 31, 2025
 - Fixed game over screen input handling
 - Added restart and return-to-menu functionality
-- Polish and bug fixes
-
----
-
-## Current Status (December 31, 2025)
-
-**Architecture**:
-- Entity Component System (ECS) with custom SparseSet implementation
-- Multi-threaded HTML/CSS UI rendering (HTMLRendererMT)
-- Reactive UI system with Lua state management
-- Dual scripting: Lua (game logic + UI) and Python (data analysis)
-
-**Complete Features**:
-- 3D rendering with OpenGL 3.3+
-- Camera system with FPS controls
-- Lighting system (Phong shading)
-- Texture loading and rendering
-- YAML-based configuration
-- Lua + Python scripting integration
-- ECS with components: Transform, RenderComponent, ScriptComponent, HierarchyComponent, Tween
-- FreeType font rendering
-- HTML/CSS UI with reactive templates
-- Working Tetris game (100% Lua-scripted)
-
-**Technologies**:
-- C++17
-- OpenGL 3.3+ (Core Profile)
-- CMake build system
-- Libraries: GLFW, GLAD, GLM, FreeType, litehtml, Sol2, pybind11, yaml-cpp, Dear ImGui
-
-**Key Innovations**:
-- Declarative UI using HTML/CSS rendered via litehtml
-- Vue.js-inspired reactive templates (v-if, v-for, interpolation)
-- Multi-threaded rendering to prevent UI from blocking game loop
-- Lua-driven game logic with hot-reloadable scripts
+- **Quill Logging System** - Replaced std::cout with async logging
+  - Optimized compilation by separating Logger header/implementation
+  - Fixed macro redefinition warnings
+  - Resolved Python linking errors (arm64 architecture)
+- **Documentation Overhaul**
+  - Created CLAUDE.md for AI assistant context
+  - Created comprehensive CHANGELOG.md
+  - Reorganized docs/ directory (deleted outdated V8/multiprocess docs)
+  - Added MULTITHREADING.md and UI_SYSTEM.md architecture docs
 
 ---
 
@@ -218,20 +176,6 @@ All notable changes to cppengine documented in chronological order.
   - Shared memory instead of serialization
   - Sufficient performance for game UI needs
   - Easier debugging
-
----
-
-## Version History
-
-**Note**: This project does not currently use semantic versioning. Versions listed here are retroactive organization based on major milestones.
-
-- **v0.1** (Oct 2023) - Basic rendering engine
-- **v0.2** (Nov 2023) - 3D rendering, camera, lighting
-- **v0.3** (Dec 2023) - ECS architecture, YAML config
-- **v0.4** (Jan-May 2024) - Tetris game foundation
-- **v0.5** (Jul 2025) - Sparse set optimization, Python support
-- **v0.6** (Dec 2025) - HTML UI system, reactive templates
-- **Current** (Dec 31, 2025) - Fully functional Tetris with modern UI
 
 ---
 

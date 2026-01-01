@@ -1,4 +1,4 @@
-# CLAUDE.md - AI Assistant Context for cppengine
+# CLAUDE.md - AI Assistant Context for Imhotep
 
 > Last Updated: 2025-12-31
 > For: Claude Sonnet 4.5
@@ -11,19 +11,19 @@ cd /Users/jordan/dev/cppengine
 mkdir -p build && cd build
 cmake ..
 make -j8
-./cppengine
+./imhotep
 ```
 
 **Common commands**:
 - Clean build: `rm -rf build && mkdir build`
-- Run from build: `./cppengine`
+- Run from build: `./imhotep`
 - Update submodules: `cd external && git submodule update --init --recursive`
 
 ---
 
 ## Project Overview
 
-**cppengine** is an experimental C++ game engine (~6,200 LOC) exploring modern UI approaches for games. Currently implements a fully functional Tetris game as proof-of-concept.
+**Imhotep** is an experimental C++ game engine (~6,200 LOC) exploring modern UI approaches for games. Currently implements a fully functional Tetris game as proof-of-concept.
 
 **Key Innovation**: Declarative, reactive UI system using HTML/CSS templates with Lua state management (Vue.js-inspired), rendered via litehtml with multi-threaded rendering.
 
@@ -192,13 +192,45 @@ lua.set_function("CreateEntity", &Registry::CreateEntity);
 - `HierarchyComponent` - Parent/child relationships
 - `Tween` - Animation interpolation
 
+### 6. Adding New Dependencies
+
+**CRITICAL**: When adding ANY new library or external dependency, update BOTH:
+
+1. **README.md** - External Dependencies section
+   - Add to appropriate category (system dependency, FetchContent, or git submodule)
+   - Include installation instructions if needed
+
+2. **REFERENCES.md** - Two sections:
+   - External Libraries section (description + usage)
+   - License Information section (license type)
+
+**Example CMake patterns**:
+
+```cmake
+# System package (like FreeType)
+find_package(NewLibrary REQUIRED)
+target_link_libraries(core PUBLIC ${NEWLIBRARY_LIBRARIES})
+
+# FetchContent (like Quill)
+FetchContent_Declare(newlib
+    GIT_REPOSITORY https://github.com/author/newlib.git
+    GIT_TAG        v1.0.0
+)
+FetchContent_MakeAvailable(newlib)
+target_link_libraries(core PUBLIC newlib::newlib)
+
+# Git submodule (like yaml-cpp)
+add_subdirectory(external/newlib)
+target_link_libraries(core PUBLIC newlib)
+```
+
 ---
 
 ## File Organization & Naming
 
 ### Directory Structure
 ```
-cppengine/
+imhotep/
 ├── include/          # Headers (.h)
 │   ├── components/   # ECS component definitions (data only)
 │   ├── controllers/  # Singletons (App, Registry, ScriptManager, WindowManager)
@@ -232,6 +264,45 @@ cppengine/
 - `-System` = ECS system (`RenderSystem`, `TweenSystem`, `ScriptSystem`)
 - `-Component` = ECS component (sometimes omitted: `Transform` not `TransformComponent`)
 
+### Code Documentation Style
+
+**All headers use Doxygen-style comments** for IDE integration (VS Code, CLion, Visual Studio).
+
+**Format:**
+```cpp
+/**
+ * @file FileName.h
+ * @brief One-line description
+ */
+
+/**
+ * @brief Class/function description
+ *
+ * Detailed explanation if needed.
+ * Can include usage examples.
+ *
+ * @param paramName Parameter description
+ * @return Return value description
+ * @note Important notes about thread safety, performance, etc.
+ * @see Reference to related docs or code
+ */
+```
+
+**Member variable docs:**
+```cpp
+int m_width = 800;  ///< Short description after declaration
+```
+
+**Required for:**
+- All public API classes and functions
+- Complex internal functions that need clarification
+- Thread-safety critical code (document which thread owns what)
+
+**Examples:**
+- `include/util/Logger.h` - Comprehensive Doxygen docs
+- `include/Camera.h` - Class and method documentation
+- `include/systems/HTMLRendererMT.h` - Thread safety documentation
+
 ---
 
 ## Key Insights for Claude Code
@@ -253,54 +324,34 @@ cppengine/
 - FreeType font operations
 - litehtml rendering
 
-### 2. Commented-Out Debug Logs
+### 2. Multi-Threading Critical
 
-**Pattern throughout**:
+See `docs/architecture/MULTITHREADING.md` for full details.
+
+### 3. Resource Paths Relative to Project Root
+
+All paths use `../res/` prefix (run from `build/` directory, cwd is `/Users/jordan/dev/cppengine/build/`):
 ```cpp
-// std::cout << "[Component] Debug message" << std::endl;
-```
-
-**Meaning**: Intentionally disabled logs. When adding logging system, convert to `LOG_TRACE()` or `LOG_DEBUG()` and they'll be compiled out in Release.
-
-### 3. Absolute Paths in Resources
-
-**All resource paths relative to project root**:
-```cpp
-shader = new Shader("../res/shaders/Composite.shader");  // From build/
+shader = new Shader("../res/shaders/Composite.shader");
 luaState->LoadStateFile("../res/ui/state/fps.lua");
 ```
 
-**Why**: Current working directory is `/Users/jordan/dev/cppengine/build/` when running `./cppengine`.
+### 4. Lua for Game Logic, Python for Data Analysis
 
-### 4. Lua vs Python Roles
+- **Lua**: UI state, game logic (all gameplay code)
+- **Python**: Data exports, analytics tooling (rarely used)
+- NOT interchangeable
 
-- **Lua**: UI state, game logic (fast, embedded, 100% of game logic)
-- **Python**: Data analysis, tooling (via pybind11, rarely used)
-- **NOT interchangeable** - don't suggest "use Python for UI state"
+### 5. Check Git History Before Major Changes
 
-### 5. Recent Architecture Changes
-
-Recent work (last 2 weeks):
-- Dec 30: Switched from multi-process to multi-threaded HTML rendering
-- Dec 28: Started HTML rendering experiments
-- Dec 27: All Tetris logic moved to Lua (was C++)
-- Earlier: Abandoned V8 JavaScript for Lua
-
-**Before suggesting major changes**:
+Architecture evolved rapidly (see `CHANGELOG.md`). Before suggesting refactors:
 ```bash
-git log --oneline --grep="feature_name"
-git log --since="2 weeks ago" -- path/to/file.cpp
+git log --oneline --since="2 weeks ago" -- path/to/file.cpp
 ```
 
-See `CHANGELOG.md` for complete history.
+### 6. Inline HTML Templates in App.cpp
 
-### 6. Inline Templates in App.cpp
-
-**Current state**: 200+ lines of HTML embedded in `App.cpp` (lines 72-200+)
-
-**Why**: Quick prototyping. Eventually should be extracted to `res/ui/screens/*.html`.
-
-**Don't suggest extracting yet** - Jordan will reorganize when ready.
+~200 lines of HTML in `App.cpp` are intentional for rapid prototyping. Don't suggest extracting to files yet.
 
 ---
 
@@ -312,6 +363,7 @@ See `CHANGELOG.md` for complete history.
 |------|----------|--------------|
 | **UI System** | `docs/architecture/UI_SYSTEM.md` | Adding UI features, directives, templates |
 | **Multi-threading** | `docs/architecture/MULTITHREADING.md` | Working on HTMLRendererMT, renderer |
+| **Vulkan Migration** | `docs/architecture/VULKAN_MIGRATION.md` | Planning OpenGL → Vulkan migration (future research) |
 | **Project History** | `CHANGELOG.md` | Understanding why architecture evolved |
 
 **DO NOT reference** (deleted Dec 31):
@@ -322,45 +374,40 @@ These files no longer exist.
 
 ---
 
-## When to Ask Jordan
+## Decision Guide
 
-- Architecture changes (switching libraries, major refactors)
+**Ask first**:
+- Architecture changes (new libraries, major refactors)
 - Breaking changes to existing systems
-- Performance concerns (is 10ms render time acceptable?)
-- Whether to delete old code vs keep for reference
 - Adding new dependencies
+- Deleting significant old code
 
-## When to Proceed Confidently
-
-- Bug fixes in existing code
-- Adding features following established patterns
-- Refactoring within a single file/system
-- Documentation updates
-- Comment improvements
+**Proceed confidently**:
+- Bug fixes, features following established patterns
+- Single-file refactoring
+- Documentation and comment improvements
 
 ---
 
-## Logging System (TO BE DECIDED)
+## Logging System
 
-**Current**: Mix of std::cout and std::cerr
-**Future**: TBD - Jordan is researching options
+**Library**: Quill (v7.4.0) - High-performance async logging (~12-16μs latency)
 
-**Comparison provided** (Dec 31):
-- spdlog: Fast, header-only, async threading
-- glog: Google-backed, slower
-- Boost.Log: Heavy, full Boost dependency
-- Custom: Minimal, full control
-
-**Once decided, usage will be**:
+**Usage**:
 ```cpp
 #include "util/Logger.h"
 
-LOG_TRACE("Entering function with param={}", param);
+LOG_TRACE_L1("HTMLRenderer::LoadHTML called with {} bytes", html.size());
 LOG_DEBUG("Loaded {} glyphs in {}ms", count, duration);
-LOG_INFO("HTMLRenderer initialized");
-LOG_WARN("Font fallback: {} not found, using default", fontName);
+LOG_INFO("HTMLRenderer initialized: {}x{}", width, height);
+LOG_WARNING("Font fallback: {} not found, using default", fontName);
 LOG_ERROR("Failed to load shader: {}", path);
+LOG_CRITICAL("OpenGL context creation failed");
 ```
+
+**Output**: `logs/imhotep.log` (also echoed to console)
+
+**Initialization**: Automatic via `Logger::GetInstance()` singleton - no manual setup needed
 
 ---
 
@@ -375,7 +422,7 @@ rm -rf build && mkdir build && cd build && cmake .. && make -j8
 cd build && make -j8
 
 # Run
-./build/cppengine
+./build/imhotep
 
 # Clean
 rm -rf build
@@ -441,38 +488,11 @@ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
 
 ## Common Pitfalls
 
-### ❌ Don't: Touch m_backBuffer from main thread
-```cpp
-// BAD - m_backBuffer is owned by render thread
-glTexSubImage2D(..., m_backBuffer.pixels.data());  // RACE CONDITION!
-```
+**Threading**: Never touch `m_backBuffer` from main thread (render thread owns it). Use `m_frontBuffer` with `m_bufferMutex`.
 
-### ✅ Do: Use m_frontBuffer with proper locking
-```cpp
-// GOOD - m_frontBuffer is for main thread
-{
-    std::lock_guard<std::mutex> lock(m_bufferMutex);
-    glTexSubImage2D(..., m_frontBuffer.pixels.data());
-}
-```
+**Abandoned approaches**: Don't suggest V8 JavaScript or multi-process rendering (see CHANGELOG.md for why).
 
-### ❌ Don't: Suggest V8 or multi-process rendering
-These approaches were tried and abandoned. See `CHANGELOG.md`.
-
-### ✅ Do: Work with current architecture
-Multi-threaded (not multi-process), Lua (not V8/JavaScript).
-
-### ❌ Don't: Use relative paths in resource loading
-```cpp
-// BAD - fragile, depends on cwd
-shader = new Shader("shaders/Composite.shader");
-```
-
-### ✅ Do: Use paths relative to project root
-```cpp
-// GOOD - works from build/ directory
-shader = new Shader("../res/shaders/Composite.shader");
-```
+**Resource paths**: Always use `../res/` prefix (run from `build/` directory).
 
 ---
 
@@ -480,14 +500,14 @@ shader = new Shader("../res/shaders/Composite.shader");
 
 **No automated tests exist yet.** Testing is manual:
 1. Build: `cd build && make`
-2. Run: `./cppengine`
+2. Run: `./imhotep`
 3. Play Tetris, observe UI, check console output
 
 **Debug build**:
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Debug ..
 make
-lldb ./cppengine  # or gdb on Linux
+lldb ./imhotep  # or gdb on Linux
 ```
 
 **Common debug scenarios**:

@@ -1,65 +1,189 @@
+/**
+ * @file LuaUIState.h
+ * @brief Reactive UI state management backed by Lua
+ */
+
 #pragma once
 
 #include <sol/sol.hpp>
 #include <string>
 #include <memory>
 
-// Manages UI state loaded from Lua files
-// Provides reactive state management for template directives
+/**
+ * @brief Reactive UI state manager backed by Lua VM
+ *
+ * Manages UI data loaded from Lua files with automatic change detection.
+ * Provides path-based access to nested tables and expression evaluation.
+ *
+ * **State file structure:**
+ * Lua files should return a table with UI data:
+ * @code{.lua}
+ * -- res/ui/state/game.lua
+ * return {
+ *     data = {
+ *         fps = 60,
+ *         showDebug = true,
+ *         players = {
+ *             {name = "Alice", score = 100},
+ *             {name = "Bob", score = 85}
+ *         }
+ *     },
+ *     computed = {
+ *         -- Functions can be called from templates
+ *         totalScore = function(self)
+ *             local sum = 0
+ *             for _, p in ipairs(self.data.players) do
+ *                 sum = sum + p.score
+ *             end
+ *             return sum
+ *         end
+ *     }
+ * }
+ * @endcode
+ *
+ * **Path navigation:**
+ * Uses dot notation to access nested values:
+ * - `GetValue("data.fps")` returns sol::object with value 60
+ * - `SetValue("data.fps", 120)` updates fps and marks dirty
+ * - `GetValue("data.players")` returns Lua table
+ *
+ * **Change detection:**
+ * - SetValue() automatically sets dirty flag
+ * - ReactiveUI checks IsDirty() before re-rendering
+ * - ClearDirty() called after render completes
+ *
+ * **Expression evaluation:**
+ * - EvaluateCondition("data.showDebug") → true/false for v-if
+ * - EvaluateAsString("data.fps") → "60" for {{ interpolation }}
+ * - Full Lua expressions supported: "data.fps > 30"
+ *
+ * **Usage example:**
+ * @code
+ * LuaUIState state;
+ * state.LoadStateFile("../res/ui/state/game.lua");
+ *
+ * // Read values
+ * int fps = state.GetValue("data.fps").as<int>();
+ *
+ * // Update values (marks dirty)
+ * state.SetValue("data.fps", 120);
+ *
+ * // Evaluate expressions
+ * bool show = state.EvaluateCondition("data.showDebug");
+ * std::string fpsStr = state.EvaluateAsString("data.fps");
+ *
+ * // Check if render needed
+ * if (state.IsDirty()) {
+ *     // Re-render UI
+ *     state.ClearDirty();
+ * }
+ * @endcode
+ *
+ * @note Uses ScriptManager's shared Lua VM - state persists across loads
+ * @note Not thread-safe - all operations must be on main thread
+ * @see docs/architecture/UI_SYSTEM.md for state file conventions
+ */
 class LuaUIState {
 public:
     LuaUIState();
     ~LuaUIState() = default;
 
-    // Load UI state from a Lua file that returns a table
-    // Example: return { data = { fps = 0 }, computed = { ... } }
+    /**
+     * @brief Load UI state from Lua file
+     * @param path Path to Lua file (e.g., "../res/ui/state/fps.lua")
+     * @return true if loaded successfully, false on error
+     * @note File must return a Lua table
+     * @note Marks state as dirty and ready after successful load
+     * @note Uses ScriptManager's Lua VM (must be initialized first)
+     */
     bool LoadStateFile(const std::string& path);
 
-    // Get value from state using dot notation (e.g., "data.fps")
-    // Returns sol::object which can be converted to various types
+    /**
+     * @brief Get value from state using dot notation
+     * @param key Path to value (e.g., "data.fps" or "data.players")
+     * @return sol::object that can be converted to C++ types
+     * @note Returns nil object if path not found
+     * @note Use .as<T>() to convert: GetValue("data.fps").as<int>()
+     */
     sol::object GetValue(const std::string& key);
 
-    // Set value in state using dot notation
-    // Automatically marks state as dirty for re-rendering
+    /**
+     * @brief Set value in state using dot notation
+     * @tparam T Value type (int, float, string, bool, sol::table, etc.)
+     * @param key Path to value (e.g., "data.fps")
+     * @param value New value to set
+     * @note Automatically marks state as dirty for re-rendering
+     * @note Creates nested tables if path doesn't exist
+     * @note Example: SetValue("data.fps", 120) updates data.fps to 120
+     */
     template<typename T>
     void SetValue(const std::string& key, const T& value);
 
-    // Evaluate a Lua expression as a boolean condition (for v-if)
-    // Example: "data.showDebug" or "data.fps > 60"
+    /**
+     * @brief Evaluate Lua expression as boolean condition
+     * @param expression Lua expression (e.g., "data.showDebug" or "data.fps > 60")
+     * @return true if expression evaluates to truthy value, false otherwise
+     * @note Used by TemplateParser for v-if directive evaluation
+     * @note Supports full Lua syntax: comparisons, logic, function calls
+     */
     bool EvaluateCondition(const std::string& expression);
 
-    // Evaluate a Lua expression and return the result as a string
-    // Example: "data.fps" returns "120"
+    /**
+     * @brief Evaluate Lua expression and return as string
+     * @param expression Lua expression (e.g., "data.fps")
+     * @return String representation of expression result
+     * @note Used by TemplateParser for {{ interpolation }} directive
+     * @note Returns "nil" if expression fails or is nil
+     * @note Numbers converted with tostring(), tables show address
+     */
     std::string EvaluateAsString(const std::string& expression);
 
-    // Get the entire state table (for iteration in v-for)
+    /**
+     * @brief Get entire state table
+     * @return sol::table containing all state data
+     * @note Used by TemplateParser for v-for iteration
+     */
     sol::table GetStateTable() const { return m_stateTable; }
 
-    // Check if state has changed (for change detection)
+    /**
+     * @brief Check if state has changed since last ClearDirty()
+     * @return true if state modified, false if clean
+     * @note ReactiveUI checks this to skip unnecessary re-renders
+     */
     bool IsDirty() const { return m_isDirty; }
 
-    // Clear dirty flag after rendering
+    /**
+     * @brief Clear dirty flag after rendering
+     * @note Called by ReactiveUI after GetRenderedHTML() completes
+     */
     void ClearDirty() { m_isDirty = false; }
 
-    // Check if state is loaded and ready
+    /**
+     * @brief Mark state as dirty to force re-render
+     * @note Useful when Lua state modified outside of SetValue()
+     */
+    void MarkDirty() { m_isDirty = true; }
+
+    /**
+     * @brief Check if state file loaded successfully
+     * @return true if LoadStateFile() succeeded, false if not loaded
+     */
     bool IsReady() const { return m_isReady; }
 
 private:
-    // Navigate nested tables using dot notation
-    // Example: "data.characters" -> returns table["data"]["characters"]
+    /**
+     * @brief Navigate nested tables using dot notation
+     * @param path Dot-separated path (e.g., "data.players")
+     * @return sol::object at path, or nil if not found
+     * @note Internal helper for GetValue() and SetValue()
+     * @note Handles arbitrary nesting depth
+     */
     sol::object NavigatePath(const std::string& path);
 
-    // Reference to ScriptManager's Lua VM
-    sol::state* m_lua;
-
-    // The state table loaded from Lua file
-    sol::table m_stateTable;
-
-    // Track if state has changed
-    bool m_isDirty;
-
-    // Track if state file has been loaded
-    bool m_isReady;
+    sol::state* m_lua;           ///< Reference to ScriptManager's Lua VM (not owned)
+    sol::table m_stateTable;     ///< Root state table loaded from file
+    bool m_isDirty;              ///< Change detection flag
+    bool m_isReady;              ///< LoadStateFile() success flag
 };
 
 // Template implementation for SetValue

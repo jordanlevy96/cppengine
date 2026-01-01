@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
-project(cppengine)
+project(imhotep)
 
 add_library(core SHARED
     "src/Camera.cpp"
@@ -175,5 +175,5 @@ target_compile_definitions(core PUBLIC USE_PYTHON_SCRIPTING)
 pybind11_add_module(engine src/controllers/python/engine_bindings.cpp)
 target_link_libraries(engine PUBLIC core)
 
-add_executable(${CMAKE_PROJECT_NAME} src/main.cpp)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE core)
+add_executable(imhotep src/main.cpp)
+target_link_libraries(imhotep PRIVATE core)

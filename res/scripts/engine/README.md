@@ -1,6 +1,6 @@
 # Engine Python Bindings
 
-This package provides Python bindings for the cppengine C++ game engine.
+This package provides Python bindings for the Imhotep C++ game engine.
 
 ## Available Modules
 

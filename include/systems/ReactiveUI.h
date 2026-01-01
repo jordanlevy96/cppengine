@@ -1,3 +1,8 @@
+/**
+ * @file ReactiveUI.h
+ * @brief Reactive UI system with template rendering and state management
+ */
+
 #pragma once
 
 #include <string>
@@ -7,11 +12,49 @@
 #include "systems/LuaUIState.h"
 #include "systems/TemplateParser.h"
 
-// Simple reactive UI system that separates structure from data
-// Renders HTML templates with dynamic values, only re-rendering when values change
-// Supports Vue-style directives (v-if, v-for, {{}}) via Lua state management
+/**
+ * @brief Reactive UI system with change detection and declarative templates
+ *
+ * Separates UI structure (HTML templates) from data (Lua state), only re-rendering
+ * when underlying values change. Supports two rendering modes:
+ *
+ * **Legacy mode:** Simple {{placeholder}} string substitution
+ * - RegisterTemplate() + SetValue() API
+ * - Direct C++ value updates
+ * - No conditional rendering or loops
+ *
+ * **Lua mode:** Vue.js-inspired declarative directives
+ * - RegisterTemplateWithDirectives() + BindLuaState() API
+ * - v-if, v-for, {{expression}} support
+ * - Reactive Lua state with change detection
+ *
+ * **Change detection:**
+ * - Tracks dirty flag per state mutation
+ * - GetRenderedHTML() skips render if clean
+ * - ForceRender() bypasses cache
+ *
+ * **Usage example (Lua mode):**
+ * @code
+ * auto& ui = ReactiveUI::GetInstance();
+ * auto state = std::make_shared<LuaUIState>();
+ * state->LoadStateFile("../res/ui/state/fps.lua");
+ * ui.BindLuaState(state);
+ * ui.RegisterTemplateWithDirectives("main", "<div v-if='showDebug'>FPS: {{fps}}</div>");
+ *
+ * // Later in game loop:
+ * state->SetValue("fps", currentFPS);  // Marks dirty
+ * const std::string& html = ui.GetRenderedHTML();  // Re-renders if dirty
+ * @endcode
+ *
+ * @note Thread-safe singleton - safe to call from main thread only
+ * @see docs/architecture/UI_SYSTEM.md for directive syntax and examples
+ */
 class ReactiveUI {
 public:
+    /**
+     * @brief Get singleton instance
+     * @return Reference to ReactiveUI singleton
+     */
     static ReactiveUI& GetInstance() {
         static ReactiveUI instance;
         return instance;
@@ -22,50 +65,94 @@ public:
 
     // === Legacy API (simple {{placeholder}} substitution) ===
 
-    // Register a UI template with placeholder values
-    // e.g., "FPS: {{fps}}, FrameTime: {{frameTime}}ms"
+    /**
+     * @brief Register HTML template with placeholder values (legacy mode)
+     * @param name Template identifier (currently unused, reserved for multi-template)
+     * @param htmlTemplate HTML with {{placeholder}} markers
+     * @note Example: "FPS: {{fps}}, FrameTime: {{frameTime}}ms"
+     * @note Switches to legacy rendering mode, disables Lua directives
+     */
     void RegisterTemplate(const std::string& name, const std::string& htmlTemplate);
 
-    // Set a value for a placeholder
-    // Only triggers re-render if value actually changed
+    /**
+     * @brief Set value for placeholder (legacy mode)
+     * @tparam T Value type (must support std::to_string or be std::string)
+     * @param key Placeholder name (without braces)
+     * @param value New value to substitute
+     * @note Only marks dirty if value actually changed (prevents redundant renders)
+     * @note Example: SetValue("fps", 60) replaces {{fps}} with "60"
+     */
     template<typename T>
     void SetValue(const std::string& key, const T& value);
 
     // === New Lua-based API (v-if, v-for, {{}} directives) ===
 
-    // Bind a Lua UI state for reactive data management
+    /**
+     * @brief Bind Lua state for reactive data management
+     * @param state Shared pointer to LuaUIState instance
+     * @note Must be called before RegisterTemplateWithDirectives()
+     * @note Switches to Lua rendering mode
+     */
     void BindLuaState(std::shared_ptr<LuaUIState> state);
 
-    // Register a template with Vue-style directives
-    // Supports: v-if, v-for, {{expression}}
+    /**
+     * @brief Register template with Vue-style directives (Lua mode)
+     * @param name Template identifier (currently unused)
+     * @param htmlTemplate HTML with v-if, v-for, {{expression}} directives
+     * @note Requires BindLuaState() called first
+     * @note Parses directives immediately, caches for future renders
+     * @see docs/architecture/UI_SYSTEM.md for directive syntax
+     */
     void RegisterTemplateWithDirectives(const std::string& name, const std::string& htmlTemplate);
 
-    // Get reference to bound Lua state (for updating values)
+    /**
+     * @brief Get reference to bound Lua state
+     * @return Shared pointer to LuaUIState (nullptr if not bound)
+     * @note Use to update state values: GetLuaState()->SetValue("fps", 60)
+     */
     std::shared_ptr<LuaUIState> GetLuaState() { return m_luaState; }
 
     // === Common API ===
 
-    // Get the current rendered HTML (only re-renders if dirty)
+    /**
+     * @brief Get current rendered HTML (lazy evaluation)
+     * @return Reference to rendered HTML string
+     * @note Only re-renders if dirty flag is set (change detection)
+     * @note Safe to call every frame - caches result when clean
+     */
     const std::string& GetRenderedHTML();
 
-    // Force immediate re-render (useful for initial render)
+    /**
+     * @brief Force immediate re-render bypassing dirty check
+     * @note Useful for initial render or debugging
+     * @note Clears dirty flag after render
+     */
     void ForceRender();
 
 private:
     ReactiveUI() = default;
 
     // Legacy mode members
-    std::string m_template;
-    std::unordered_map<std::string, std::string> m_values;
-    std::string m_cachedHTML;
-    bool m_isDirty = true;
+    std::string m_template;                                ///< HTML template with {{placeholders}}
+    std::unordered_map<std::string, std::string> m_values; ///< Placeholder → value map
+    std::string m_cachedHTML;                              ///< Last rendered output (shared by both modes)
+    bool m_isDirty = true;                                 ///< Re-render needed flag
 
     // Lua-based mode members
-    std::shared_ptr<LuaUIState> m_luaState;
-    std::unique_ptr<TemplateParser> m_parser;
-    bool m_useLuaMode = false;  // Track which rendering mode to use
+    std::shared_ptr<LuaUIState> m_luaState;                ///< Reactive Lua state (nullptr in legacy mode)
+    std::unique_ptr<TemplateParser> m_parser;              ///< Directive parser (nullptr in legacy mode)
+    bool m_useLuaMode = false;                             ///< true = Lua directives, false = legacy placeholders
 
+    /**
+     * @brief Render template with legacy placeholder substitution
+     * @note Updates m_cachedHTML and clears m_isDirty
+     */
     void RenderTemplate();
+
+    /**
+     * @brief Render template with Lua directives (v-if, v-for, {{expr}})
+     * @note Updates m_cachedHTML and clears m_isDirty
+     */
     void RenderWithLua();
 };
 
