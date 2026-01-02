@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2025-12-31
+> Last Updated: 2026-01-01
 > For: Claude Sonnet 4.5
 
 ## Quick Start
@@ -74,6 +74,22 @@ brew install cmake freetype
 cd external && git submodule update --init --recursive
 mkdir build && cd build && cmake .. && make -j8
 ```
+
+**macOS (Apple Silicon - ARM64 Python Issue)**:
+If CMake finds x86_64 Python instead of ARM64 Python on M1/M2 Macs, force it to use ARM64:
+```bash
+cd /Users/jordan/dev/cppengine/build
+rm -rf *
+
+cmake \
+  -DPython3_EXECUTABLE=/opt/homebrew/bin/python3.13 \
+  -DPython3_LIBRARY=/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/lib/libpython3.13.dylib \
+  -DPython3_INCLUDE_DIR=/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/include/python3.13 \
+  ..
+
+make -j8
+```
+Verify ARM64 Python: `file /opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/Python` should show `arm64`.
 
 **Ubuntu/Debian**:
 ```bash
