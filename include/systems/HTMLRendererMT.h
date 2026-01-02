@@ -2,7 +2,7 @@
  * @file HTMLRendererMT.h
  * @brief Multi-threaded HTML/CSS renderer using litehtml and FreeType
  *
- * Architecture: docs/architecture/MULTITHREADING.md
+ * Architecture: docs/architecture/UI_SYSTEM.md
  */
 
 #pragma once
@@ -41,7 +41,7 @@
  * - HTML rendering: 5-15ms (async, doesn't block main thread)
  * - Main thread cost: ~2ms (texture upload + composite)
  *
- * @see docs/architecture/MULTITHREADING.md for implementation details
+ * @see docs/architecture/UI_SYSTEM.md for implementation details
  */
 class HTMLRendererMT {
 public:

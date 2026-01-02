@@ -185,4 +185,4 @@ See individual library repositories for full license texts.
 
 ---
 
-_Last Updated: December 31, 2025_
+_Last Updated: January 2, 2026_

@@ -156,7 +156,7 @@ All notable changes to Imhotep documented in chronological order.
   - Created CLAUDE.md for AI assistant context
   - Created comprehensive CHANGELOG.md
   - Reorganized docs/ directory (deleted outdated V8/multiprocess docs)
-  - Added MULTITHREADING.md and UI_SYSTEM.md architecture docs
+  - Added comprehensive UI_SYSTEM.md architecture documentation
 
 ---
 
@@ -179,4 +179,65 @@ All notable changes to Imhotep documented in chronological order.
 
 ---
 
-_Last Updated: December 31, 2025_
+## [2026-01] - Interactive UI & Quality Improvements
+
+### January 1, 2026
+- **External HTML/CSS Templates**
+  - Moved HTML templates from inline code in App.cpp to external files
+  - Created `res/ui/templates/tetris.html` for template separation
+  - Created `res/ui/styles/tetris.css` for stylesheet separation
+  - ReactiveUI now loads templates from files via LoadTemplateFromFile()
+  - Improved maintainability and separation of concerns
+
+- **Web-Based UI Event Handling**
+  - Implemented `@event` directive parsing in TemplateParser
+  - Added support for `@click`, `@mouseover`, and other event directives
+  - Auto-generate `data-event-id` attributes for interactive elements
+  - Created event handler mapping system (elementId → {eventType → handlerExpr})
+  - ReactiveUI DispatchEvent() method for calling Lua event handlers
+  - Support for event objects with coordinates, button data, element ID
+  - Auto-mark state dirty after event execution for UI updates
+
+- **Interactive UI Elements**
+  - Added clickable buttons with Lua event handlers
+  - Implemented `@click` directives on START GAME, RESTART, and MAIN MENU buttons
+  - Created Lua event handlers in fps.lua (onStartGame, onRestart, onMainMenu)
+  - Added button hover effects (green glow, background highlight)
+  - UI now supports both mouse clicks and keyboard shortcuts
+  - Fixed race condition by setting event handlers before LoadHTML()
+
+- **Input System Integration**
+  - Extended WindowManager InputEvent to support position data
+  - Click events now include vec3(x, y, button) for mouse button tracking
+  - Added HTMLRendererMT Lua bindings (HandleClickEvent, UpdateHoverState)
+  - Created OnClick and OnCursorMove handlers in input.lua
+  - Full event flow: GLFW → WindowManager → Lua → HTMLRendererMT → ReactiveUI
+
+- **Rendering Fixes**
+  - Fixed HTML rendering coordinate system and text positioning
+  - Corrected viewport transformation for proper UI alignment
+
+- **Platform Support**
+  - Added ARM64 Mac build instructions to CLAUDE.md and README
+  - Documented Python 3.13 ARM64 integration for Apple Silicon
+  - Added CMake command examples for forcing ARM64 Python on M1/M2 Macs
+
+### January 2, 2026
+- **FreeType Glyph Rendering Fix**
+  - Fixed corrupted glyph rendering (especially 'E' character)
+  - Added FT_LOAD_NO_HINTING flag to prevent aggressive hinting corruption
+  - Implemented proper bitmap pitch handling with row-by-row copy
+  - Added support for negative pitch (bottom-up bitmaps)
+  - Added pixel mode validation for grayscale bitmaps
+  - Significantly improved text rendering quality
+
+- **Documentation Cleanup**
+  - Removed obsolete BUILD_NOTES.md
+  - Updated CLAUDE.md with latest architecture details
+  - Improved HTML/CSS template documentation
+  - Added event handling system documentation
+  - Consolidated MULTITHREADING.md into comprehensive UI_SYSTEM.md
+
+---
+
+_Last Updated: January 2, 2026_

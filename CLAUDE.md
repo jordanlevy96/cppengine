@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2026-01-01
+> Last Updated: 2026-01-02
 > For: Claude Sonnet 4.5
 
 ## Project Overview
@@ -28,7 +28,7 @@ App (controllers/App.cpp)
 └─► Registry (ECS - entities & components)
 ```
 
-**Critical Insight**: UI rendering happens on separate thread to avoid blocking game loop. See `docs/architecture/MULTITHREADING.md`.
+**Critical Insight**: UI rendering happens on separate thread to avoid blocking game loop. See `docs/architecture/UI_SYSTEM.md`.
 
 ---
 
@@ -154,7 +154,7 @@ m_luaState->MarkDirty();  // Next frame will re-render
 
 ### 3. Debugging Multi-Threaded Renderer
 
-**HTMLRendererMT runs on separate thread** - see `docs/architecture/MULTITHREADING.md`
+**HTMLRendererMT runs on separate thread** - see `docs/architecture/UI_SYSTEM.md`
 
 **Common issues**:
 
@@ -349,7 +349,7 @@ int m_width = 800;  ///< Short description after declaration
 - FreeType font operations
 - litehtml rendering
 
-See `docs/architecture/MULTITHREADING.md` for full details.
+See `docs/architecture/UI_SYSTEM.md` for full details.
 
 ### 2. Separation of Concerns
 
@@ -376,8 +376,7 @@ luaState->LoadStateFile("../res/ui/state/fps.lua");
 
 | Area                 | Document                                | When to Read                                         |
 | -------------------- | --------------------------------------- | ---------------------------------------------------- |
-| **UI System**        | `docs/architecture/UI_SYSTEM.md`        | Adding UI features, directives, templates            |
-| **Multi-threading**  | `docs/architecture/MULTITHREADING.md`   | Working on HTMLRendererMT, renderer                  |
+| **UI System**        | `docs/architecture/UI_SYSTEM.md`        | UI architecture, directives, templates, multi-threading, event handling |
 | **Vulkan Migration** | `docs/architecture/VULKAN_MIGRATION.md` | Planning OpenGL → Vulkan migration (future research) |
 | **Project History**  | `CHANGELOG.md`                          | Understanding why architecture evolved               |
 
@@ -556,5 +555,5 @@ lldb ./imhotep  # or gdb on Linux
 
 ---
 
-_Last Verified: December 31, 2025_
+_Last Verified: January 2, 2026_
 _This file should be updated regularly and manually; prompt the user to make sure it is up to date._
