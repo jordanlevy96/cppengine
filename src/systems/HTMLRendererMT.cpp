@@ -149,8 +149,17 @@ public:
             // Load ASCII characters
             for (unsigned char c = 32; c < 127; c++)
             {
-                if (FT_Load_Char(face, c, FT_LOAD_RENDER))
+                // Load with NO_HINTING to avoid glyph corruption from aggressive hinting
+                if (FT_Load_Char(face, c, FT_LOAD_RENDER | FT_LOAD_NO_HINTING))
                 {
+                    continue;
+                }
+
+                // Verify we got a grayscale bitmap
+                if (face->glyph->bitmap.pixel_mode != FT_PIXEL_MODE_GRAY)
+                {
+                    LOG_WARNING("[SoftwareRenderer] Unexpected pixel mode {} for char '{}', skipping",
+                                face->glyph->bitmap.pixel_mode, (char)c);
                     continue;
                 }
 
@@ -161,12 +170,27 @@ public:
                 glyph.bearingY = face->glyph->bitmap_top;
                 glyph.advance = face->glyph->advance.x;
 
-                // Copy bitmap data
+                // Copy bitmap data (row-by-row to handle pitch/padding)
                 size_t bitmapSize = glyph.width * glyph.height;
                 glyph.bitmap.resize(bitmapSize);
                 if (bitmapSize > 0)
                 {
-                    std::memcpy(glyph.bitmap.data(), face->glyph->bitmap.buffer, bitmapSize);
+                    // FreeType bitmaps may have padding (pitch != width)
+                    // pitch can be negative for bottom-up bitmaps, but we always render top-down
+                    // Copy row-by-row to avoid corrupted glyph data
+                    int pitch = face->glyph->bitmap.pitch;
+                    bool flipVertically = (pitch < 0);
+                    pitch = abs(pitch);
+
+                    for (unsigned int row = 0; row < glyph.height; row++)
+                    {
+                        unsigned int srcRow = flipVertically ? (glyph.height - 1 - row) : row;
+                        std::memcpy(
+                            glyph.bitmap.data() + row * glyph.width,
+                            face->glyph->bitmap.buffer + srcRow * pitch,
+                            glyph.width
+                        );
+                    }
                 }
 
                 fontInfo.glyphs[c] = glyph;
