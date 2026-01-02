@@ -4,6 +4,7 @@
 #include "util/Logger.h"
 #include <regex>
 #include <sstream>
+#include <map>
 
 TemplateParser::TemplateParser() {
 }
@@ -22,6 +23,9 @@ std::string TemplateParser::Evaluate(LuaUIState& state) {
         LOG_ERROR("[TemplateParser] Lua state not ready");
         return "";
     }
+
+    // Reset event handlers for fresh evaluation
+    ResetEventHandlers();
 
     // Parse HTML with Gumbo
     GumboOptions options = kGumboDefaultOptions;
@@ -96,12 +100,46 @@ std::string TemplateParser::SerializeElement(GumboNode* node, LuaUIState& state)
     // Opening tag
     oss << "<" << gumbo_normalized_tagname(element.tag);
 
-    // Attributes (skip v-if and v-for)
+    // First pass: detect @event directives
+    std::string elemId;
+    std::map<std::string, std::string> eventHandlers;
     for (unsigned int i = 0; i < element.attributes.length; i++) {
         GumboAttribute* attr = static_cast<GumboAttribute*>(element.attributes.data[i]);
+        std::string attrName(attr->name);
+
+        // Check for @event directive (e.g., @click, @mouseover)
+        if (attrName.length() > 1 && attrName[0] == '@') {
+            std::string eventType = attrName.substr(1);  // Remove '@' prefix
+            std::string handlerExpr(attr->value);
+
+            // Generate element ID if first @event found
+            if (elemId.empty()) {
+                elemId = "event_" + std::to_string(m_nextEventId++);
+            }
+
+            eventHandlers[eventType] = handlerExpr;
+            LOG_TRACE_L1("[TemplateParser] Found @{} directive: {} -> {}", eventType, elemId, handlerExpr);
+        }
+    }
+
+    // If element has event handlers, add data-event-id and store handlers
+    if (!elemId.empty()) {
+        oss << " data-event-id=\"" << elemId << "\"";
+        m_eventHandlers[elemId] = eventHandlers;
+    }
+
+    // Second pass: serialize regular attributes (skip v-if, v-for, @event)
+    for (unsigned int i = 0; i < element.attributes.length; i++) {
+        GumboAttribute* attr = static_cast<GumboAttribute*>(element.attributes.data[i]);
+        std::string attrName(attr->name);
 
         // Skip directive attributes
-        if (std::string(attr->name) == "v-if" || std::string(attr->name) == "v-for") {
+        if (attrName == "v-if" || attrName == "v-for") {
+            continue;
+        }
+
+        // Skip @event directives (already processed)
+        if (attrName.length() > 1 && attrName[0] == '@') {
             continue;
         }
 

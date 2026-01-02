@@ -97,6 +97,42 @@ public:
      */
     void Resize(int width, int height);
 
+    /**
+     * @brief Handle mouse click event with hit-testing
+     * @param x Mouse X coordinate (window space)
+     * @param y Mouse Y coordinate (window space)
+     * @param button Mouse button (0=left, 1=right, 2=middle)
+     * @return true if click was handled by an interactive element
+     * @note Thread-safe, uses m_frontInteractiveElements
+     */
+    bool HandleClickEvent(float x, float y, int button);
+
+    /**
+     * @brief Update hover state based on cursor position
+     * @param x Mouse X coordinate (window space)
+     * @param y Mouse Y coordinate (window space)
+     * @note Generates synthetic mouseover/mouseout events
+     */
+    void UpdateHoverState(float x, float y);
+
+    /**
+     * @brief Get event handlers map from template parser
+     * @return Map of element ID → {eventType → handlerExpression}
+     * @note Set by ReactiveUI after template evaluation
+     */
+    const std::map<std::string, std::map<std::string, std::string>>& GetEventHandlers() const {
+        return m_eventHandlers;
+    }
+
+    /**
+     * @brief Set event handlers from template parser
+     * @param handlers Map of element ID → {eventType → handlerExpression}
+     * @note Called by ReactiveUI after template evaluation
+     */
+    void SetEventHandlers(const std::map<std::string, std::map<std::string, std::string>>& handlers) {
+        m_eventHandlers = handlers;
+    }
+
 private:
     HTMLRendererMT() = default;
     ~HTMLRendererMT() { Shutdown(); }
@@ -128,6 +164,16 @@ private:
     };
 
     /**
+     * @brief Interactive HTML element with event handlers
+     */
+    struct InteractiveElement {
+        std::string id;                             ///< Unique element ID (data-event-id)
+        int x, y, width, height;                    ///< Bounding box (screen coordinates)
+        std::map<std::string, std::string> handlers; ///< Event type → handler expression
+        int zIndex;                                 ///< CSS z-index for overlap resolution
+    };
+
+    /**
      * @brief Software renderer (runs on render thread)
      * @note Implements litehtml::document_container interface
      */
@@ -155,6 +201,13 @@ private:
     FrameBuffer m_backBuffer;           ///< Written by render thread (exclusive ownership)
     std::mutex m_bufferMutex;           ///< Protects buffer swap
     uint32_t m_lastFrameNumber = 0;
+
+    // Interactive elements (double buffered for thread safety)
+    std::vector<InteractiveElement> m_frontInteractiveElements;  ///< Read by main thread
+    std::vector<InteractiveElement> m_backInteractiveElements;   ///< Written by render thread
+    std::mutex m_interactiveElementsMutex;                       ///< Protects element swap
+    std::map<std::string, std::map<std::string, std::string>> m_eventHandlers; ///< From TemplateParser
+    std::string m_lastHoveredElement;                            ///< Track hover state for mouseout events
 
     // OpenGL resources (main thread only)
     Shader* m_compositeShader = nullptr;

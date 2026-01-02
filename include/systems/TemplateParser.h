@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <map>
 
 // Forward declare gumbo types
 struct GumboInternalNode;
@@ -107,6 +108,24 @@ public:
      * @note Currently returns empty vector - Gumbo processes directives directly
      */
     const std::vector<DirectiveNode>& GetParsedDirectives() const { return m_directives; }
+
+    /**
+     * @brief Get event handlers extracted from @event directives
+     * @return Map of element ID → {eventType → handlerExpression}
+     * @note Populated during Evaluate() when @click, @mouseover, etc. are found
+     */
+    const std::map<std::string, std::map<std::string, std::string>>& GetEventHandlers() const {
+        return m_eventHandlers;
+    }
+
+    /**
+     * @brief Reset event handlers and ID counter
+     * @note Call when re-parsing template to clear old handlers
+     */
+    void ResetEventHandlers() {
+        m_eventHandlers.clear();
+        m_nextEventId = 0;
+    }
 
 private:
     // === Gumbo-based DOM processing ===
@@ -233,4 +252,20 @@ private:
 
     std::string m_template;                  ///< Original HTML template
     std::vector<DirectiveNode> m_directives; ///< Parsed directives (legacy, unused)
+
+    // === Event handling support ===
+
+    /**
+     * @brief Event handlers extracted from @event directives
+     * @note Map structure: elementId → {eventType → handlerExpression}
+     * @note Example: {"event_0": {"click": "onStart", "mouseover": "onHover"}}
+     */
+    std::map<std::string, std::map<std::string, std::string>> m_eventHandlers;
+
+    /**
+     * @brief Counter for generating unique element IDs
+     * @note Increments for each element with @event directives
+     * @note Reset to 0 on ResetEventHandlers()
+     */
+    uint32_t m_nextEventId = 0;
 };

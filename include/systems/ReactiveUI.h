@@ -112,6 +112,40 @@ public:
      */
     std::shared_ptr<LuaUIState> GetLuaState() { return m_luaState; }
 
+    /**
+     * @brief Get event handlers from template parser
+     * @return Map of element ID → {eventType → handlerExpression}
+     * @note Returns empty map if parser not initialized
+     */
+    const std::map<std::string, std::map<std::string, std::string>>& GetEventHandlers() const {
+        static const std::map<std::string, std::map<std::string, std::string>> empty;
+        return m_parser ? m_parser->GetEventHandlers() : empty;
+    }
+
+    // === Event handling API ===
+
+    /**
+     * @brief Event data passed to UI event handlers
+     */
+    struct EventData {
+        float x, y;              ///< Mouse coordinates (window space)
+        int button;              ///< Mouse button (0=left, 1=right, 2=middle)
+        std::string elemId;      ///< Element ID that triggered event
+        std::string eventType;   ///< Event type (click, mouseover, mouseout, etc.)
+    };
+
+    /**
+     * @brief Dispatch UI event to Lua handler
+     * @param eventType Type of event (click, mouseover, mouseout, mousedown, mouseup)
+     * @param handlerExpr Handler expression from @event directive
+     * @param eventData Event data (coordinates, button, element ID)
+     * @note Parses handler syntax: "method", "method(arg)", "method($event)"
+     * @note Calls methods table in Lua state: methods.handlerName(self, ...)
+     */
+    void DispatchEvent(const std::string& eventType,
+                       const std::string& handlerExpr,
+                       const EventData& eventData);
+
     // === Common API ===
 
     /**
