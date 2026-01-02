@@ -75,277 +75,40 @@ bool App::Initialize()
     // Bind Lua state to ReactiveUI
     reactiveUI.BindLuaState(luaState);
 
-    // Register UI template with startup screen, game stats, and debug display
-    std::string uiTemplate = R"HTML(
+    // Load UI template from files
+    std::string uiTemplate = ReactiveUI::LoadTemplateFromFiles(
+        "../res/ui/templates/tetris.html",
+        "../res/ui/styles/tetris.css"
+    );
+
+    if (uiTemplate.empty()) {
+        LOG_ERROR("Failed to load UI template files - using fallback");
+        // Minimal fallback UI
+        uiTemplate = R"HTML(
 <!DOCTYPE html>
 <html>
 <head>
     <style>
     body {
         margin: 0;
-        padding: 0;
-        background: transparent;
-        color: #00ff00;
-        font-family: monospace;
-        font-size: 16px;
-    }
-    .game-container {
-        display: flex;
-        width: 100%;
-        height: 100%;
-        justify-content: space-between;
-    }
-    .side-panel {
-        width: 280px;
         padding: 20px;
-        background: rgba(0,0,0,0.85);
-        border: 3px solid #00ff00;
-        box-shadow: 0 0 20px rgba(0,255,0,0.3);
-    }
-    .left-panel {
-        margin: 20px 0 20px 20px;
-    }
-    .right-panel {
-        margin: 20px 20px 20px 0;
-    }
-    .panel-title {
-        font-size: 24px;
-        font-weight: bold;
-        color: #00ff00;
-        text-align: center;
-        margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #00ff00;
-        text-shadow: 0 0 10px #00ff00;
-    }
-    .stat-row {
-        display: flex;
-        justify-content: space-between;
-        margin: 15px 0;
-        padding: 10px;
-        background: rgba(0,255,0,0.05);
-        border-left: 3px solid #00ff00;
-    }
-    .stat-label {
-        color: #00aa00;
-        font-size: 18px;
-    }
-    .stat-value {
-        font-size: 24px;
-        font-weight: bold;
-        color: #00ff00;
-        text-shadow: 0 0 5px #00ff00;
-    }
-    .next-piece-container {
-        margin-top: 30px;
-        padding: 15px;
-        background: rgba(0,255,0,0.05);
-        border: 2px solid #00ff00;
-        text-align: center;
-    }
-    .next-piece-label {
-        font-size: 18px;
-        color: #00aa00;
-        margin-bottom: 10px;
-    }
-    .next-piece-display {
-        font-size: 48px;
-        font-weight: bold;
-        color: #00ff00;
-        text-shadow: 0 0 15px #00ff00;
-        padding: 20px;
-    }
-    .debug-section {
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 2px solid #00ff00;
-    }
-    .debug-label {
-        font-size: 14px;
-        color: #00aa00;
-    }
-    .debug-value {
-        font-size: 20px;
-        font-weight: bold;
-        color: #00ff00;
-    }
-    .startup-screen {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        background: rgba(0, 0, 0, 0.95);
-        z-index: 1000;
-    }
-    .gameover-screen {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        background: rgba(0, 0, 0, 0.95);
-        z-index: 1000;
-    }
-    .startup-title {
-        font-size: 72px;
-        font-weight: bold;
-        color: #00ff00;
-        margin-bottom: 40px;
-        text-shadow: 0 0 20px #00ff00;
-    }
-    .gameover-title {
-        font-size: 72px;
-        font-weight: bold;
+        background: rgba(0,0,0,0.95);
         color: #ff0000;
-        margin-bottom: 30px;
-        text-shadow: 0 0 20px #ff0000;
-    }
-    .final-score {
-        font-size: 36px;
-        color: #00ff00;
-        margin-bottom: 50px;
-    }
-    .final-score-label {
-        color: #00aa00;
+        font-family: monospace;
         font-size: 24px;
-    }
-    .final-score-value {
-        font-size: 48px;
-        font-weight: bold;
-        text-shadow: 0 0 10px #00ff00;
-    }
-    .menu-button {
-        padding: 15px 50px;
-        font-size: 28px;
-        font-family: monospace;
-        background: transparent;
-        color: #00ff00;
-        border: 4px solid #00ff00;
-        margin: 10px;
-        box-shadow: 0 0 15px #00ff00;
-    }
-    .menu-button:hover {
-        background: rgba(0,255,0,0.15);
-        box-shadow: 0 0 25px #00ff00;
-    }
-    .start-button {
-        padding: 20px 60px;
-        font-size: 32px;
-        font-family: monospace;
-        background: transparent;
-        color: #00ff00;
-        border: 4px solid #00ff00;
-        cursor: pointer;
-        transition: all 0.3s;
-        box-shadow: 0 0 20px #00ff00;
-    }
-    .start-button:hover {
-        background: rgba(0,255,0,0.15);
-        box-shadow: 0 0 30px #00ff00;
-    }
-    .instructions {
-        margin-top: 40px;
-        font-size: 20px;
-        color: #00aa00;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
     }
     </style>
 </head>
 <body>
-    <!-- Startup Screen -->
-    <div v-if="data.gameStarted == false and data.gameOver == false" class="startup-screen">
-        <div class="startup-title">TETRIS</div>
-        <div class="start-button"
-             @click="onStartGame">START GAME</div>
-        <div class="instructions">Press ENTER to start or click above</div>
-    </div>
-
-    <!-- Game Over Screen -->
-    <div v-if="data.gameOver" class="gameover-screen">
-        <div class="gameover-title">GAME OVER</div>
-        <div class="final-score">
-            <div class="final-score-label">FINAL SCORE</div>
-            <div class="final-score-value">{{ data.finalScore }}</div>
-        </div>
-        <div class="menu-button"
-             @click="onRestart">RESTART</div>
-        <div class="menu-button"
-             @click="onMainMenu">MAIN MENU</div>
-        <div class="instructions">Press R to restart | M for main menu or click above</div>
-    </div>
-
-    <!-- Game UI -->
-    <div v-if="data.gameStarted and data.gameOver == false" class="game-container">
-        <!-- Left Panel: Game Stats -->
-        <div class="side-panel left-panel">
-            <div class="panel-title">GAME STATS</div>
-
-            <div class="stat-row">
-                <span class="stat-label">SCORE</span>
-                <span class="stat-value">{{ data.score }}</span>
-            </div>
-
-            <div class="stat-row">
-                <span class="stat-label">LINES</span>
-                <span class="stat-value">{{ data.lines }}</span>
-            </div>
-
-            <div class="stat-row">
-                <span class="stat-label">LEVEL</span>
-                <span class="stat-value">{{ data.level }}</span>
-            </div>
-        </div>
-
-        <!-- Right Panel: Next Piece & Debug -->
-        <div class="side-panel right-panel">
-            <div class="panel-title">NEXT PIECE</div>
-
-            <div class="next-piece-container">
-                <div class="next-piece-display">{{ data.nextPiece }}</div>
-            </div>
-
-            <div v-if="data.showDebug" class="debug-section">
-                <div class="panel-title" style="font-size: 18px; margin-bottom: 15px;">DEBUG</div>
-
-                <div class="stat-row">
-                    <span class="debug-label">Mode</span>
-                    <span class="debug-value" style="font-size: 16px;">{{ data.gameMode }}</span>
-                </div>
-
-                <div class="stat-row">
-                    <span class="debug-label">FPS</span>
-                    <span class="debug-value" style="font-size: 16px;">{{ data.fps }}</span>
-                </div>
-
-                <div class="stat-row">
-                    <span class="debug-label">Frame Time</span>
-                    <span class="debug-value" style="font-size: 16px;">{{ data.frameTime }}ms</span>
-                </div>
-
-                <div v-if="data.gameMode == 'VARIABLE'">
-                    <div class="stat-row">
-                        <span class="debug-label">Speed</span>
-                        <span class="debug-value" style="font-size: 16px;">{{ data.simSpeed }}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="debug-label">Multiplier</span>
-                        <span class="debug-value" style="font-size: 16px;">{{ data.simMultiplier }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div>ERROR: Failed to load UI template files</div>
 </body>
 </html>
 )HTML";
+    }
 
     reactiveUI.RegisterTemplateWithDirectives("ui_template", uiTemplate);
 

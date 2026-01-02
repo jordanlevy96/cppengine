@@ -2,6 +2,8 @@
 #include "controllers/ScriptManager.h"
 #include "systems/HTMLRendererMT.h"
 #include "util/Logger.h"
+#include <fstream>
+#include <sstream>
 
 // === Legacy API Implementation ===
 
@@ -211,4 +213,63 @@ void ReactiveUI::DispatchEvent(const std::string& eventType,
     } catch (const std::exception& e) {
         LOG_ERROR("[ReactiveUI] Exception calling handler '{}': {}", handlerName, e.what());
     }
+}
+
+// === Template Loading Implementation ===
+
+std::string ReactiveUI::LoadTextFile(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        LOG_ERROR("[ReactiveUI] Failed to open file: {}", path);
+        return "";
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
+std::string ReactiveUI::LoadTemplateFromFiles(
+    const std::string& templatePath,
+    const std::string& cssPath
+) {
+    // Load CSS
+    std::string cssContent = LoadTextFile(cssPath);
+    if (cssContent.empty()) {
+        LOG_ERROR("[ReactiveUI] Failed to load CSS from: {}", cssPath);
+        return "";
+    }
+
+    // Load HTML template
+    std::string htmlTemplate = LoadTextFile(templatePath);
+    if (htmlTemplate.empty()) {
+        LOG_ERROR("[ReactiveUI] Failed to load template from: {}", templatePath);
+        return "";
+    }
+
+    // Inject CSS into template
+    const std::string placeholder = "<!-- CSS_PLACEHOLDER -->";
+    size_t pos = htmlTemplate.find(placeholder);
+
+    if (pos == std::string::npos) {
+        LOG_WARNING("[ReactiveUI] CSS placeholder not found in template, appending to <head>");
+        // Fallback: inject before </head>
+        size_t headEnd = htmlTemplate.find("</head>");
+        if (headEnd != std::string::npos) {
+            std::string styleTag = "    <style>\n" + cssContent + "    </style>\n";
+            htmlTemplate.insert(headEnd, styleTag);
+        } else {
+            LOG_ERROR("[ReactiveUI] Invalid HTML structure - no </head> tag found");
+            return "";
+        }
+    } else {
+        // Replace placeholder with CSS
+        std::string styleTag = "<style>\n" + cssContent + "    </style>";
+        htmlTemplate.replace(pos, placeholder.length(), styleTag);
+    }
+
+    LOG_INFO("[ReactiveUI] Loaded template ({} bytes HTML, {} bytes CSS)",
+             htmlTemplate.size(), cssContent.size());
+
+    return htmlTemplate;
 }

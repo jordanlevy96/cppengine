@@ -1,0 +1,176 @@
+    body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        color: #00ff00;
+        font-family: monospace;
+        font-size: 16px;
+    }
+    .game-container {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        justify-content: space-between;
+    }
+    .side-panel {
+        width: 280px;
+        padding: 20px;
+        background: rgba(0,0,0,0.85);
+        border: 3px solid #00ff00;
+        box-shadow: 0 0 20px rgba(0,255,0,0.3);
+    }
+    .left-panel {
+        margin: 20px 0 20px 20px;
+    }
+    .right-panel {
+        margin: 20px 20px 20px 0;
+    }
+    .panel-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #00ff00;
+        text-align: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+    }
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 15px 0;
+        padding: 10px;
+        background: rgba(0,255,0,0.05);
+        border-left: 3px solid #00ff00;
+    }
+    .stat-label {
+        color: #00aa00;
+        font-size: 18px;
+    }
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+    }
+    .next-piece-container {
+        margin-top: 30px;
+        padding: 15px;
+        background: rgba(0,255,0,0.05);
+        border: 2px solid #00ff00;
+        text-align: center;
+    }
+    .next-piece-label {
+        font-size: 18px;
+        color: #00aa00;
+        margin-bottom: 10px;
+    }
+    .next-piece-display {
+        font-size: 48px;
+        font-weight: bold;
+        color: #00ff00;
+        text-shadow: 0 0 15px #00ff00;
+        padding: 20px;
+    }
+    .debug-section {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 2px solid #00ff00;
+    }
+    .debug-label {
+        font-size: 14px;
+        color: #00aa00;
+    }
+    .debug-value {
+        font-size: 20px;
+        font-weight: bold;
+        color: #00ff00;
+    }
+    .startup-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 1000;
+    }
+    .gameover-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 1000;
+    }
+    .startup-title {
+        font-size: 72px;
+        font-weight: bold;
+        color: #00ff00;
+        margin-bottom: 40px;
+        text-shadow: 0 0 20px #00ff00;
+    }
+    .gameover-title {
+        font-size: 72px;
+        font-weight: bold;
+        color: #ff0000;
+        margin-bottom: 30px;
+        text-shadow: 0 0 20px #ff0000;
+    }
+    .final-score {
+        font-size: 36px;
+        color: #00ff00;
+        margin-bottom: 50px;
+    }
+    .final-score-label {
+        color: #00aa00;
+        font-size: 24px;
+    }
+    .final-score-value {
+        font-size: 48px;
+        font-weight: bold;
+        text-shadow: 0 0 10px #00ff00;
+    }
+    .menu-button {
+        padding: 15px 50px;
+        font-size: 28px;
+        font-family: monospace;
+        background: transparent;
+        color: #00ff00;
+        border: 4px solid #00ff00;
+        margin: 10px;
+        box-shadow: 0 0 15px #00ff00;
+    }
+    .menu-button:hover {
+        background: rgba(0,255,0,0.15);
+        box-shadow: 0 0 25px #00ff00;
+    }
+    .start-button {
+        padding: 20px 60px;
+        font-size: 32px;
+        font-family: monospace;
+        background: transparent;
+        color: #00ff00;
+        border: 4px solid #00ff00;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 0 20px #00ff00;
+    }
+    .start-button:hover {
+        background: rgba(0,255,0,0.15);
+        box-shadow: 0 0 30px #00ff00;
+    }
+    .instructions {
+        margin-top: 40px;
+        font-size: 20px;
+        color: #00aa00;
+    }

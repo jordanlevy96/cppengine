@@ -146,6 +146,21 @@ public:
                        const std::string& handlerExpr,
                        const EventData& eventData);
 
+    // === Template Loading API ===
+
+    /**
+     * @brief Load HTML template with CSS injection from separate files
+     * @param templatePath Path to HTML template file (relative to executable)
+     * @param cssPath Path to CSS stylesheet file (relative to executable)
+     * @return Complete HTML document with CSS injected, or empty string on error
+     * @note Replaces <!-- CSS_PLACEHOLDER --> with <style>CSS content</style>
+     * @note Example: LoadTemplateFromFiles("../res/ui/templates/tetris.html", "../res/ui/styles/tetris.css")
+     */
+    static std::string LoadTemplateFromFiles(
+        const std::string& templatePath,
+        const std::string& cssPath
+    );
+
     // === Common API ===
 
     /**
@@ -165,6 +180,14 @@ public:
 
 private:
     ReactiveUI() = default;
+
+    /**
+     * @brief Load text file into string
+     * @param path File path (relative to executable)
+     * @return File contents, or empty string on error
+     * @note Logs error if file cannot be opened
+     */
+    static std::string LoadTextFile(const std::string& path);
 
     // Legacy mode members
     std::string m_template;                                ///< HTML template with {{placeholders}}

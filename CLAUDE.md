@@ -3,27 +3,9 @@
 > Last Updated: 2026-01-01
 > For: Claude Sonnet 4.5
 
-## Quick Start
-
-**To build and run**:
-```bash
-cd /Users/jordan/dev/cppengine
-mkdir -p build && cd build
-cmake ..
-make -j8
-./imhotep
-```
-
-**Common commands**:
-- Clean build: `rm -rf build && mkdir build`
-- Run from build: `./imhotep`
-- Update submodules: `cd external && git submodule update --init --recursive`
-
----
-
 ## Project Overview
 
-**Imhotep** is an experimental C++ game engine (~6,200 LOC) exploring modern UI approaches for games. Currently implements a fully functional Tetris game as proof-of-concept.
+**Imhotep** is an experimental C++ game engine using OpenGL, Lua, and more. Currently implements a fully functional Tetris game as proof-of-concept.
 
 **Key Innovation**: Declarative, reactive UI system using HTML/CSS templates with Lua state management (Vue.js-inspired), rendered via litehtml with multi-threaded rendering.
 
@@ -54,21 +36,22 @@ App (controllers/App.cpp)
 
 ### External Dependencies
 
-| Dependency | Purpose | Integration | Install |
-|------------|---------|-------------|---------|
-| **GLFW** | Window/input | FetchContent | Auto-downloaded |
-| **GLAD** | OpenGL loader | FetchContent | Auto-downloaded |
-| **FreeType** | Font rendering | System package | `brew install freetype` (macOS) |
-| **GLM** | Math library | Git submodule | In `external/` |
-| **litehtml** | HTML/CSS engine | Git submodule | In `external/` |
-| **Lua + Sol2** | Lua scripting | Git submodule | In `external/` |
-| **Python + pybind11** | Python bindings | Git submodule | In `external/` |
-| **yaml-cpp** | Config parsing | Git submodule | In `external/` |
-| **Dear ImGui** | Debug UI | Git submodule | In `external/` |
+| Dependency            | Purpose         | Integration    | Install                         |
+| --------------------- | --------------- | -------------- | ------------------------------- |
+| **GLFW**              | Window/input    | FetchContent   | Auto-downloaded                 |
+| **GLAD**              | OpenGL loader   | FetchContent   | Auto-downloaded                 |
+| **FreeType**          | Font rendering  | System package | `brew install freetype` (macOS) |
+| **GLM**               | Math library    | Git submodule  | In `external/`                  |
+| **litehtml**          | HTML/CSS engine | Git submodule  | In `external/`                  |
+| **Lua + Sol2**        | Lua scripting   | Git submodule  | In `external/`                  |
+| **Python + pybind11** | Python bindings | Git submodule  | In `external/`                  |
+| **yaml-cpp**          | Config parsing  | Git submodule  | In `external/`                  |
+| **Dear ImGui**        | Debug UI        | Git submodule  | In `external/`                  |
 
 ### Platform-Specific Setup
 
 **macOS**:
+
 ```bash
 brew install cmake freetype
 cd external && git submodule update --init --recursive
@@ -77,6 +60,7 @@ mkdir build && cd build && cmake .. && make -j8
 
 **macOS (Apple Silicon - ARM64 Python Issue)**:
 If CMake finds x86_64 Python instead of ARM64 Python on M1/M2 Macs, force it to use ARM64:
+
 ```bash
 cd /Users/jordan/dev/cppengine/build
 rm -rf *
@@ -89,9 +73,11 @@ cmake \
 
 make -j8
 ```
+
 Verify ARM64 Python: `file /opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/Python` should show `arm64`.
 
 **Ubuntu/Debian**:
+
 ```bash
 sudo apt install cmake g++ libfreetype6-dev
 cd external && git submodule update --init --recursive
@@ -99,6 +85,7 @@ mkdir build && cd build && cmake .. && make -j8
 ```
 
 **Windows** (untested recently):
+
 - Visual Studio 2022 (C++ Desktop Development)
 - CMake
 - FreeType from vcpkg or manual build
@@ -115,11 +102,13 @@ mkdir build && cd build && cmake .. && make -j8
 ### 1. Adding a New UI Screen
 
 **Steps**:
+
 1. Create Lua state file: `res/ui/state/my_screen.lua`
 2. Update `App.cpp` → `Initialize()` to load your state
 3. Update HTML template (currently inline in App.cpp, lines 72-200)
 
 **Example Lua state**:
+
 ```lua
 -- res/ui/state/my_screen.lua
 return {
@@ -135,16 +124,16 @@ return {
 ```
 
 **Example HTML template** (in App.cpp):
+
 ```html
 <div v-if="showPanel">
-    <h1>{{ title }}</h1>
-    <div v-for="item in items">
-        {{ item.name }}: {{ item.value }}
-    </div>
+  <h1>{{ title }}</h1>
+  <div v-for="item in items">{{ item.name }}: {{ item.value }}</div>
 </div>
 ```
 
 **To trigger updates**: Mark Lua state as dirty:
+
 ```cpp
 m_luaState->MarkDirty();  // Next frame will re-render
 ```
@@ -152,11 +141,13 @@ m_luaState->MarkDirty();  // Next frame will re-render
 ### 2. Adding a New Shader
 
 **Steps**:
+
 1. Create `res/shaders/MyShader.shader` with `#shader vertex` and `#shader fragment` sections
 2. Load in C++: `auto shader = new Shader("../res/shaders/MyShader.shader");`
 3. Use: `shader->Use(); shader->SetMat4("projection", projMatrix);`
 
 **Existing shaders**:
+
 - `Composite.shader` - HTMLRendererMT UI overlay
 - `Text.shader` - Text rendering (if used)
 - `UI.shader` - ImGui rendering
@@ -166,11 +157,13 @@ m_luaState->MarkDirty();  // Next frame will re-render
 **HTMLRendererMT runs on separate thread** - see `docs/architecture/MULTITHREADING.md`
 
 **Common issues**:
+
 - **UI not updating**: Check `m_luaState->IsDirty()` flag
 - **Crashes in FreeType**: Race condition - check mutex locks
 - **Texture not uploading**: Check `m_frontBuffer.frameNumber` vs `m_lastFrameNumber`
 
 **Useful breakpoints**:
+
 - `HTMLRendererMT::RenderThreadLoop()` - Render thread entry (src/systems/HTMLRendererMT.cpp:790)
 - `HTMLRendererMT::UpdateTextureFromPixelBuffer()` - Texture upload (src/systems/HTMLRendererMT.cpp:688)
 - `ReactiveUI::GetRenderedHTML()` - Dirty check (src/systems/ReactiveUI.cpp:12)
@@ -178,10 +171,12 @@ m_luaState->MarkDirty();  // Next frame will re-render
 ### 4. Working with Lua Scripts
 
 **Lua is used for**:
+
 - UI state (`res/ui/state/`)
 - Game logic (see Tetris example in git history - commit f4462e2)
 
 **Executing Lua from C++**:
+
 ```cpp
 sol::state& lua = scriptManager->GetLuaState();
 lua.script_file("../res/ui/state/fps.lua");
@@ -189,6 +184,7 @@ sol::table data = lua["data"];
 ```
 
 **Calling C++ from Lua** (bindings in `ScriptManager.cpp`):
+
 ```cpp
 lua.set_function("CreateEntity", &Registry::CreateEntity);
 ```
@@ -196,12 +192,14 @@ lua.set_function("CreateEntity", &Registry::CreateEntity);
 ### 5. Adding ECS Components
 
 **Pattern**:
+
 1. Create header: `include/components/MyComponent.h`
 2. Define struct: `struct MyComponent { float value; };`
 3. Register in `Registry::LoadScene()`: `entity.emplace<MyComponent>(...)`
 4. Create system to iterate components (optional)
 
 **Existing components**:
+
 - `Transform` - Position, rotation, scale, color
 - `RenderComponent` - Mesh, shader, texture references
 - `ScriptComponent` - Lua script reference
@@ -213,6 +211,7 @@ lua.set_function("CreateEntity", &Registry::CreateEntity);
 **CRITICAL**: When adding ANY new library or external dependency, update BOTH:
 
 1. **README.md** - External Dependencies section
+
    - Add to appropriate category (system dependency, FetchContent, or git submodule)
    - Include installation instructions if needed
 
@@ -245,6 +244,7 @@ target_link_libraries(core PUBLIC newlib)
 ## File Organization & Naming
 
 ### Directory Structure
+
 ```
 imhotep/
 ├── include/          # Headers (.h)
@@ -268,6 +268,7 @@ imhotep/
 ```
 
 ### Naming Conventions
+
 - **Classes**: PascalCase (`HTMLRendererMT`, `ReactiveUI`, `WindowManager`)
 - **Files**: Match class name (`HTMLRendererMT.h`, `HTMLRendererMT.cpp`)
 - **Functions**: PascalCase (`Initialize()`, `LoadHTML()`, `GetInstance()`)
@@ -275,6 +276,7 @@ imhotep/
 - **Parameters/locals**: camelCase (`width`, `height`, `needsRender`)
 
 ### Suffixes with Meaning
+
 - `-MT` = Multi-Threaded (`HTMLRendererMT`)
 - `-Manager` = Singleton controller (`WindowManager`, `ScriptManager`)
 - `-System` = ECS system (`RenderSystem`, `TweenSystem`, `ScriptSystem`)
@@ -285,6 +287,7 @@ imhotep/
 **All headers use Doxygen-style comments** for IDE integration (VS Code, CLion, Visual Studio).
 
 **Format:**
+
 ```cpp
 /**
  * @file FileName.h
@@ -305,16 +308,19 @@ imhotep/
 ```
 
 **Member variable docs:**
+
 ```cpp
 int m_width = 800;  ///< Short description after declaration
 ```
 
 **Required for:**
+
 - All public API classes and functions
 - Complex internal functions that need clarification
 - Thread-safety critical code (document which thread owns what)
 
 **Examples:**
+
 - `include/util/Logger.h` - Comprehensive Doxygen docs
 - `include/Camera.h` - Class and method documentation
 - `include/systems/HTMLRendererMT.h` - Thread safety documentation
@@ -326,16 +332,19 @@ int m_width = 800;  ///< Short description after declaration
 ### 1. Multi-Threading Gotcha
 
 **HTMLRendererMT runs litehtml on separate thread**. Always consider:
+
 - Which thread am I modifying? (main game loop vs render thread)
 - Do I need mutex locks? (see `m_mutex`, `m_bufferMutex`)
 - Is this FreeType/litehtml code? (must be on render thread)
 
 **Safe on main thread**:
+
 - Reading `m_frontBuffer` (with `m_bufferMutex`)
 - Calling `LoadHTML()`, `Render()`, `Resize()`
 - OpenGL operations
 
 **Safe on render thread**:
+
 - Writing to `m_backBuffer`
 - FreeType font operations
 - litehtml rendering
@@ -347,6 +356,7 @@ See `docs/architecture/MULTITHREADING.md` for full details.
 ### 3. Resource Paths Relative to Project Root
 
 All paths use `../res/` prefix (run from `build/` directory, cwd is `/Users/jordan/dev/cppengine/build/`):
+
 ```cpp
 shader = new Shader("../res/shaders/Composite.shader");
 luaState->LoadStateFile("../res/ui/state/fps.lua");
@@ -361,6 +371,7 @@ luaState->LoadStateFile("../res/ui/state/fps.lua");
 ### 5. Check Git History Before Major Changes
 
 Architecture evolved rapidly (see `CHANGELOG.md`). Before suggesting refactors:
+
 ```bash
 git log --oneline --since="2 weeks ago" -- path/to/file.cpp
 ```
@@ -375,14 +386,15 @@ git log --oneline --since="2 weeks ago" -- path/to/file.cpp
 
 **Read these FIRST for work in these areas**:
 
-| Area | Document | When to Read |
-|------|----------|--------------|
-| **UI System** | `docs/architecture/UI_SYSTEM.md` | Adding UI features, directives, templates |
-| **Multi-threading** | `docs/architecture/MULTITHREADING.md` | Working on HTMLRendererMT, renderer |
+| Area                 | Document                                | When to Read                                         |
+| -------------------- | --------------------------------------- | ---------------------------------------------------- |
+| **UI System**        | `docs/architecture/UI_SYSTEM.md`        | Adding UI features, directives, templates            |
+| **Multi-threading**  | `docs/architecture/MULTITHREADING.md`   | Working on HTMLRendererMT, renderer                  |
 | **Vulkan Migration** | `docs/architecture/VULKAN_MIGRATION.md` | Planning OpenGL → Vulkan migration (future research) |
-| **Project History** | `CHANGELOG.md` | Understanding why architecture evolved |
+| **Project History**  | `CHANGELOG.md`                          | Understanding why architecture evolved               |
 
 **DO NOT reference** (deleted Dec 31):
+
 - `docs/archive/v8-litehtml-*` - V8 abandoned for Lua
 - `docs/archive/html-multiprocess-*` - Switched to multi-threading
 
@@ -393,12 +405,14 @@ These files no longer exist.
 ## Decision Guide
 
 **Ask first**:
+
 - Architecture changes (new libraries, major refactors)
 - Breaking changes to existing systems
 - Adding new dependencies
 - Deleting significant old code
 
 **Proceed confidently**:
+
 - Bug fixes, features following established patterns
 - Single-file refactoring
 - Documentation and comment improvements
@@ -410,6 +424,7 @@ These files no longer exist.
 **Library**: Quill (v7.4.0) - High-performance async logging (~12-16μs latency)
 
 **Usage**:
+
 ```cpp
 #include "util/Logger.h"
 
@@ -430,6 +445,7 @@ LOG_CRITICAL("OpenGL context creation failed");
 ## Useful Commands Reference
 
 ### Build & Run
+
 ```bash
 # Full rebuild
 rm -rf build && mkdir build && cd build && cmake .. && make -j8
@@ -445,6 +461,7 @@ rm -rf build
 ```
 
 ### Submodules
+
 ```bash
 # Initialize all submodules
 cd external && git submodule update --init --recursive
@@ -454,6 +471,7 @@ cd external && git submodule update --remote
 ```
 
 ### Search & Navigation
+
 ```bash
 # Find TODOs
 grep -r "TODO" src/ include/ --exclude-dir=external
@@ -466,6 +484,7 @@ grep -rn "class HTMLRendererMT" include/
 ```
 
 ### Git History
+
 ```bash
 # Recent changes
 git log --oneline --since="2 weeks ago"
@@ -478,6 +497,7 @@ git log --oneline --grep="HTML"
 ```
 
 ### CMake
+
 ```bash
 # Debug build
 cmake -DCMAKE_BUILD_TYPE=Debug ..
@@ -515,11 +535,13 @@ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
 ## Testing & Debugging
 
 **No automated tests exist yet.** Testing is manual:
+
 1. Build: `cd build && make`
 2. Run: `./imhotep`
 3. Play Tetris, observe UI, check console output
 
 **Debug build**:
+
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Debug ..
 make
@@ -527,6 +549,7 @@ lldb ./imhotep  # or gdb on Linux
 ```
 
 **Common debug scenarios**:
+
 - UI not showing: Check FreeType initialization, litehtml errors
 - Crash on startup: Check resource paths, shader compilation
 - Input not working: Check `settings.yaml` key mappings
@@ -539,6 +562,7 @@ lldb ./imhotep  # or gdb on Linux
 **Target**: 60 FPS (16.67ms per frame)
 
 **Typical breakdown** (Dec 2025, M1 Mac):
+
 - Game logic: 1-2ms
 - 3D rendering: 2-3ms
 - UI rendering (thread): 5-15ms (doesn't block!)
@@ -556,9 +580,10 @@ lldb ./imhotep  # or gdb on Linux
 **CMake Version**: 3.12+ (required)
 
 **Tested Platforms** (as of Dec 2025):
+
 - ✅ macOS (M1/Intel) - Primary development
-- ⚠️  Ubuntu 20.04+ - Should work, not recently tested
-- ⚠️  Windows 10/11 - Build works, not recently tested
+- ⚠️ Ubuntu 20.04+ - Should work, not recently tested
+- ⚠️ Windows 10/11 - Build works, not recently tested
 - ❌ Web/WASM - Not supported
 
 ---
