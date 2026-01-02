@@ -35,8 +35,8 @@ bool App::Initialize()
     }
     LOG_INFO("Window Manager initialized: {}x{}", conf.WindowWidth, conf.WindowHeight);
 
-    ui = &UI::GetInstance();
-    ui->Initialize(windowManager->window);
+    // ui = &UI::GetInstance();
+    // ui->Initialize(windowManager->window);
 
     htmlRenderer = &HTMLRendererMT::GetInstance();
     htmlRenderer->Initialize(windowManager->window, conf.WindowWidth, conf.WindowHeight);
@@ -62,11 +62,12 @@ bool App::Initialize()
     registry->LoadScene("scenes/MainScene.yaml");
 
     // Initialize Lua-based reactive UI system
-    ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
+    ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
 
     // Create Lua UI state and load state file
     auto luaState = std::make_shared<LuaUIState>();
-    if (!luaState->LoadStateFile("../res/ui/state/fps.lua")) {
+    if (!luaState->LoadStateFile("../res/ui/state/fps.lua"))
+    {
         LOG_ERROR("Failed to load UI state file");
         return false;
     }
@@ -75,7 +76,7 @@ bool App::Initialize()
     reactiveUI.BindLuaState(luaState);
 
     // Register UI template with startup screen, game stats, and debug display
-    std::string uiTemplate = R"(
+    std::string uiTemplate = R"HTML(
 <!DOCTYPE html>
 <html>
 <head>
@@ -232,6 +233,10 @@ bool App::Initialize()
         margin: 10px;
         box-shadow: 0 0 15px #00ff00;
     }
+    .menu-button:hover {
+        background: rgba(0,255,0,0.15);
+        box-shadow: 0 0 25px #00ff00;
+    }
     .start-button {
         padding: 20px 60px;
         font-size: 32px;
@@ -244,8 +249,7 @@ bool App::Initialize()
         box-shadow: 0 0 20px #00ff00;
     }
     .start-button:hover {
-        background: #00ff00;
-        color: #000000;
+        background: rgba(0,255,0,0.15);
         box-shadow: 0 0 30px #00ff00;
     }
     .instructions {
@@ -259,8 +263,9 @@ bool App::Initialize()
     <!-- Startup Screen -->
     <div v-if="data.gameStarted == false and data.gameOver == false" class="startup-screen">
         <div class="startup-title">TETRIS</div>
-        <div class="start-button">START GAME</div>
-        <div class="instructions">Press ENTER to start</div>
+        <div class="start-button"
+             @click="onStartGame">START GAME</div>
+        <div class="instructions">Press ENTER to start or click above</div>
     </div>
 
     <!-- Game Over Screen -->
@@ -270,9 +275,11 @@ bool App::Initialize()
             <div class="final-score-label">FINAL SCORE</div>
             <div class="final-score-value">{{ data.finalScore }}</div>
         </div>
-        <div class="menu-button">RESTART</div>
-        <div class="menu-button">MAIN MENU</div>
-        <div class="instructions">Press R to restart | M for main menu</div>
+        <div class="menu-button"
+             @click="onRestart">RESTART</div>
+        <div class="menu-button"
+             @click="onMainMenu">MAIN MENU</div>
+        <div class="instructions">Press R to restart | M for main menu or click above</div>
     </div>
 
     <!-- Game UI -->
@@ -338,13 +345,18 @@ bool App::Initialize()
     </div>
 </body>
 </html>
-)";
+)HTML";
 
     reactiveUI.RegisterTemplateWithDirectives("ui_template", uiTemplate);
 
-    // Initial render happens automatically in RegisterTemplateWithDirectives
+    // CRITICAL: Set event handlers BEFORE loading HTML to avoid race condition
+    // The render thread needs handlers available when it calls ExtractInteractiveElements()
+    htmlRenderer->SetEventHandlers(reactiveUI.GetEventHandlers());
+    LOG_INFO("Set {} event handlers before HTML render",
+             reactiveUI.GetEventHandlers().size());
+
+    // Now load HTML - render thread will extract elements with correct handlers
     htmlRenderer->LoadHTML(reactiveUI.GetRenderedHTML());
-    LOG_INFO("Lua-based reactive HTML UI initialized");
 
     // Initialize FPS tracking
     m_fpsUpdateTime = std::chrono::high_resolution_clock::now();
@@ -352,31 +364,46 @@ bool App::Initialize()
     return true;
 }
 
-float App::GetSimulationMultiplier() const {
-    switch (m_simSpeed) {
-        case SimulationSpeed::PAUSED:   return 0.0f;
-        case SimulationSpeed::SLOW:     return 0.5f;
-        case SimulationSpeed::NORMAL:   return 1.0f;
-        case SimulationSpeed::FAST:     return 2.0f;
-        case SimulationSpeed::FASTER:   return 3.0f;
-        case SimulationSpeed::FASTEST:  return 5.0f;
-        case SimulationSpeed::UNCAPPED: return -1.0f;  // Special: run as fast as possible
-        default:                        return 1.0f;
+float App::GetSimulationMultiplier() const
+{
+    switch (m_simSpeed)
+    {
+    case SimulationSpeed::PAUSED:
+        return 0.0f;
+    case SimulationSpeed::SLOW:
+        return 0.5f;
+    case SimulationSpeed::NORMAL:
+        return 1.0f;
+    case SimulationSpeed::FAST:
+        return 2.0f;
+    case SimulationSpeed::FASTER:
+        return 3.0f;
+    case SimulationSpeed::FASTEST:
+        return 5.0f;
+    case SimulationSpeed::UNCAPPED:
+        return -1.0f; // Special: run as fast as possible
+    default:
+        return 1.0f;
     }
 }
 
-void App::Run() {
+void App::Run()
+{
     LOG_INFO("Starting main loop in {} mode", m_gameMode == GameMode::FIXED ? "FIXED" : "VARIABLE");
 
-    if (m_gameMode == GameMode::VARIABLE) {
+    if (m_gameMode == GameMode::VARIABLE)
+    {
         RunVariableLoop();
-    } else {
+    }
+    else
+    {
         RunFixedLoop();
     }
 }
 
-void App::RunFixedLoop() {
-    double frameTime = 1000.0 / conf.targetFPS;  // 16.67ms for 60 FPS
+void App::RunFixedLoop()
+{
+    double frameTime = 1000.0 / conf.targetFPS; // 16.67ms for 60 FPS
     double accumulator = 0.0;
 
     // Enable VSync for fixed-speed games (prevents tearing)
@@ -384,20 +411,22 @@ void App::RunFixedLoop() {
 
     auto prevTime = std::chrono::high_resolution_clock::now();
 
-    while (!glfwWindowShouldClose(windowManager->window)) {
+    while (!glfwWindowShouldClose(windowManager->window))
+    {
         auto currTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(
-            currTime - prevTime).count();
+                    currTime - prevTime)
+                    .count();
         prevTime = currTime;
 
         accumulator += delta;
 
         scriptManager->ProcessInput();
 
-        // Fixed timestep game logic
-        while (accumulator >= frameTime) {
+        while (accumulator >= frameTime)
+        {
             accumulator -= frameTime;
-            ScriptSystem::Update(frameTime);  // Pass fixed delta
+            ScriptSystem::Update(frameTime); // Pass fixed delta
         }
 
         TweenSystem::Update(delta);
@@ -405,7 +434,7 @@ void App::RunFixedLoop() {
         // Render every frame (coupled to game logic)
         Render();
 
-        glfwSwapBuffers(windowManager->window);  // VSync blocks here
+        glfwSwapBuffers(windowManager->window); // VSync blocks here
         glfwPollEvents();
 
         TrackFPS();
@@ -414,8 +443,9 @@ void App::RunFixedLoop() {
     LOG_INFO("Exited main loop");
 }
 
-void App::RunVariableLoop() {
-    double simFrameTime = 1000.0 / 60.0;  // 16.67ms base tick
+void App::RunVariableLoop()
+{
+    double simFrameTime = 1000.0 / 60.0; // 16.67ms base tick
     double renderFrameTime = 1000.0 / conf.targetFPS;
     double simAccumulator = 0.0;
     double renderAccumulator = 0.0;
@@ -425,10 +455,12 @@ void App::RunVariableLoop() {
 
     auto prevTime = std::chrono::high_resolution_clock::now();
 
-    while (!glfwWindowShouldClose(windowManager->window)) {
+    while (!glfwWindowShouldClose(windowManager->window))
+    {
         auto currTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(
-            currTime - prevTime).count();
+                    currTime - prevTime)
+                    .count();
         prevTime = currTime;
 
         scriptManager->ProcessInput();
@@ -436,17 +468,22 @@ void App::RunVariableLoop() {
         // Variable speed simulation
         float speedMultiplier = GetSimulationMultiplier();
 
-        if (speedMultiplier == -1.0f) {
+        if (speedMultiplier == -1.0f)
+        {
             // UNCAPPED: Run as many sim updates as possible
-            int maxUpdates = 100;  // Safety cap to prevent freeze
-            for (int i = 0; i < maxUpdates; i++) {
+            int maxUpdates = 100; // Safety cap to prevent freeze
+            for (int i = 0; i < maxUpdates; i++)
+            {
                 ScriptSystem::Update(simFrameTime);
             }
-        } else if (speedMultiplier > 0.0f) {
+        }
+        else if (speedMultiplier > 0.0f)
+        {
             // NORMAL/FAST/etc: Run sim at multiplied speed
             simAccumulator += delta * speedMultiplier;
 
-            while (simAccumulator >= simFrameTime) {
+            while (simAccumulator >= simFrameTime)
+            {
                 simAccumulator -= simFrameTime;
                 ScriptSystem::Update(simFrameTime);
             }
@@ -458,7 +495,8 @@ void App::RunVariableLoop() {
         // Render at capped framerate (decoupled from simulation)
         renderAccumulator += delta;
 
-        if (renderAccumulator >= renderFrameTime) {
+        if (renderAccumulator >= renderFrameTime)
+        {
             renderAccumulator -= renderFrameTime;
 
             Render();
@@ -472,8 +510,10 @@ void App::RunVariableLoop() {
         // Sleep to avoid spinning CPU
         auto frameEnd = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-            frameEnd - currTime).count();
-        if (elapsed < 1.0) {
+                           frameEnd - currTime)
+                           .count();
+        if (elapsed < 1.0)
+        {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
@@ -481,7 +521,8 @@ void App::RunVariableLoop() {
     LOG_INFO("Exited main loop");
 }
 
-void App::Render() {
+void App::Render()
+{
     // Ensure window scaling is up to date
     int width, height;
     glfwGetFramebufferSize(windowManager->window, &width, &height);
@@ -498,50 +539,72 @@ void App::Render() {
     htmlRenderer->Render();
 }
 
-void App::TrackFPS() {
+// TODO: move as much as possible into Lua -- game-specific logic should not exist in C++
+void App::TrackFPS()
+{
     m_frameCount++;
     auto now = std::chrono::high_resolution_clock::now();
     m_fpsTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now - m_fpsUpdateTime).count();
+                    now - m_fpsUpdateTime)
+                    .count();
 
     // Update immediately after first 10 frames (to replace initial "0" values quickly)
     // Then update every second thereafter
-    if ((m_frameCount == 10 && m_fpsTime < 1000.0) || m_fpsTime >= 1000.0) {
+    if ((m_frameCount == 10 && m_fpsTime < 1000.0) || m_fpsTime >= 1000.0)
+    {
         int currentFPS = (int)(m_frameCount / (m_fpsTime / 1000.0));
         double currentFrameTime = m_fpsTime / m_frameCount;
 
         // LOG_DEBUG("FPS: {} (frame time: {}ms)", currentFPS, currentFrameTime);
 
         // Get reactive UI and Lua state
-        ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
+        ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
         auto luaState = reactiveUI.GetLuaState();
 
-        if (luaState) {
+        if (luaState)
+        {
             // Update Lua state values - LuaUIState handles dirty flag
             luaState->SetValue("data.fps", currentFPS);
             luaState->SetValue("data.frameTime", std::to_string(currentFrameTime).substr(0, 5));
 
             // Update game mode and speed info
-            const char* modeName = (m_gameMode == GameMode::FIXED) ? "FIXED" : "VARIABLE";
+            const char *modeName = (m_gameMode == GameMode::FIXED) ? "FIXED" : "VARIABLE";
             luaState->SetValue("data.gameMode", std::string(modeName));
 
-            if (m_gameMode == GameMode::VARIABLE) {
+            if (m_gameMode == GameMode::VARIABLE)
+            {
                 // Show speed info for variable mode
-                const char* speedName;
-                switch (m_simSpeed) {
-                    case SimulationSpeed::PAUSED:   speedName = "PAUSED"; break;
-                    case SimulationSpeed::SLOW:     speedName = "SLOW"; break;
-                    case SimulationSpeed::NORMAL:   speedName = "NORMAL"; break;
-                    case SimulationSpeed::FAST:     speedName = "FAST"; break;
-                    case SimulationSpeed::FASTER:   speedName = "FASTER"; break;
-                    case SimulationSpeed::FASTEST:  speedName = "FASTEST"; break;
-                    case SimulationSpeed::UNCAPPED: speedName = "UNCAPPED"; break;
-                    default:                        speedName = "UNKNOWN"; break;
+                const char *speedName;
+                switch (m_simSpeed)
+                {
+                case SimulationSpeed::PAUSED:
+                    speedName = "PAUSED";
+                    break;
+                case SimulationSpeed::SLOW:
+                    speedName = "SLOW";
+                    break;
+                case SimulationSpeed::NORMAL:
+                    speedName = "NORMAL";
+                    break;
+                case SimulationSpeed::FAST:
+                    speedName = "FAST";
+                    break;
+                case SimulationSpeed::FASTER:
+                    speedName = "FASTER";
+                    break;
+                case SimulationSpeed::FASTEST:
+                    speedName = "FASTEST";
+                    break;
+                case SimulationSpeed::UNCAPPED:
+                    speedName = "UNCAPPED";
+                    break;
+                default:
+                    speedName = "UNKNOWN";
+                    break;
                 }
 
                 float multiplier = GetSimulationMultiplier();
-                std::string multiplierStr = (multiplier == -1.0f) ? "MAX" :
-                                            std::to_string(multiplier).substr(0, 3) + "x";
+                std::string multiplierStr = (multiplier == -1.0f) ? "MAX" : std::to_string(multiplier).substr(0, 3) + "x";
 
                 luaState->SetValue("data.simSpeed", std::string(speedName));
                 luaState->SetValue("data.simMultiplier", multiplierStr);
@@ -556,14 +619,16 @@ void App::TrackFPS() {
     }
 }
 
-void App::StartGame() {
+void App::StartGame()
+{
     LOG_INFO("Game started");
 
     // Get reactive UI and Lua state
-    ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
+    ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
     auto luaState = reactiveUI.GetLuaState();
 
-    if (luaState) {
+    if (luaState)
+    {
         // Update game state flags in UI (use boolean values, not strings!)
         luaState->SetValue("data.gameStarted", true);
         luaState->SetValue("data.gameOver", false);
@@ -578,14 +643,16 @@ void App::StartGame() {
     }
 }
 
-void App::ResetGame() {
+void App::ResetGame()
+{
     LOG_INFO("Restarting game");
 
     // Get reactive UI and Lua state
-    ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
+    ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
     auto luaState = reactiveUI.GetLuaState();
 
-    if (luaState) {
+    if (luaState)
+    {
         // Reset UI state for restart (keep game started)
         luaState->SetValue("data.gameOver", false);
         luaState->SetValue("data.gameStarted", true);
@@ -598,14 +665,16 @@ void App::ResetGame() {
     }
 }
 
-void App::ReturnToMainMenu() {
+void App::ReturnToMainMenu()
+{
     LOG_INFO("Returning to main menu");
 
     // Get reactive UI and Lua state
-    ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
+    ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
     auto luaState = reactiveUI.GetLuaState();
 
-    if (luaState) {
+    if (luaState)
+    {
         // Reset UI state back to startup screen
         luaState->SetValue("data.gameOver", false);
         luaState->SetValue("data.gameStarted", false);
@@ -630,10 +699,11 @@ bool App::LoadConfig(const std::string &configPath)
 
     YAML::Node input = config["input"];
 
-    if (input)
-    {
-        // YAML::Node keyMappings = input["keyMappings"];
-    }
+    // FIXME: ???
+    // if (input)
+    // {
+    //     YAML::Node keyMappings = input["keyMappings"];
+    // }
 
     YAML::Node window = config["window"];
 
@@ -645,7 +715,8 @@ bool App::LoadConfig(const std::string &configPath)
     }
 
     // Resource path might not be in settings file
-    if (config["resourcePath"]) {
+    if (config["resourcePath"])
+    {
         conf.ResourcePath = config["resourcePath"].as<std::string>();
     }
 
