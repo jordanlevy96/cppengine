@@ -1,5 +1,6 @@
 #include <glad/glad.h>
 #include "systems/HTMLRendererMT.h"
+#include "systems/ReactiveUI.h"
 #include "util/Logger.h"
 
 #include <cstring>
@@ -238,9 +239,9 @@ public:
         if (font.glyphs.empty())
             return;
 
-        // Y-axis is inverted - pos.y appears at bottom, so add height to get to visual top
-        // Then subtract ascent to get baseline
-        float baseline_y = pos.y + pos.height - font.ascent;
+        // Calculate baseline: pos.y is top of text box (top-left origin)
+        // Baseline = top of box + ascent distance (text sits below the top)
+        float baseline_y = pos.y + font.ascent;
         float x = pos.x;
 
         for (const char *c = text; *c; c++)
@@ -253,7 +254,7 @@ public:
 
             // Calculate position
             int xpos = x + glyph.bearingX;
-            int ypos = baseline_y - glyph.height + glyph.bearingY;
+            int ypos = baseline_y - glyph.bearingY;
 
             // Draw glyph bitmap
             DrawGlyph(glyph, xpos, ypos, color);
@@ -283,8 +284,8 @@ public:
                     continue;
                 }
 
-                // Flip bitmap vertically when reading
-                uint8_t alpha = glyph.bitmap[(glyph.height - 1 - py) * glyph.width + px];
+                // Read bitmap directly - no flipping needed
+                uint8_t alpha = glyph.bitmap[py * glyph.width + px];
                 if (alpha == 0)
                     continue;
 
@@ -428,6 +429,104 @@ public:
         culture = "";
     }
 
+    /**
+     * @brief Extract interactive elements from rendered document
+     * @param eventHandlers Map from TemplateParser (elementId → {eventType → handler})
+     * @note Call after document->render() to capture element positions
+     */
+    void ExtractInteractiveElements(const std::map<std::string, std::map<std::string, std::string>>& eventHandlers)
+    {
+        m_interactiveElements.clear();
+
+        if (!m_document) {
+            LOG_DEBUG("[SoftwareRenderer] No document to extract elements from");
+            return;
+        }
+
+        auto root = m_document->root();
+        if (!root) {
+            LOG_DEBUG("[SoftwareRenderer] No document root");
+            return;
+        }
+
+        // Traverse DOM tree to find elements with data-event-id
+        TraverseElementForEvents(root, eventHandlers, 0);
+
+        // Sort by z-index (ascending) so we can iterate reverse for hit-testing
+        std::sort(m_interactiveElements.begin(), m_interactiveElements.end(),
+            [](const HTMLRendererMT::InteractiveElement& a, const HTMLRendererMT::InteractiveElement& b) {
+                return a.zIndex < b.zIndex;
+            });
+
+        LOG_DEBUG("[SoftwareRenderer] Extracted {} interactive elements", m_interactiveElements.size());
+    }
+
+    /**
+     * @brief Get extracted interactive elements
+     * @return Vector of interactive elements with bounds and handlers
+     */
+    const std::vector<HTMLRendererMT::InteractiveElement>& GetInteractiveElements() const {
+        return m_interactiveElements;
+    }
+
+private:
+    /**
+     * @brief Recursively traverse litehtml element tree
+     * @param elem Current element
+     * @param eventHandlers Event handler map from parser
+     * @param parentZIndex Parent's z-index (inherited if element has no z-index)
+     */
+    void TraverseElementForEvents(litehtml::element::ptr elem,
+                                   const std::map<std::string, std::map<std::string, std::string>>& eventHandlers,
+                                   int parentZIndex)
+    {
+        if (!elem) return;
+
+        // Check for data-event-id attribute
+        const char* eventId = elem->get_attr("data-event-id");
+        if (eventId && eventId[0] != '\0') {
+            std::string elemIdStr(eventId);
+            auto it = eventHandlers.find(elemIdStr);
+            if (it != eventHandlers.end()) {
+                // Get element bounds (content box only)
+                auto pos = elem->get_placement();
+
+                // Get padding to calculate full clickable area
+                auto padding = elem->css().get_padding();
+
+                // Calculate full box including padding (makes buttons clickable in padding area)
+                int paddingLeft = (int)padding.left.val();
+                int paddingRight = (int)padding.right.val();
+                int paddingTop = (int)padding.top.val();
+                int paddingBottom = (int)padding.bottom.val();
+
+                // TODO: Extract z-index from litehtml CSS (API unclear)
+                // For now, use default z-index of 0 (DOM order determines priority)
+                int elemZIndex = 0;
+
+                // Create interactive element with full box (content + padding)
+                HTMLRendererMT::InteractiveElement ie;
+                ie.id = elemIdStr;
+                ie.x = pos.x - paddingLeft;
+                ie.y = pos.y - paddingTop;
+                ie.width = pos.width + paddingLeft + paddingRight;
+                ie.height = pos.height + paddingTop + paddingBottom;
+                ie.handlers = it->second;  // Copy event handler map
+                ie.zIndex = elemZIndex;
+
+                m_interactiveElements.push_back(ie);
+
+                LOG_TRACE_L1("[SoftwareRenderer] Interactive element: id={}, bounds=({},{},{}x{}), z={}, handlers={}",
+                    ie.id, ie.x, ie.y, ie.width, ie.height, ie.zIndex, ie.handlers.size());
+            }
+        }
+
+        // Recurse into children (use DOM order for now)
+        for (auto& child : elem->children()) {
+            TraverseElementForEvents(child, eventHandlers, 0);
+        }
+    }
+
 private:
     void DrawRect(int x, int y, int width, int height, litehtml::web_color color)
     {
@@ -529,6 +628,9 @@ private:
     std::map<std::string, FontInfo> m_fontCache;  // Cache fonts by "family_size"
     litehtml::uint_ptr m_next_font_id = 1;
 
+    // Interactive elements extracted from DOM
+    std::vector<HTMLRendererMT::InteractiveElement> m_interactiveElements;
+
     // IMPORTANT: m_document must be declared AFTER m_fonts/m_fontCache
     // because its destructor calls delete_font() which needs those maps
     litehtml::document::ptr m_document;
@@ -596,13 +698,13 @@ void HTMLRendererMT::SetupGL()
     // Create quad for rendering texture (screen space coordinates)
     float quadVertices[] = {
         // positions (screen space)        // texCoords
-        0.0f, 0.0f, 0.0f, 1.0f,                      // top-left
-        0.0f, (float)m_height, 0.0f, 0.0f,           // bottom-left
-        (float)m_width, (float)m_height, 1.0f, 0.0f, // bottom-right
+        0.0f, 0.0f, 0.0f, 0.0f,                      // top-left
+        0.0f, (float)m_height, 0.0f, 1.0f,           // bottom-left
+        (float)m_width, (float)m_height, 1.0f, 1.0f, // bottom-right
 
-        0.0f, 0.0f, 0.0f, 1.0f,                      // top-left
-        (float)m_width, (float)m_height, 1.0f, 0.0f, // bottom-right
-        (float)m_width, 0.0f, 1.0f, 1.0f             // top-right
+        0.0f, 0.0f, 0.0f, 0.0f,                      // top-left
+        (float)m_width, (float)m_height, 1.0f, 1.0f, // bottom-right
+        (float)m_width, 0.0f, 1.0f, 0.0f             // top-right
     };
 
     glGenVertexArrays(1, &m_quadVAO);
@@ -686,7 +788,12 @@ void HTMLRendererMT::Render()
 
 void HTMLRendererMT::UpdateTextureFromPixelBuffer()
 {
-    // Upload pixels to texture
+    // Coordinate system (top-left origin throughout):
+    // 1. litehtml renders with pos.y=0 at top
+    // 2. Pixel buffer stores row 0 = screen top
+    // 3. Texture upload: direct copy (no flipping)
+    // 4. Quad maps screen (0,0) → texture UV (0,0)
+    // 5. Projection transforms to NDC with Y-down
     glBindTexture(GL_TEXTURE_2D, m_texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_frontBuffer.width, m_frontBuffer.height,
                     GL_RGBA, GL_UNSIGNED_BYTE, m_frontBuffer.pixels.data());
@@ -729,13 +836,13 @@ void HTMLRendererMT::Resize(int width, int height)
 
     // Update quad vertices for new size
     float quadVertices[] = {
-        0.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, (float)m_height, 0.0f, 0.0f,
-        (float)m_width, (float)m_height, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, (float)m_height, 0.0f, 1.0f,
+        (float)m_width, (float)m_height, 1.0f, 1.0f,
 
-        0.0f, 0.0f, 0.0f, 1.0f,
-        (float)m_width, (float)m_height, 1.0f, 0.0f,
-        (float)m_width, 0.0f, 1.0f, 1.0f};
+        0.0f, 0.0f, 0.0f, 0.0f,
+        (float)m_width, (float)m_height, 1.0f, 1.0f,
+        (float)m_width, 0.0f, 1.0f, 0.0f};
 
     glBindBuffer(GL_ARRAY_BUFFER, m_quadVBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(quadVertices), quadVertices);
@@ -835,14 +942,24 @@ void HTMLRendererMT::RenderThreadLoop()
 
             renderer.RenderHTML(currentHTML);
 
+            // Extract interactive elements after rendering
+            LOG_INFO("[RenderThread] Extracting interactive elements with {} handlers", m_eventHandlers.size());
+            renderer.ExtractInteractiveElements(m_eventHandlers);
+            m_backInteractiveElements = renderer.GetInteractiveElements();
+            LOG_INFO("[RenderThread] Extracted {} interactive elements", m_backInteractiveElements.size());
+
             auto renderEnd = std::chrono::high_resolution_clock::now();
             auto renderDuration = std::chrono::duration_cast<std::chrono::milliseconds>(renderEnd - renderStart).count();
 
-            // Swap buffers
+            // Swap buffers (pixel buffer + interactive elements)
             {
                 std::lock_guard<std::mutex> lock(m_bufferMutex);
                 std::swap(m_frontBuffer, m_backBuffer);
                 m_frontBuffer.frameNumber++;
+            }
+            {
+                std::lock_guard<std::mutex> lock(m_interactiveElementsMutex);
+                std::swap(m_frontInteractiveElements, m_backInteractiveElements);
             }
 
             needsRender = false;
@@ -853,4 +970,142 @@ void HTMLRendererMT::RenderThreadLoop()
     }
 
     LOG_INFO("[RenderThread] Exiting");
+}
+
+bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
+{
+    LOG_INFO("[HTMLRendererMT] HandleClickEvent called: Window={}x{}, Click=({}, {}), Button={}",
+             m_width, m_height, x, y, button);
+
+    // Copy interactive elements (thread-safe)
+    std::vector<InteractiveElement> elements;
+    {
+        std::lock_guard<std::mutex> lock(m_interactiveElementsMutex);
+        elements = m_frontInteractiveElements;
+    }
+
+    LOG_INFO("[HTMLRendererMT] Have {} interactive elements to test", elements.size());
+
+    // Screen coordinates now match litehtml coordinates (no flip needed)
+    LOG_INFO("[HTMLRendererMT] Click Y: {}", y);
+
+    // Hit-test in reverse order (highest z-index first)
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
+        const auto& elem = *it;
+        LOG_INFO("[HTMLRendererMT] Testing element '{}': bounds=({},{},{}x{}), handlers={}",
+                 elem.id, elem.x, elem.y, elem.width, elem.height, elem.handlers.size());
+
+        // Point-in-rectangle test
+        if (x >= elem.x && x < elem.x + elem.width &&
+            y >= elem.y && y < elem.y + elem.height) {
+            LOG_INFO("[HTMLRendererMT] HIT! Click is inside element bounds");
+
+            LOG_INFO("[HTMLRendererMT] Click hit element '{}' at ({}, {}), button={}", elem.id, x, y, button);
+
+            // Check if element has a click handler
+            auto clickIt = elem.handlers.find("click");
+            if (clickIt != elem.handlers.end()) {
+                LOG_DEBUG("[HTMLRendererMT] Dispatching click handler: {}", clickIt->second);
+
+                // Dispatch to ReactiveUI
+                ReactiveUI& ui = ReactiveUI::GetInstance();
+                ReactiveUI::EventData eventData;
+                eventData.x = x;
+                eventData.y = y;
+                eventData.button = button;
+                eventData.elemId = elem.id;
+                eventData.eventType = "click";
+                ui.DispatchEvent("click", clickIt->second, eventData);
+
+                return true;  // Event handled
+            }
+        }
+    }
+
+    LOG_TRACE_L1("[HTMLRendererMT] Click at ({}, {}) did not hit any interactive element", x, y);
+    return false;  // Event not handled
+}
+
+void HTMLRendererMT::UpdateHoverState(float x, float y)
+{
+    // Copy interactive elements (thread-safe)
+    std::vector<InteractiveElement> elements;
+    {
+        std::lock_guard<std::mutex> lock(m_interactiveElementsMutex);
+        elements = m_frontInteractiveElements;
+    }
+
+    // Screen coordinates now match litehtml coordinates (no flip needed)
+
+    // Hit-test in reverse order (highest z-index first)
+    std::string newHoveredElement;
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
+        const auto& elem = *it;
+
+        // Point-in-rectangle test
+        if (x >= elem.x && x < elem.x + elem.width &&
+            y >= elem.y && y < elem.y + elem.height) {
+            LOG_INFO("[HTMLRendererMT] HOVER HIT! Element '{}' at cursor ({}, {}), bounds=({},{},{}x{})",
+                     elem.id, x, y, elem.x, elem.y, elem.width, elem.height);
+            newHoveredElement = elem.id;
+            break;  // Found topmost element
+        }
+    }
+
+    // Check if hover state changed
+    if (newHoveredElement != m_lastHoveredElement) {
+        // Dispatch mouseout to old element
+        if (!m_lastHoveredElement.empty()) {
+            // Find old element
+            for (const auto& elem : elements) {
+                if (elem.id == m_lastHoveredElement) {
+                    auto mouseoutIt = elem.handlers.find("mouseout");
+                    if (mouseoutIt != elem.handlers.end()) {
+                        LOG_DEBUG("[HTMLRendererMT] Dispatching mouseout: {}", mouseoutIt->second);
+
+                        // Dispatch to ReactiveUI
+                        ReactiveUI& ui = ReactiveUI::GetInstance();
+                        ReactiveUI::EventData eventData;
+                        eventData.x = x;
+                        eventData.y = y;
+                        eventData.button = -1;  // No button for hover events
+                        eventData.elemId = elem.id;
+                        eventData.eventType = "mouseout";
+                        ui.DispatchEvent("mouseout", mouseoutIt->second, eventData);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Dispatch mouseover to new element
+        if (!newHoveredElement.empty()) {
+            // Find new element
+            for (const auto& elem : elements) {
+                if (elem.id == newHoveredElement) {
+                    auto mouseoverIt = elem.handlers.find("mouseover");
+                    if (mouseoverIt != elem.handlers.end()) {
+                        LOG_DEBUG("[HTMLRendererMT] Dispatching mouseover: {}", mouseoverIt->second);
+
+                        // Dispatch to ReactiveUI
+                        ReactiveUI& ui = ReactiveUI::GetInstance();
+                        ReactiveUI::EventData eventData;
+                        eventData.x = x;
+                        eventData.y = y;
+                        eventData.button = -1;  // No button for hover events
+                        eventData.elemId = elem.id;
+                        eventData.eventType = "mouseover";
+                        ui.DispatchEvent("mouseover", mouseoverIt->second, eventData);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // TODO: CSS :hover pseudo-class support requires litehtml API integration
+        // Need to call something like elem->set_pseudo_class(":hover", true) on hovered element
+        // For now, hover events are dispatched to Lua handlers via mouseover/mouseout
+
+        m_lastHoveredElement = newHoveredElement;
+    }
 }
