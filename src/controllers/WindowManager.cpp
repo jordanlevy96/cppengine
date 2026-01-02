@@ -255,10 +255,17 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
 
 void WindowManager::click_callback(GLFWwindow *window, int button, int action, int mods)
 {
+    // Only handle button press events (not release)
+    if (action != GLFW_PRESS) return;
+
+    // Get cursor position at time of click
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
+
     ScriptManager &sm = ScriptManager::GetInstance();
     InputEvent event;
     event.type = InputTypes::Click;
-    event.input = "click";
+    event.input = glm::vec3(xpos, ypos, button);  // (x, y, button: 0=left, 1=right, 2=middle)
 
     APPEND_EVENT()
 }

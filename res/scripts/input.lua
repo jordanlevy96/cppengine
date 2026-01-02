@@ -21,13 +21,42 @@ HandleInput = function()
         local event = table.remove(EventQueue, 1)
         if event.type == InputTypes.KEY then
             OnKeyPress(event.input)
+        elseif event.type == InputTypes.CLICK then
+            OnClick(event.input)
         elseif event.type == InputTypes.CURSOR then
             if CameraRotateFlag then
                 OnCursor(event.input)
             end
+            -- Also update hover state for UI
+            OnCursorMove(event.input)
         elseif event.type == InputTypes.SCROLL then
             OnScroll(event.input)
         end
+    end
+end
+
+OnClick = function(input)
+    -- input is vec3: {x, y, button}
+    local x = input.x
+    local y = input.y
+    local button = input.z
+
+    -- Pass to HTMLRendererMT for hit-testing
+    local htmlRenderer = GameManager.htmlRenderer
+    if htmlRenderer then
+        htmlRenderer:HandleClickEvent(x, y, button)
+    end
+end
+
+OnCursorMove = function(input)
+    -- input is vec2: {x, y}
+    local x = input.x
+    local y = input.y
+
+    -- Update hover state for UI
+    local htmlRenderer = GameManager.htmlRenderer
+    if htmlRenderer then
+        htmlRenderer:UpdateHoverState(x, y)
     end
 end
 

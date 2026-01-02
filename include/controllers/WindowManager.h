@@ -28,8 +28,9 @@ enum InputTypes
  */
 struct InputEvent
 {
-    int type;                                       ///< InputTypes enum value
-    std::variant<std::string, glm::vec2> input;    ///< Event data (key name or position)
+    int type;                                                 ///< InputTypes enum value
+    std::variant<std::string, glm::vec2, glm::vec3> input;   ///< Event data (key name, 2D position, or 3D click data)
+    ///< vec3 format for clicks: (x, y, button) where button: 0=left, 1=right, 2=middle
 };
 
 /**

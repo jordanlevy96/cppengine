@@ -10,6 +10,7 @@
 #include "util/SceneTraversal.h"
 #include "util/TransformUtils.h"
 #include "systems/ReactiveUI.h"
+#include "systems/HTMLRendererMT.h"
 
 #include <iostream>
 #include <fstream>
@@ -160,9 +161,14 @@ namespace LuaBindings
                               "camera", &App::cam,
                               "conf", &App::conf,
                               "window", &App::windowManager,
+                              "htmlRenderer", &App::htmlRenderer,
                               "StartGame", &App::StartGame,
                               "ResetGame", &App::ResetGame,
                               "ReturnToMainMenu", &App::ReturnToMainMenu);
+
+        lua.new_usertype<HTMLRendererMT>("HTMLRendererMT",
+                                         "HandleClickEvent", &HTMLRendererMT::HandleClickEvent,
+                                         "UpdateHoverState", &HTMLRendererMT::UpdateHoverState);
 
         lua.new_usertype<Config>("Config",
                                  "resPath", &Config::ResourcePath);
