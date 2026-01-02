@@ -329,7 +329,7 @@ int m_width = 800;  ///< Short description after declaration
 
 ## Key Insights for Claude Code
 
-### 1. Multi-Threading Gotcha
+### 1. Multi-Threading
 
 **HTMLRendererMT runs litehtml on separate thread**. Always consider:
 
@@ -349,9 +349,15 @@ int m_width = 800;  ///< Short description after declaration
 - FreeType font operations
 - litehtml rendering
 
-### 2. Multi-Threading Critical
-
 See `docs/architecture/MULTITHREADING.md` for full details.
+
+### 2. Separation of Concerns
+
+Each programming language has a distinct use case and usage must remain within its domain.
+
+- **C++**: Game engine, main loop, rendering, inputs, etc.
+- **Lua**: UI state, game logic (all gameplay code)
+- **Python**: Data exports, analytics and other external tooling
 
 ### 3. Resource Paths Relative to Project Root
 
@@ -361,24 +367,6 @@ All paths use `../res/` prefix (run from `build/` directory, cwd is `/Users/jord
 shader = new Shader("../res/shaders/Composite.shader");
 luaState->LoadStateFile("../res/ui/state/fps.lua");
 ```
-
-### 4. Lua for Game Logic, Python for Data Analysis
-
-- **Lua**: UI state, game logic (all gameplay code)
-- **Python**: Data exports, analytics tooling (rarely used)
-- NOT interchangeable
-
-### 5. Check Git History Before Major Changes
-
-Architecture evolved rapidly (see `CHANGELOG.md`). Before suggesting refactors:
-
-```bash
-git log --oneline --since="2 weeks ago" -- path/to/file.cpp
-```
-
-### 6. Inline HTML Templates in App.cpp
-
-~200 lines of HTML in `App.cpp` are intentional for rapid prototyping. Don't suggest extracting to files yet.
 
 ---
 
@@ -393,20 +381,13 @@ git log --oneline --since="2 weeks ago" -- path/to/file.cpp
 | **Vulkan Migration** | `docs/architecture/VULKAN_MIGRATION.md` | Planning OpenGL → Vulkan migration (future research) |
 | **Project History**  | `CHANGELOG.md`                          | Understanding why architecture evolved               |
 
-**DO NOT reference** (deleted Dec 31):
-
-- `docs/archive/v8-litehtml-*` - V8 abandoned for Lua
-- `docs/archive/html-multiprocess-*` - Switched to multi-threading
-
-These files no longer exist.
-
 ---
 
 ## Decision Guide
 
 **Ask first**:
 
-- Architecture changes (new libraries, major refactors)
+- Architecture changes (new libraries, refactors, design patterns)
 - Breaking changes to existing systems
 - Adding new dependencies
 - Deleting significant old code
@@ -416,6 +397,7 @@ These files no longer exist.
 - Bug fixes, features following established patterns
 - Single-file refactoring
 - Documentation and comment improvements
+- Tracking changes as you go using git
 
 ---
 
@@ -496,24 +478,11 @@ git log -p --follow -- path/to/file.cpp
 git log --oneline --grep="HTML"
 ```
 
-### CMake
-
-```bash
-# Debug build
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-
-# Release build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-
-# Show compile commands
-cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
-```
-
 ---
 
 ## Project Structure Quick Reference
 
-**Need to add a UI element?** → `res/ui/state/*.lua` + template in `App.cpp`
+**Need to add a UI element?** → `res/ui/state/*.lua` + template in `res/ui/**.html` or `res/ui/styles/*.css`
 **Need to render something 3D?** → Create entity with `Transform` + `RenderComponent`
 **Need game logic?** → Lua script in `res/scripts/`
 **Need to change window/input?** → `controllers/WindowManager.cpp`
@@ -526,9 +495,9 @@ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
 
 **Threading**: Never touch `m_backBuffer` from main thread (render thread owns it). Use `m_frontBuffer` with `m_bufferMutex`.
 
-**Abandoned approaches**: Don't suggest V8 JavaScript or multi-process rendering (see CHANGELOG.md for why).
+**Abandoned approaches**: Don't suggest things we have already tried (see CHANGELOG.md).
 
-**Resource paths**: Always use `../res/` prefix (run from `build/` directory).
+**Paths**: Run from `build/` directory.
 
 ---
 
@@ -550,10 +519,9 @@ lldb ./imhotep  # or gdb on Linux
 
 **Common debug scenarios**:
 
-- UI not showing: Check FreeType initialization, litehtml errors
+- Manual regression tests fail: scrutinize changes
 - Crash on startup: Check resource paths, shader compilation
-- Input not working: Check `settings.yaml` key mappings
-- Rendering glitches: Check OpenGL state, shader uniforms
+- Build failures: Rebuild from scratch and run everything from the `build` directory
 
 ---
 
@@ -589,4 +557,4 @@ lldb ./imhotep  # or gdb on Linux
 ---
 
 _Last Verified: December 31, 2025_
-_This file should be updated when major architecture changes occur._
+_This file should be updated regularly and manually; prompt the user to make sure it is up to date._
