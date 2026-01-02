@@ -76,38 +76,15 @@ bool App::Initialize()
     reactiveUI.BindLuaState(luaState);
 
     // Load UI template from files
+    // TODO: set up file references in scene
     std::string uiTemplate = ReactiveUI::LoadTemplateFromFiles(
         "../res/ui/templates/tetris.html",
-        "../res/ui/styles/tetris.css"
-    );
+        "../res/ui/styles/tetris.css");
 
-    if (uiTemplate.empty()) {
-        LOG_ERROR("Failed to load UI template files - using fallback");
-        // Minimal fallback UI
-        uiTemplate = R"HTML(
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-    body {
-        margin: 0;
-        padding: 20px;
-        background: rgba(0,0,0,0.95);
-        color: #ff0000;
-        font-family: monospace;
-        font-size: 24px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
-    </style>
-</head>
-<body>
-    <div>ERROR: Failed to load UI template files</div>
-</body>
-</html>
-)HTML";
+    if (uiTemplate.empty())
+    {
+        LOG_ERROR("Failed to load UI template files");
+        return false;
     }
 
     reactiveUI.RegisterTemplateWithDirectives("ui_template", uiTemplate);
