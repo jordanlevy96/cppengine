@@ -9,7 +9,6 @@ add_library(core SHARED
     "src/controllers/ResourceManager.cpp"
     "src/controllers/ScriptManager.cpp"
     "src/controllers/WindowManager.cpp"
-    "src/main.cpp"
     "src/systems/RenderSystem.cpp"
     "src/systems/ScriptSystem.cpp"
     "src/systems/TweenSystem.cpp"
@@ -177,3 +176,11 @@ target_link_libraries(engine PUBLIC core)
 
 add_executable(imhotep src/main.cpp)
 target_link_libraries(imhotep PRIVATE core)
+
+# Editor executable
+add_executable(imhotep-editor
+    "src/editor/main.cpp"
+    "src/editor/Editor.cpp"
+)
+target_link_libraries(imhotep-editor PRIVATE core)
+target_include_directories(imhotep-editor PRIVATE ${core_INCLUDE_DIRS})

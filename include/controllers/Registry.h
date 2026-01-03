@@ -190,6 +190,33 @@ public:
     EntityID GetEntityByName(const std::string &name);
 
     /**
+     * @brief Get entity name by ID
+     * @param id Entity ID
+     * @return Entity name
+     */
+    const std::string& GetEntityName(EntityID id) const;
+
+    /**
+     * @brief Set entity name
+     * @param id Entity ID
+     * @param name New entity name
+     */
+    void SetEntityName(EntityID id, const std::string& name);
+
+    /**
+     * @brief Get total entity count
+     * @return Number of registered entities
+     */
+    size_t GetEntityCount() const;
+
+    /**
+     * @brief Get all entity IDs
+     * @return Vector of all entity IDs
+     * @note Useful for editor scene tree population
+     */
+    std::vector<EntityID> GetAllEntities() const;
+
+    /**
      * @brief Destroy entity and remove all components
      * @param id Entity ID to destroy
      */

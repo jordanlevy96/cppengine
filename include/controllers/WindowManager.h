@@ -31,6 +31,7 @@ struct InputEvent
     int type;                                                 ///< InputTypes enum value
     std::variant<std::string, glm::vec2, glm::vec3> input;   ///< Event data (key name, 2D position, or 3D click data)
     ///< vec3 format for clicks: (x, y, button) where button: 0=left, 1=right, 2=middle
+    int mods = 0;                                             ///< Keyboard modifiers (GLFW_MOD_CONTROL, GLFW_MOD_SHIFT, etc.)
 };
 
 /**
@@ -90,10 +91,28 @@ public:
      */
     glm::vec2 GetSize();
 
+    /**
+     * @brief Register C++ input handler (called before Lua handlers)
+     * @param handler Callback that returns true to consume event
+     * @return Handler ID for later unregistration
+     * @note Handlers are called in registration order. First handler to return true consumes the event.
+     */
+    size_t RegisterInputHandler(std::function<bool(const InputEvent&)> handler);
+
+    /**
+     * @brief Unregister input handler by ID
+     * @param id Handler ID returned from RegisterInputHandler
+     */
+    void UnregisterInputHandler(size_t id);
+
     GLFWwindow *window;  ///< GLFW window handle (public for renderer access)
 
 private:
     WindowManager(){};
+
+    /// Registered C++ input handlers (called before Lua)
+    std::vector<std::pair<size_t, std::function<bool(const InputEvent&)>>> m_inputHandlers;
+    size_t m_nextHandlerId = 0;
 
     /// GLFW keyboard callback (dispatches to ScriptManager)
     static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);

@@ -237,6 +237,21 @@ glm::vec2 WindowManager::GetSize()
     return glm::vec2(width, height);
 }
 
+size_t WindowManager::RegisterInputHandler(std::function<bool(const InputEvent&)> handler)
+{
+    size_t id = m_nextHandlerId++;
+    m_inputHandlers.emplace_back(id, handler);
+    return id;
+}
+
+void WindowManager::UnregisterInputHandler(size_t id)
+{
+    m_inputHandlers.erase(
+        std::remove_if(m_inputHandlers.begin(), m_inputHandlers.end(),
+            [id](const auto& pair) { return pair.first == id; }),
+        m_inputHandlers.end());
+}
+
 // Input handling is done via Lua
 #define APPEND_EVENT() sm.AddToTable(EVENT_QUEUE, event);
 
@@ -244,11 +259,21 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
 {
     if (action == GLFW_PRESS || action == GLFW_REPEAT)
     {
-        ScriptManager &sm = ScriptManager::GetInstance();
         InputEvent event;
         event.type = InputTypes::Key;
         event.input = GLFW_KEY(key);
+        event.mods = mods;
 
+        // Try C++ handlers first (for editor shortcuts, etc.)
+        WindowManager& wm = GetInstance();
+        for (auto& [id, handler] : wm.m_inputHandlers) {
+            if (handler(event)) {
+                return;  // Event consumed by C++ handler
+            }
+        }
+
+        // Fall through to Lua
+        ScriptManager &sm = ScriptManager::GetInstance();
         APPEND_EVENT()
     }
 }
@@ -262,11 +287,21 @@ void WindowManager::click_callback(GLFWwindow *window, int button, int action, i
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
 
-    ScriptManager &sm = ScriptManager::GetInstance();
     InputEvent event;
     event.type = InputTypes::Click;
-    event.input = glm::vec3(xpos, ypos, button);  // (x, y, button: 0=left, 1=right, 2=middle)
+    event.input = glm::vec3(xpos, ypos, button);
+    event.mods = mods;
 
+    // Try C++ handlers first (for editor gizmos, viewport clicks, etc.)
+    WindowManager& wm = GetInstance();
+    for (auto& [id, handler] : wm.m_inputHandlers) {
+        if (handler(event)) {
+            return;  // Event consumed by C++ handler
+        }
+    }
+
+    // Fall through to Lua
+    ScriptManager &sm = ScriptManager::GetInstance();
     APPEND_EVENT()
 }
 

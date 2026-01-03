@@ -51,6 +51,40 @@ EntityID Registry::GetEntityByName(const std::string &name)
     }
 }
 
+const std::string& Registry::GetEntityName(EntityID id) const
+{
+    static const std::string empty = "";
+    if (id < entityNames.size())
+    {
+        return entityNames[id];
+    }
+    return empty;
+}
+
+void Registry::SetEntityName(EntityID id, const std::string& name)
+{
+    if (id < entityNames.size())
+    {
+        entityNames[id] = name;
+    }
+}
+
+size_t Registry::GetEntityCount() const
+{
+    return entityNames.size();
+}
+
+std::vector<EntityID> Registry::GetAllEntities() const
+{
+    std::vector<EntityID> ids;
+    ids.reserve(entityNames.size());
+    for (size_t i = 0; i < entityNames.size(); i++)
+    {
+        ids.push_back(i);
+    }
+    return ids;
+}
+
 template <>
 SparseSet<HierarchyComponent> &Registry::GetComponentSet<HierarchyComponent>()
 {
