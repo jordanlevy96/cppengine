@@ -1,6 +1,7 @@
 -- TetrisConstants
 --
 -- Configuration constants for Tetris game
+-- TODO: Better data management for scene data
 
 --[[
 ================================================================================

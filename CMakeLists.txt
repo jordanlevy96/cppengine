@@ -4,7 +4,8 @@ project(imhotep)
 
 add_library(core SHARED
     "src/Camera.cpp"
-    "src/controllers/App.cpp"
+    "src/controllers/EngineCore.cpp"
+    "src/controllers/Game.cpp"
     "src/controllers/Registry.cpp"
     "src/controllers/ResourceManager.cpp"
     "src/controllers/ScriptManager.cpp"
@@ -18,6 +19,7 @@ add_library(core SHARED
     "src/systems/ReactiveUI.cpp"
     "src/systems/LuaUIState.cpp"
     "src/systems/TemplateParser.cpp"
+    "src/util/ConfigLoader.cpp"
     "src/util/Logger.cpp"
     "src/util/Mesh.cpp"
     "src/util/SceneTraversal.cpp"
@@ -181,6 +183,7 @@ target_link_libraries(imhotep PRIVATE core)
 add_executable(imhotep-editor
     "src/editor/main.cpp"
     "src/editor/Editor.cpp"
+    "src/editor/SceneViewport.cpp"
 )
 target_link_libraries(imhotep-editor PRIVATE core)
 target_include_directories(imhotep-editor PRIVATE ${core_INCLUDE_DIRS})

@@ -9,52 +9,56 @@
 #include "quill/Logger.h"
 #include <string>
 
-namespace imhotep {
-
-/**
- * @brief Singleton logger manager wrapping Quill logging library
- *
- * Provides thread-safe async logging with ~12-16μs latency.
- * Automatically initialized on first use. Outputs to both console and file.
- *
- * @note Use LOG_* macros instead of calling GetLogger() directly
- */
-class Logger {
-public:
-    /**
-     * @brief Get singleton instance
-     * @return Reference to Logger singleton
-     */
-    static Logger& GetInstance();
+namespace imhotep
+{
 
     /**
-     * @brief Initialize logging system
-     * @param log_file Path to log file (default: logs/imhotep.log)
-     * @note Safe to call multiple times, only initializes once
+     * @brief Singleton logger manager wrapping Quill logging library
+     *
+     * Provides thread-safe async logging with ~12-16μs latency.
+     * Automatically initialized on first use. Outputs to both console and file.
+     *
+     * @note Use LOG_* macros instead of calling GetLogger() directly
      */
-    void Initialize(const std::string& log_file = "logs/imhotep.log");
+    class Logger
+    {
+    public:
+        /**
+         * @brief Get singleton instance
+         * @return Reference to Logger singleton
+         */
+        static Logger &GetInstance();
 
-    /**
-     * @brief Get underlying Quill logger instance
-     * @return Pointer to Quill logger (nullptr if not initialized)
-     */
-    quill::Logger* GetLogger();
+        /**
+         * @brief Initialize logging system
+         * @param log_file Path to log file (default: logs/imhotep.log)
+         * @note Safe to call multiple times, only initializes once
+         * @note Must be called before any LOG_* macros
+         * @return True if successful
+         */
+        bool Initialize(const std::string &log_file = "logs/imhotep.log");
 
-    /**
-     * @brief Shutdown logging system and flush all logs
-     */
-    void Shutdown();
+        /**
+         * @brief Get underlying Quill logger instance
+         * @return Pointer to Quill logger (nullptr if not initialized)
+         */
+        quill::Logger *GetLogger();
 
-private:
-    Logger() = default;
-    ~Logger() { Shutdown(); }
+        /**
+         * @brief Shutdown logging system and flush all logs
+         */
+        void Shutdown();
 
-    Logger(const Logger&) = delete;
-    Logger& operator=(const Logger&) = delete;
+    private:
+        Logger() = default;
+        ~Logger() { Shutdown(); }
 
-    quill::Logger* m_logger = nullptr;      ///< Underlying Quill logger instance
-    bool m_initialized = false;             ///< Initialization flag
-};
+        Logger(const Logger &) = delete;
+        Logger &operator=(const Logger &) = delete;
+
+        quill::Logger *m_logger = nullptr; ///< Underlying Quill logger instance
+        bool m_initialized = false;        ///< Initialization flag
+    };
 
 } // namespace imhotep
 

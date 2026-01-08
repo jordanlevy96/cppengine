@@ -1,4 +1,4 @@
-GameManager = App:GetInstance()
+GameManager = Game:GetInstance()
 RES_PATH = GameManager.conf.resPath;
 CameraRotateFlag = false
 GameStarted = false  -- Controls whether Tetris game has started
@@ -9,6 +9,7 @@ Rotations = {
     CCW = 1
 }
 
+-- TODO: Generalize import of game modules
 -- Load Tetris modules (order matters: constants -> data -> classes)
 TetrisConstants = dofile(RES_PATH .. "scripts/TetrisConstants.lua")
 TetriminoData = dofile(RES_PATH .. "scripts/TetriminoData.lua")

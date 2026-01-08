@@ -145,7 +145,10 @@ std::string TemplateParser::SerializeElement(GumboNode* node, LuaUIState& state)
 
         oss << " " << attr->name;
         if (attr->value && strlen(attr->value) > 0) {
-            oss << "=\"" << attr->value << "\"";
+            // Process interpolations in attribute values
+            std::string attrValue(attr->value);
+            std::string processedValue = ProcessInterpolations(attrValue, state);
+            oss << "=\"" << processedValue << "\"";
         }
     }
 
@@ -225,7 +228,10 @@ std::string TemplateParser::SerializeElementForIteration(GumboNode* node, LuaUIS
 
         oss << " " << attr->name;
         if (attr->value && strlen(attr->value) > 0) {
-            oss << "=\"" << attr->value << "\"";
+            // Process iteration interpolations in attribute values
+            std::string attrValue(attr->value);
+            std::string processedValue = ProcessIterationInterpolations(attrValue, itemVar, item);
+            oss << "=\"" << processedValue << "\"";
         }
     }
 

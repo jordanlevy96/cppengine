@@ -1,12 +1,12 @@
-#include <controllers/App.h>
+#include <controllers/Game.h>
 
 int main()
 {
-    App &app = App::GetInstance();
+    Game &game = Game::GetInstance();
 
-    app.Initialize();
-    app.Run();
-    app.Shutdown();
+    game.Initialize();
+    game.Run();
+    game.Shutdown();
 
     return 0;
 }

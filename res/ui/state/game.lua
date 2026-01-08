@@ -1,4 +1,4 @@
--- UI State for FPS Display
+-- UI State for Game
 -- This file returns a table with reactive data that drives the UI template
 -- Values can be updated from C++ using luaState->SetValue("data.fps", 120)
 

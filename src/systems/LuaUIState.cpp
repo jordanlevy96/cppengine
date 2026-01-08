@@ -124,8 +124,12 @@ bool LuaUIState::EvaluateCondition(const std::string& expression) {
 
 std::string LuaUIState::EvaluateAsString(const std::string& expression) {
     if (!m_isReady || !m_lua) {
+        LOG_WARNING("[LuaUIState] Cannot evaluate '{}': state not ready", expression);
         return "";
     }
+
+    static bool loggedViewportImage = false;
+    bool isViewportImage = (expression == "viewportImage");
 
     try {
         // Create a Lua function that evaluates the expression
@@ -135,7 +139,7 @@ std::string LuaUIState::EvaluateAsString(const std::string& expression) {
         sol::load_result loadResult = m_lua->load(luaCode);
         if (!loadResult.valid()) {
             sol::error err = loadResult;
-            LOG_ERROR("[LuaUIState] Failed to load expression: {}", err.what());
+            LOG_ERROR("[LuaUIState] Failed to load expression '{}': {}", expression, err.what());
             return "";
         }
 
@@ -149,7 +153,7 @@ std::string LuaUIState::EvaluateAsString(const std::string& expression) {
 
         if (!result.valid()) {
             sol::error err = result;
-            LOG_ERROR("[LuaUIState] Failed to evaluate expression: {}", err.what());
+            LOG_ERROR("[LuaUIState] Failed to evaluate expression '{}': {}", expression, err.what());
             return "";
         }
 
@@ -157,7 +161,12 @@ std::string LuaUIState::EvaluateAsString(const std::string& expression) {
         sol::object obj = result[0];
 
         if (obj.is<std::string>()) {
-            return obj.as<std::string>();
+            std::string value = obj.as<std::string>();
+            if (isViewportImage && !loggedViewportImage) {
+                LOG_INFO("[LuaUIState] ✓ Successfully evaluated 'viewportImage': {} bytes", value.size());
+                loggedViewportImage = true;
+            }
+            return value;
         } else if (obj.is<int>()) {
             return std::to_string(obj.as<int>());
         } else if (obj.is<double>()) {
@@ -165,6 +174,9 @@ std::string LuaUIState::EvaluateAsString(const std::string& expression) {
         } else if (obj.is<bool>()) {
             return obj.as<bool>() ? "true" : "false";
         } else if (!obj.valid() || obj.get_type() == sol::type::lua_nil) {
+            if (isViewportImage) {
+                LOG_ERROR("[LuaUIState] 'viewportImage' evaluates to nil!");
+            }
             return "";
         }
 
@@ -172,7 +184,7 @@ std::string LuaUIState::EvaluateAsString(const std::string& expression) {
         return "<object>";
     }
     catch (const std::exception& e) {
-        LOG_ERROR("[LuaUIState] Exception evaluating as string: {}", e.what());
+        LOG_ERROR("[LuaUIState] Exception evaluating '{}' as string: {}", expression, e.what());
         return "";
     }
 }

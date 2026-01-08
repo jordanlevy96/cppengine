@@ -162,7 +162,6 @@ bool WindowManager::Initialize(int const width, int const height)
     glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
 #endif
 
-
     if (!glfwInit())
     {
         std::cerr << "Failed to initialize GLFW" << std::endl;
@@ -237,7 +236,7 @@ glm::vec2 WindowManager::GetSize()
     return glm::vec2(width, height);
 }
 
-size_t WindowManager::RegisterInputHandler(std::function<bool(const InputEvent&)> handler)
+size_t WindowManager::RegisterInputHandler(std::function<bool(const InputEvent &)> handler)
 {
     size_t id = m_nextHandlerId++;
     m_inputHandlers.emplace_back(id, handler);
@@ -248,7 +247,8 @@ void WindowManager::UnregisterInputHandler(size_t id)
 {
     m_inputHandlers.erase(
         std::remove_if(m_inputHandlers.begin(), m_inputHandlers.end(),
-            [id](const auto& pair) { return pair.first == id; }),
+                       [id](const auto &pair)
+                       { return pair.first == id; }),
         m_inputHandlers.end());
 }
 
@@ -265,10 +265,12 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
         event.mods = mods;
 
         // Try C++ handlers first (for editor shortcuts, etc.)
-        WindowManager& wm = GetInstance();
-        for (auto& [id, handler] : wm.m_inputHandlers) {
-            if (handler(event)) {
-                return;  // Event consumed by C++ handler
+        WindowManager &wm = GetInstance();
+        for (auto &[id, handler] : wm.m_inputHandlers)
+        {
+            if (handler(event))
+            {
+                return; // Event consumed by C++ handler
             }
         }
 
@@ -281,7 +283,8 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
 void WindowManager::click_callback(GLFWwindow *window, int button, int action, int mods)
 {
     // Only handle button press events (not release)
-    if (action != GLFW_PRESS) return;
+    if (action != GLFW_PRESS)
+        return;
 
     // Get cursor position at time of click
     double xpos, ypos;
@@ -293,10 +296,12 @@ void WindowManager::click_callback(GLFWwindow *window, int button, int action, i
     event.mods = mods;
 
     // Try C++ handlers first (for editor gizmos, viewport clicks, etc.)
-    WindowManager& wm = GetInstance();
-    for (auto& [id, handler] : wm.m_inputHandlers) {
-        if (handler(event)) {
-            return;  // Event consumed by C++ handler
+    WindowManager &wm = GetInstance();
+    for (auto &[id, handler] : wm.m_inputHandlers)
+    {
+        if (handler(event))
+        {
+            return; // Event consumed by C++ handler
         }
     }
 

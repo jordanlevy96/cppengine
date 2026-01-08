@@ -1,5 +1,5 @@
 #include "Camera.h"
-#include "controllers/App.h"
+#include "controllers/Game.h"
 #include "controllers/Registry.h"
 #include "controllers/ScriptManager.h"
 #include "util/Uniform.h"
@@ -34,49 +34,67 @@ void ScriptManager::CreateList(const std::string &key)
 
 void ScriptManager::ProcessInput()
 {
-    App& app = App::GetInstance();
-    GLFWwindow* window = WindowManager::GetInstance().window;
+    Game &game = Game::GetInstance();
+    GLFWwindow *window = WindowManager::GetInstance().window;
 
     // Static variables for key debouncing
     static bool speedKeyPressed = false;
 
     // Speed controls (only in VARIABLE mode)
-    if (app.GetGameMode() == GameMode::VARIABLE) {
+    if (game.GetGameMode() == GameMode::VARIABLE)
+    {
         bool anySpeedKeyPressed = false;
 
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            if (!speedKeyPressed) {
-                app.SetSimulationSpeed(SimulationSpeed::PAUSED);
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        {
+            if (!speedKeyPressed)
+            {
+                game.SetSimulationSpeed(SimulationSpeed::PAUSED);
                 std::cout << "[Speed] PAUSED" << std::endl;
             }
             anySpeedKeyPressed = true;
-        } else if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
-            if (!speedKeyPressed) {
-                app.SetSimulationSpeed(SimulationSpeed::NORMAL);
+        }
+        else if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+        {
+            if (!speedKeyPressed)
+            {
+                game.SetSimulationSpeed(SimulationSpeed::NORMAL);
                 std::cout << "[Speed] NORMAL (1x)" << std::endl;
             }
             anySpeedKeyPressed = true;
-        } else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
-            if (!speedKeyPressed) {
-                app.SetSimulationSpeed(SimulationSpeed::FAST);
+        }
+        else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+        {
+            if (!speedKeyPressed)
+            {
+                game.SetSimulationSpeed(SimulationSpeed::FAST);
                 std::cout << "[Speed] FAST (2x)" << std::endl;
             }
             anySpeedKeyPressed = true;
-        } else if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
-            if (!speedKeyPressed) {
-                app.SetSimulationSpeed(SimulationSpeed::FASTER);
+        }
+        else if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+        {
+            if (!speedKeyPressed)
+            {
+                game.SetSimulationSpeed(SimulationSpeed::FASTER);
                 std::cout << "[Speed] FASTER (3x)" << std::endl;
             }
             anySpeedKeyPressed = true;
-        } else if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
-            if (!speedKeyPressed) {
-                app.SetSimulationSpeed(SimulationSpeed::FASTEST);
+        }
+        else if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
+        {
+            if (!speedKeyPressed)
+            {
+                game.SetSimulationSpeed(SimulationSpeed::FASTEST);
                 std::cout << "[Speed] FASTEST (5x)" << std::endl;
             }
             anySpeedKeyPressed = true;
-        } else if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS) {
-            if (!speedKeyPressed) {
-                app.SetSimulationSpeed(SimulationSpeed::UNCAPPED);
+        }
+        else if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
+        {
+            if (!speedKeyPressed)
+            {
+                game.SetSimulationSpeed(SimulationSpeed::UNCAPPED);
                 std::cout << "[Speed] UNCAPPED (MAX)" << std::endl;
             }
             anySpeedKeyPressed = true;
@@ -145,6 +163,7 @@ namespace LuaBindings
                                 "elapsed", &Tween::elapsed,
                                 "isActive", &Tween::isActive);
 
+        // The camera should be constructed before initializing Lua
         lua.new_usertype<Camera>("Camera",
                                  "transform", &Camera::transform,
                                  "fov", &Camera::fov,
@@ -154,17 +173,17 @@ namespace LuaBindings
                                  "Move", &Camera::Move,
                                  "RotateByMouse", &Camera::RotateByMouse);
 
-        lua.new_usertype<App>("App",
-                              "GetInstance", &App::GetInstance,
-                              "delta", &App::delta,
-                              "registry", &App::registry,
-                              "camera", &App::cam,
-                              "conf", &App::conf,
-                              "window", &App::windowManager,
-                              "htmlRenderer", &App::htmlRenderer,
-                              "StartGame", &App::StartGame,
-                              "ResetGame", &App::ResetGame,
-                              "ReturnToMainMenu", &App::ReturnToMainMenu);
+        lua.new_usertype<Game>("Game",
+                               "GetInstance", &Game::GetInstance,
+                               "delta", &Game::delta,
+                               "registry", &Game::registry,
+                               "camera", &Game::cam,
+                               "conf", &Game::conf,
+                               "window", &Game::windowManager,
+                               "htmlRenderer", &Game::htmlRenderer,
+                               "StartGame", &Game::StartGame,
+                               "ResetGame", &Game::ResetGame,
+                               "ReturnToMainMenu", &Game::ReturnToMainMenu);
 
         lua.new_usertype<HTMLRendererMT>("HTMLRendererMT",
                                          "HandleClickEvent", &HTMLRendererMT::HandleClickEvent,
@@ -198,7 +217,8 @@ namespace LuaBindings
         // ====================================================================
 
         // UI State Update
-        lua.set_function("UpdateGameUI", [](int score, int lines, int level, const std::string& nextPiece) {
+        lua.set_function("UpdateGameUI", [](int score, int lines, int level, const std::string &nextPiece)
+                         {
             ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
             auto luaState = reactiveUI.GetLuaState();
             if (luaState) {
@@ -206,10 +226,10 @@ namespace LuaBindings
                 luaState->SetValue("data.lines", lines);
                 luaState->SetValue("data.level", level);
                 luaState->SetValue("data.nextPiece", nextPiece);
-            }
-        });
+            } });
 
-        lua.set_function("UpdateGameOver", [](int finalScore) {
+        lua.set_function("UpdateGameOver", [](int finalScore)
+                         {
             std::cout << "GAME OVER - Final Score: " << finalScore << std::endl;
             ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
             auto luaState = reactiveUI.GetLuaState();
@@ -217,61 +237,56 @@ namespace LuaBindings
             if (luaState) {
                 luaState->SetValue("data.gameOver", true);
                 luaState->SetValue("data.finalScore", finalScore);
-            }
-        });
+            } });
 
         // Entity Management
         lua.set_function("RegisterEntity", sol::overload(
-            []() { return Registry::GetInstance().RegisterEntity(); },
-            [](EntityID parent) { return Registry::GetInstance().RegisterEntity(parent); }
-        ));
+                                               []()
+                                               { return Registry::GetInstance().RegisterEntity(); },
+                                               [](EntityID parent)
+                                               { return Registry::GetInstance().RegisterEntity(parent); }));
 
-        lua.set_function("DestroyEntity", [](EntityID id) {
-            Registry::GetInstance().DestroyEntity(id);
-        });
+        lua.set_function("DestroyEntity", [](EntityID id)
+                         { Registry::GetInstance().DestroyEntity(id); });
 
         // Hierarchy Operations
         lua.set_function("AddChild", &AddChild);
         lua.set_function("GetParent", &GetParent);
 
         // Component Access
-        lua.set_function("GetTransform", [](EntityID id) -> Transform& {
-            return Registry::GetInstance().GetComponent<Transform>(id);
-        });
+        lua.set_function("GetTransform", [](EntityID id) -> Transform &
+                         { return Registry::GetInstance().GetComponent<Transform>(id); });
 
-        lua.set_function("GetTween", [](EntityID id) -> Tween& {
-            return Registry::GetInstance().GetComponent<Tween>(id);
-        });
+        lua.set_function("GetTween", [](EntityID id) -> Tween &
+                         { return Registry::GetInstance().GetComponent<Tween>(id); });
 
         // Component Registration
-        lua.set_function("RegisterRenderComponent", [](EntityID id, std::shared_ptr<RenderComponent> rc) {
-            Registry::GetInstance().RegisterComponent<RenderComponent>(id, *rc);
-        });
+        lua.set_function("RegisterRenderComponent", [](EntityID id, std::shared_ptr<RenderComponent> rc)
+                         { Registry::GetInstance().RegisterComponent<RenderComponent>(id, *rc); });
 
-        lua.set_function("RegisterLighting", [](EntityID id, EntityID lightID) {
+        lua.set_function("RegisterLighting", [](EntityID id, EntityID lightID)
+                         {
             Lighting lightComp = Lighting(lightID);
-            Registry::GetInstance().RegisterComponent<Lighting>(id, lightComp);
-        });
+            Registry::GetInstance().RegisterComponent<Lighting>(id, lightComp); });
 
         // Transform Operations
         lua.set_function("TranslateEntity", &TransformUtils::translate);
         lua.set_function("RotateEntity", &TransformUtils::rotate);
 
         // Tween Component Creation (creates tween with C++ move_to function)
-        lua.set_function("CreateTweenComponent", [](EntityID id, float duration) {
+        lua.set_function("CreateTweenComponent", [](EntityID id, float duration)
+                         {
             Transform& transform = Registry::GetInstance().GetComponent<Transform>(id);
             Tween tween = Tween(&TransformUtils::move_to,
                                transform.Pos,
                                transform.Pos + glm::vec3(0, -2, 0),
                                duration,
                                TransitionType::TRANS_LINEAR);
-            Registry::GetInstance().RegisterComponent<Tween>(id, tween);
-        });
+            Registry::GetInstance().RegisterComponent<Tween>(id, tween); });
 
         // Utility
-        lua.set_function("GetEntityByName", [](const std::string& name) -> EntityID {
-            return Registry::GetInstance().GetEntityByName(name);
-        });
+        lua.set_function("GetEntityByName", [](const std::string &name) -> EntityID
+                         { return Registry::GetInstance().GetEntityByName(name); });
     }
 }
 
@@ -307,13 +322,14 @@ void ScriptManager::Initialize()
     LuaBindings::RegisterFunctions(lua);
     lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math);
     CreateList(EVENT_QUEUE);
-    Run(App::GetInstance().conf.ResourcePath + "scripts/init.lua");
+
+    Run(Game::GetInstance().conf.ResourcePath + "scripts/init.lua");
 
     // Initialize Python
     guard = std::make_unique<py::scoped_interpreter>();
     std::cout << "Python: Running init.py" << std::endl;
 
-    std::ifstream file(App::GetInstance().conf.ResourcePath + "scripts/init.py");
+    std::ifstream file(Game::GetInstance().conf.ResourcePath + "scripts/init.py");
     if (!file.is_open())
     {
         throw std::runtime_error("Could not open Python init script");

@@ -1,4 +1,4 @@
-#include "controllers/App.h"
+#include "controllers/Game.h"
 #include "controllers/Registry.h"
 #include "controllers/ScriptManager.h"
 
@@ -123,7 +123,7 @@ SparseSet<Tween> &Registry::GetComponentSet<Tween>()
 
 bool Registry::LoadScene(const std::string &src)
 {
-    const std::string &res = App::GetInstance().conf.ResourcePath;
+    const std::string &res = Game::GetInstance().conf.ResourcePath;
     try
     {
         YAML::Node yaml = YAML::LoadFile(res + src);
@@ -257,7 +257,7 @@ void Registry::AttachScript(EntityID entityId, const std::string &name, py::obje
 
 std::shared_ptr<RenderComponent> Registry::CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
 {
-    const std::string &res = App::GetInstance().conf.ResourcePath;
+    const std::string &res = Game::GetInstance().conf.ResourcePath;
     std::string shaderPath = (res) + "shaders/" + shaderSrc;
     std::string meshPath = (res) + "models/" + meshSrc;
 

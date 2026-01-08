@@ -1,110 +1,45 @@
-#include "controllers/App.h"
+/**
+ * @file Game.cpp
+ * @brief Main game implementation using EngineCore for common initialization
+ */
 
+#include "controllers/Game.h"
+#include "controllers/EngineCore.h"
 #include "systems/RenderSystem.h"
 #include "systems/ScriptSystem.h"
 #include "systems/TweenSystem.h"
-#include "systems/ReactiveUI.h"
-#include "systems/LuaUIState.h"
-
 #include "util/TransformUtils.h"
 #include "util/Logger.h"
-
+#include "util/ConfigLoader.h"
 #include <fstream>
 #include <chrono>
 #include <thread>
 #include <cmath>
 
-bool App::Initialize()
+bool Game::Initialize()
 {
-    const char *defaultSettingsPath = "../res/conf/settings.yaml";
-    const char *userSettingsPath = std::getenv("USER_SETTINGS_PATH");
+    std::cout << "[Game] Starting initialization..." << std::endl;
 
-    std::string settingsPath = userSettingsPath ? userSettingsPath : defaultSettingsPath;
-    LoadConfig(settingsPath);
-
-    // Initialize logging system first
-    imhotep::Logger::GetInstance().Initialize("logs/imhotep.log");
-    LOG_INFO("=== Imhotep starting ===");
-    LOG_INFO("Loaded config from {}", settingsPath);
-
-    windowManager = &WindowManager::GetInstance();
-    if (!windowManager->Initialize(conf.WindowWidth, conf.WindowHeight))
+    // Load config and initialize EngineCore
+    if (!m_core.Initialize("../res/conf/settings.yaml", conf, &cam))
     {
-        LOG_ERROR("Window Manager initialization failed");
-        return false;
-    }
-    LOG_INFO("Window Manager initialized: {}x{}", conf.WindowWidth, conf.WindowHeight);
-
-    // ui = &UI::GetInstance();
-    // ui->Initialize(windowManager->window);
-
-    htmlRenderer = &HTMLRendererMT::GetInstance();
-    htmlRenderer->Initialize(windowManager->window, conf.WindowWidth, conf.WindowHeight);
-
-    stbi_set_flip_vertically_on_load(true);
-
-    cam = new Camera(conf.WindowWidth, conf.WindowHeight);
-
-    glEnable(GL_DEPTH_TEST);
-    glFrontFace(GL_CW);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    registry = &Registry::GetInstance();
-
-    // Scripting must be initialized last before the scene
-    // as it needs references to the other controllers
-    scriptManager = &ScriptManager::GetInstance();
-    scriptManager->Initialize();
-
-    // Tetris::LoadTetriminos(conf.ResourcePath + "conf/tetriminos.yaml");
-
-    // Scene is loaded last
-    registry->LoadScene("scenes/MainScene.yaml");
-
-    // Initialize Lua-based reactive UI system
-    ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
-
-    // Create Lua UI state and load state file
-    auto luaState = std::make_shared<LuaUIState>();
-    if (!luaState->LoadStateFile("../res/ui/state/fps.lua"))
-    {
-        LOG_ERROR("Failed to load UI state file");
         return false;
     }
 
-    // Bind Lua state to ReactiveUI
-    reactiveUI.BindLuaState(luaState);
-
-    // Load UI template from files
-    // TODO: set up file references in scene
-    std::string uiTemplate = ReactiveUI::LoadTemplateFromFiles(
-        "../res/ui/templates/tetris.html",
-        "../res/ui/styles/tetris.css");
-
-    if (uiTemplate.empty())
-    {
-        LOG_ERROR("Failed to load UI template files");
-        return false;
-    }
-
-    reactiveUI.RegisterTemplateWithDirectives("ui_template", uiTemplate);
-
-    // CRITICAL: Set event handlers BEFORE loading HTML to avoid race condition
-    // The render thread needs handlers available when it calls ExtractInteractiveElements()
-    htmlRenderer->SetEventHandlers(reactiveUI.GetEventHandlers());
-    LOG_INFO("Set {} event handlers before HTML render",
-             reactiveUI.GetEventHandlers().size());
-
-    // Now load HTML - render thread will extract elements with correct handlers
-    htmlRenderer->LoadHTML(reactiveUI.GetRenderedHTML());
+    // Get references to subsystems
+    windowManager = m_core.GetWindowManager();
+    htmlRenderer = m_core.GetHTMLRenderer();
+    registry = m_core.GetRegistry();
+    scriptManager = m_core.GetScriptManager();
 
     // Initialize FPS tracking
     m_fpsUpdateTime = std::chrono::high_resolution_clock::now();
 
+    LOG_INFO("Game initialization complete");
     return true;
 }
 
-float App::GetSimulationMultiplier() const
+float Game::GetSimulationMultiplier() const
 {
     switch (m_simSpeed)
     {
@@ -127,7 +62,7 @@ float App::GetSimulationMultiplier() const
     }
 }
 
-void App::Run()
+void Game::Run()
 {
     LOG_INFO("Starting main loop in {} mode", m_gameMode == GameMode::FIXED ? "FIXED" : "VARIABLE");
 
@@ -141,7 +76,7 @@ void App::Run()
     }
 }
 
-void App::RunFixedLoop()
+void Game::RunFixedLoop()
 {
     double frameTime = 1000.0 / conf.targetFPS; // 16.67ms for 60 FPS
     double accumulator = 0.0;
@@ -151,8 +86,11 @@ void App::RunFixedLoop()
 
     auto prevTime = std::chrono::high_resolution_clock::now();
 
-    while (!glfwWindowShouldClose(windowManager->window))
+    while (!m_core.ShouldClose())
     {
+        // CRITICAL: Poll events first so window appears and responds
+        glfwPollEvents();
+
         auto currTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(
                     currTime - prevTime)
@@ -174,8 +112,7 @@ void App::RunFixedLoop()
         // Render every frame (coupled to game logic)
         Render();
 
-        glfwSwapBuffers(windowManager->window); // VSync blocks here
-        glfwPollEvents();
+        m_core.EndFrame();
 
         TrackFPS();
     }
@@ -183,7 +120,7 @@ void App::RunFixedLoop()
     LOG_INFO("Exited main loop");
 }
 
-void App::RunVariableLoop()
+void Game::RunVariableLoop()
 {
     double simFrameTime = 1000.0 / 60.0; // 16.67ms base tick
     double renderFrameTime = 1000.0 / conf.targetFPS;
@@ -195,7 +132,7 @@ void App::RunVariableLoop()
 
     auto prevTime = std::chrono::high_resolution_clock::now();
 
-    while (!glfwWindowShouldClose(windowManager->window))
+    while (!m_core.ShouldClose())
     {
         auto currTime = std::chrono::high_resolution_clock::now();
         delta = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -241,7 +178,7 @@ void App::RunVariableLoop()
 
             Render();
 
-            glfwSwapBuffers(windowManager->window);
+            m_core.EndFrame();
             TrackFPS();
         }
 
@@ -261,7 +198,7 @@ void App::RunVariableLoop()
     LOG_INFO("Exited main loop");
 }
 
-void App::Render()
+void Game::Render()
 {
     // Ensure window scaling is up to date
     int width, height;
@@ -279,8 +216,8 @@ void App::Render()
     htmlRenderer->Render();
 }
 
-// TODO: move as much as possible into Lua -- game-specific logic should not exist in C++
-void App::TrackFPS()
+// TODO: move into Lua -- game-specific logic should not (have to) exist in C++
+void Game::TrackFPS()
 {
     m_frameCount++;
     auto now = std::chrono::high_resolution_clock::now();
@@ -294,8 +231,6 @@ void App::TrackFPS()
     {
         int currentFPS = (int)(m_frameCount / (m_fpsTime / 1000.0));
         double currentFrameTime = m_fpsTime / m_frameCount;
-
-        // LOG_DEBUG("FPS: {} (frame time: {}ms)", currentFPS, currentFrameTime);
 
         // Get reactive UI and Lua state
         ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
@@ -359,7 +294,7 @@ void App::TrackFPS()
     }
 }
 
-void App::StartGame()
+void Game::StartGame()
 {
     LOG_INFO("Game started");
 
@@ -383,7 +318,7 @@ void App::StartGame()
     }
 }
 
-void App::ResetGame()
+void Game::ResetGame()
 {
     LOG_INFO("Restarting game");
 
@@ -405,7 +340,7 @@ void App::ResetGame()
     }
 }
 
-void App::ReturnToMainMenu()
+void Game::ReturnToMainMenu()
 {
     LOG_INFO("Returning to main menu");
 
@@ -427,52 +362,16 @@ void App::ReturnToMainMenu()
     }
 }
 
-bool App::LoadConfig(const std::string &configPath)
-{
-    YAML::Node config = YAML::LoadFile(configPath);
-
-    if (!config)
-    {
-        LOG_ERROR("Failed to read config from {}", configPath);
-        return false;
-    }
-
-    YAML::Node input = config["input"];
-
-    // FIXME: ???
-    // if (input)
-    // {
-    //     YAML::Node keyMappings = input["keyMappings"];
-    // }
-
-    YAML::Node window = config["window"];
-
-    if (window)
-    {
-        conf.WindowWidth = window["windowWidth"].as<float>();
-        conf.WindowHeight = window["windowHeight"].as<float>();
-        conf.targetFPS = window["targetFPS"].as<float>();
-    }
-
-    // Resource path might not be in settings file
-    if (config["resourcePath"])
-    {
-        conf.ResourcePath = config["resourcePath"].as<std::string>();
-    }
-
-    return true;
-}
-
-void App::CloseWindow()
+void Game::CloseWindow()
 {
     glfwSetWindowShouldClose(windowManager->window, true);
 }
 
-void App::Shutdown()
+void Game::Shutdown()
 {
     LOG_INFO("Shutting down");
     htmlRenderer->Shutdown();
     windowManager->Shutdown();
     scriptManager->Shutdown();
-    delete cam;
+    // Camera is now owned by EngineCore, no need to delete
 }

@@ -7,6 +7,11 @@
 #include <algorithm>
 #include <chrono>
 
+// stb_image for decoding PNGs from data URIs (implementation in Mesh.cpp)
+#include "stb_image.h"
+
+#include <yaml-cpp/binary.h>  // For base64 decoding
+
 // Software rendering document container for litehtml
 class HTMLRendererMT::SoftwareRenderer : public litehtml::document_container
 {
@@ -26,6 +31,14 @@ public:
         int weight;
         int ascent;
         std::map<char, Glyph> glyphs;
+    };
+
+    struct ImageData
+    {
+        int width = 0;
+        int height = 0;
+        int channels = 0;
+        std::vector<uint8_t> pixels;  // RGBA pixels
     };
 
     SoftwareRenderer(FrameBuffer *buffer)
@@ -188,8 +201,7 @@ public:
                         std::memcpy(
                             glyph.bitmap.data() + row * glyph.width,
                             face->glyph->bitmap.buffer + srcRow * pitch,
-                            glyph.width
-                        );
+                            glyph.width);
                     }
                 }
 
@@ -217,7 +229,7 @@ public:
         }
 
         m_fonts[font_id] = fontInfo;
-        m_fontCache[fontKey] = fontInfo;  // Cache for reuse
+        m_fontCache[fontKey] = fontInfo; // Cache for reuse
         return font_id;
     }
 
@@ -343,16 +355,150 @@ public:
 
     void draw_list_marker(litehtml::uint_ptr hdc, const litehtml::list_marker &marker) override {}
 
-    void load_image(const char *src, const char *baseurl, bool redraw_on_ready) override {}
+    void load_image(const char *src, const char *baseurl, bool redraw_on_ready) override
+    {
+        if (!src) return;
+
+        std::string url(src);
+
+        // Check if already loaded
+        if (m_imageCache.find(url) != m_imageCache.end())
+        {
+            return;
+        }
+
+        // Check if it's a data URI
+        if (url.find("data:image/png;base64,") == 0)
+        {
+            // Extract base64 data
+            std::string base64Data = url.substr(22);  // Skip "data:image/png;base64,"
+
+            // Decode base64
+            std::vector<unsigned char> pngData = YAML::DecodeBase64(base64Data);
+
+            if (pngData.empty())
+            {
+                LOG_ERROR("[SoftwareRenderer] Failed to decode base64 data URI");
+                return;
+            }
+
+            // Decode PNG using stb_image
+            int width, height, channels;
+            unsigned char* pixels = stbi_load_from_memory(
+                pngData.data(),
+                pngData.size(),
+                &width,
+                &height,
+                &channels,
+                4  // Force RGBA
+            );
+
+            if (!pixels)
+            {
+                LOG_ERROR("[SoftwareRenderer] Failed to decode PNG from data URI");
+                return;
+            }
+
+            // Store in cache
+            ImageData &imgData = m_imageCache[url];
+            imgData.width = width;
+            imgData.height = height;
+            imgData.channels = 4;
+            imgData.pixels.assign(pixels, pixels + (width * height * 4));
+
+            stbi_image_free(pixels);
+
+            static bool logged = false;
+            if (!logged)
+            {
+                LOG_INFO("[SoftwareRenderer] Loaded image from data URI: {}x{}", width, height);
+                logged = true;
+            }
+        }
+    }
 
     void get_image_size(const char *src, const char *baseurl, litehtml::size &sz) override
     {
-        sz.width = 100;
-        sz.height = 100;
+        if (!src)
+        {
+            sz.width = 0;
+            sz.height = 0;
+            return;
+        }
+
+        std::string url(src);
+        auto it = m_imageCache.find(url);
+        if (it != m_imageCache.end())
+        {
+            sz.width = it->second.width;
+            sz.height = it->second.height;
+        }
+        else
+        {
+            sz.width = 0;
+            sz.height = 0;
+        }
     }
 
     void draw_image(litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
-                    const std::string &url, const std::string &base_url) override {}
+                    const std::string &url, const std::string &base_url) override
+    {
+        auto it = m_imageCache.find(url);
+        if (it == m_imageCache.end())
+        {
+            return;  // Image not loaded
+        }
+
+        const ImageData &img = it->second;
+        if (img.pixels.empty())
+        {
+            return;
+        }
+
+        // Get destination rectangle
+        int dst_x = layer.border_box.x;
+        int dst_y = layer.border_box.y;
+        int dst_w = layer.border_box.width;
+        int dst_h = layer.border_box.height;
+
+        static bool logged = false;
+        if (!logged)
+        {
+            LOG_INFO("[SoftwareRenderer] draw_image: src={}x{}, dst=({},{}) {}x{}",
+                     img.width, img.height, dst_x, dst_y, dst_w, dst_h);
+            logged = true;
+        }
+
+        // Nearest-neighbor scaling
+        float x_ratio = (float)img.width / (float)dst_w;
+        float y_ratio = (float)img.height / (float)dst_h;
+
+        for (int y = 0; y < dst_h; y++)
+        {
+            for (int x = 0; x < dst_w; x++)
+            {
+                // Map destination pixel to source pixel
+                int src_x = (int)(x * x_ratio);
+                int src_y = (int)(y * y_ratio);
+
+                // Clamp to source bounds
+                src_x = std::min(src_x, img.width - 1);
+                src_y = std::min(src_y, img.height - 1);
+
+                int src_idx = (src_y * img.width + src_x) * 4;
+                uint8_t r = img.pixels[src_idx + 0];
+                uint8_t g = img.pixels[src_idx + 1];
+                uint8_t b = img.pixels[src_idx + 2];
+                uint8_t a = img.pixels[src_idx + 3];
+
+                // Draw pixel with alpha blending
+                if (a > 0)
+                {
+                    SetPixel(dst_x + x, dst_y + y, r, g, b, a);
+                }
+            }
+        }
+    }
 
     void draw_solid_fill(litehtml::uint_ptr hdc, const litehtml::background_layer &layer,
                          const litehtml::web_color &color) override
@@ -458,17 +604,19 @@ public:
      * @param eventHandlers Map from TemplateParser (elementId → {eventType → handler})
      * @note Call after document->render() to capture element positions
      */
-    void ExtractInteractiveElements(const std::map<std::string, std::map<std::string, std::string>>& eventHandlers)
+    void ExtractInteractiveElements(const std::map<std::string, std::map<std::string, std::string>> &eventHandlers)
     {
         m_interactiveElements.clear();
 
-        if (!m_document) {
+        if (!m_document)
+        {
             LOG_DEBUG("[SoftwareRenderer] No document to extract elements from");
             return;
         }
 
         auto root = m_document->root();
-        if (!root) {
+        if (!root)
+        {
             LOG_DEBUG("[SoftwareRenderer] No document root");
             return;
         }
@@ -478,9 +626,10 @@ public:
 
         // Sort by z-index (ascending) so we can iterate reverse for hit-testing
         std::sort(m_interactiveElements.begin(), m_interactiveElements.end(),
-            [](const HTMLRendererMT::InteractiveElement& a, const HTMLRendererMT::InteractiveElement& b) {
-                return a.zIndex < b.zIndex;
-            });
+                  [](const HTMLRendererMT::InteractiveElement &a, const HTMLRendererMT::InteractiveElement &b)
+                  {
+                      return a.zIndex < b.zIndex;
+                  });
 
         LOG_DEBUG("[SoftwareRenderer] Extracted {} interactive elements", m_interactiveElements.size());
     }
@@ -489,7 +638,8 @@ public:
      * @brief Get extracted interactive elements
      * @return Vector of interactive elements with bounds and handlers
      */
-    const std::vector<HTMLRendererMT::InteractiveElement>& GetInteractiveElements() const {
+    const std::vector<HTMLRendererMT::InteractiveElement> &GetInteractiveElements() const
+    {
         return m_interactiveElements;
     }
 
@@ -501,17 +651,20 @@ private:
      * @param parentZIndex Parent's z-index (inherited if element has no z-index)
      */
     void TraverseElementForEvents(litehtml::element::ptr elem,
-                                   const std::map<std::string, std::map<std::string, std::string>>& eventHandlers,
-                                   int parentZIndex)
+                                  const std::map<std::string, std::map<std::string, std::string>> &eventHandlers,
+                                  int parentZIndex)
     {
-        if (!elem) return;
+        if (!elem)
+            return;
 
         // Check for data-event-id attribute
-        const char* eventId = elem->get_attr("data-event-id");
-        if (eventId && eventId[0] != '\0') {
+        const char *eventId = elem->get_attr("data-event-id");
+        if (eventId && eventId[0] != '\0')
+        {
             std::string elemIdStr(eventId);
             auto it = eventHandlers.find(elemIdStr);
-            if (it != eventHandlers.end()) {
+            if (it != eventHandlers.end())
+            {
                 // Get element bounds (content box only)
                 auto pos = elem->get_placement();
 
@@ -535,23 +688,50 @@ private:
                 ie.y = pos.y - paddingTop;
                 ie.width = pos.width + paddingLeft + paddingRight;
                 ie.height = pos.height + paddingTop + paddingBottom;
-                ie.handlers = it->second;  // Copy event handler map
+                ie.handlers = it->second; // Copy event handler map
                 ie.zIndex = elemZIndex;
 
                 m_interactiveElements.push_back(ie);
 
                 LOG_TRACE_L1("[SoftwareRenderer] Interactive element: id={}, bounds=({},{},{}x{}), z={}, handlers={}",
-                    ie.id, ie.x, ie.y, ie.width, ie.height, ie.zIndex, ie.handlers.size());
+                             ie.id, ie.x, ie.y, ie.width, ie.height, ie.zIndex, ie.handlers.size());
             }
         }
 
         // Recurse into children (use DOM order for now)
-        for (auto& child : elem->children()) {
+        for (auto &child : elem->children())
+        {
             TraverseElementForEvents(child, eventHandlers, 0);
         }
     }
 
 private:
+    void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+    {
+        // Bounds check
+        if (x < 0 || y < 0 || x >= (int)m_buffer->width || y >= (int)m_buffer->height)
+            return;
+
+        uint8_t *pixel = &m_buffer->pixels[(y * m_buffer->width + x) * 4];
+
+        if (a == 255)
+        {
+            pixel[0] = r;
+            pixel[1] = g;
+            pixel[2] = b;
+            pixel[3] = a;
+        }
+        else
+        {
+            // Alpha blend
+            float alpha = a / 255.0f;
+            pixel[0] = (uint8_t)(r * alpha + pixel[0] * (1.0f - alpha));
+            pixel[1] = (uint8_t)(g * alpha + pixel[1] * (1.0f - alpha));
+            pixel[2] = (uint8_t)(b * alpha + pixel[2] * (1.0f - alpha));
+            pixel[3] = std::max(pixel[3], a);
+        }
+    }
+
     void DrawRect(int x, int y, int width, int height, litehtml::web_color color)
     {
         // Clamp to buffer bounds
@@ -649,8 +829,11 @@ private:
     FT_Library m_ft_library = nullptr;
     std::map<std::string, FT_Face> m_ft_faces;
     std::map<litehtml::uint_ptr, FontInfo> m_fonts;
-    std::map<std::string, FontInfo> m_fontCache;  // Cache fonts by "family_size"
+    std::map<std::string, FontInfo> m_fontCache; // Cache fonts by "family_size"
     litehtml::uint_ptr m_next_font_id = 1;
+
+    // Image cache for data URIs and loaded images
+    std::map<std::string, ImageData> m_imageCache;
 
     // Interactive elements extracted from DOM
     std::vector<HTMLRendererMT::InteractiveElement> m_interactiveElements;
@@ -967,10 +1150,10 @@ void HTMLRendererMT::RenderThreadLoop()
             renderer.RenderHTML(currentHTML);
 
             // Extract interactive elements after rendering
-            LOG_INFO("[RenderThread] Extracting interactive elements with {} handlers", m_eventHandlers.size());
+            // LOG_INFO("[RenderThread] Extracting interactive elements with {} handlers", m_eventHandlers.size());
             renderer.ExtractInteractiveElements(m_eventHandlers);
             m_backInteractiveElements = renderer.GetInteractiveElements();
-            LOG_INFO("[RenderThread] Extracted {} interactive elements", m_backInteractiveElements.size());
+            // LOG_INFO("[RenderThread] Extracted {} interactive elements", m_backInteractiveElements.size());
 
             auto renderEnd = std::chrono::high_resolution_clock::now();
             auto renderDuration = std::chrono::duration_cast<std::chrono::milliseconds>(renderEnd - renderStart).count();
@@ -1014,25 +1197,28 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
     LOG_INFO("[HTMLRendererMT] Click Y: {}", y);
 
     // Hit-test in reverse order (highest z-index first)
-    for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
-        const auto& elem = *it;
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it)
+    {
+        const auto &elem = *it;
         LOG_INFO("[HTMLRendererMT] Testing element '{}': bounds=({},{},{}x{}), handlers={}",
                  elem.id, elem.x, elem.y, elem.width, elem.height, elem.handlers.size());
 
         // Point-in-rectangle test
         if (x >= elem.x && x < elem.x + elem.width &&
-            y >= elem.y && y < elem.y + elem.height) {
+            y >= elem.y && y < elem.y + elem.height)
+        {
             LOG_INFO("[HTMLRendererMT] HIT! Click is inside element bounds");
 
             LOG_INFO("[HTMLRendererMT] Click hit element '{}' at ({}, {}), button={}", elem.id, x, y, button);
 
             // Check if element has a click handler
             auto clickIt = elem.handlers.find("click");
-            if (clickIt != elem.handlers.end()) {
+            if (clickIt != elem.handlers.end())
+            {
                 LOG_DEBUG("[HTMLRendererMT] Dispatching click handler: {}", clickIt->second);
 
                 // Dispatch to ReactiveUI
-                ReactiveUI& ui = ReactiveUI::GetInstance();
+                ReactiveUI &ui = ReactiveUI::GetInstance();
                 ReactiveUI::EventData eventData;
                 eventData.x = x;
                 eventData.y = y;
@@ -1041,13 +1227,13 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
                 eventData.eventType = "click";
                 ui.DispatchEvent("click", clickIt->second, eventData);
 
-                return true;  // Event handled
+                return true; // Event handled
             }
         }
     }
 
     LOG_TRACE_L1("[HTMLRendererMT] Click at ({}, {}) did not hit any interactive element", x, y);
-    return false;  // Event not handled
+    return false; // Event not handled
 }
 
 void HTMLRendererMT::UpdateHoverState(float x, float y)
@@ -1063,36 +1249,43 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
 
     // Hit-test in reverse order (highest z-index first)
     std::string newHoveredElement;
-    for (auto it = elements.rbegin(); it != elements.rend(); ++it) {
-        const auto& elem = *it;
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it)
+    {
+        const auto &elem = *it;
 
         // Point-in-rectangle test
         if (x >= elem.x && x < elem.x + elem.width &&
-            y >= elem.y && y < elem.y + elem.height) {
+            y >= elem.y && y < elem.y + elem.height)
+        {
             LOG_INFO("[HTMLRendererMT] HOVER HIT! Element '{}' at cursor ({}, {}), bounds=({},{},{}x{})",
                      elem.id, x, y, elem.x, elem.y, elem.width, elem.height);
             newHoveredElement = elem.id;
-            break;  // Found topmost element
+            break; // Found topmost element
         }
     }
 
     // Check if hover state changed
-    if (newHoveredElement != m_lastHoveredElement) {
+    if (newHoveredElement != m_lastHoveredElement)
+    {
         // Dispatch mouseout to old element
-        if (!m_lastHoveredElement.empty()) {
+        if (!m_lastHoveredElement.empty())
+        {
             // Find old element
-            for (const auto& elem : elements) {
-                if (elem.id == m_lastHoveredElement) {
+            for (const auto &elem : elements)
+            {
+                if (elem.id == m_lastHoveredElement)
+                {
                     auto mouseoutIt = elem.handlers.find("mouseout");
-                    if (mouseoutIt != elem.handlers.end()) {
+                    if (mouseoutIt != elem.handlers.end())
+                    {
                         LOG_DEBUG("[HTMLRendererMT] Dispatching mouseout: {}", mouseoutIt->second);
 
                         // Dispatch to ReactiveUI
-                        ReactiveUI& ui = ReactiveUI::GetInstance();
+                        ReactiveUI &ui = ReactiveUI::GetInstance();
                         ReactiveUI::EventData eventData;
                         eventData.x = x;
                         eventData.y = y;
-                        eventData.button = -1;  // No button for hover events
+                        eventData.button = -1; // No button for hover events
                         eventData.elemId = elem.id;
                         eventData.eventType = "mouseout";
                         ui.DispatchEvent("mouseout", mouseoutIt->second, eventData);
@@ -1103,20 +1296,24 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
         }
 
         // Dispatch mouseover to new element
-        if (!newHoveredElement.empty()) {
+        if (!newHoveredElement.empty())
+        {
             // Find new element
-            for (const auto& elem : elements) {
-                if (elem.id == newHoveredElement) {
+            for (const auto &elem : elements)
+            {
+                if (elem.id == newHoveredElement)
+                {
                     auto mouseoverIt = elem.handlers.find("mouseover");
-                    if (mouseoverIt != elem.handlers.end()) {
+                    if (mouseoverIt != elem.handlers.end())
+                    {
                         LOG_DEBUG("[HTMLRendererMT] Dispatching mouseover: {}", mouseoverIt->second);
 
                         // Dispatch to ReactiveUI
-                        ReactiveUI& ui = ReactiveUI::GetInstance();
+                        ReactiveUI &ui = ReactiveUI::GetInstance();
                         ReactiveUI::EventData eventData;
                         eventData.x = x;
                         eventData.y = y;
-                        eventData.button = -1;  // No button for hover events
+                        eventData.button = -1; // No button for hover events
                         eventData.elemId = elem.id;
                         eventData.eventType = "mouseover";
                         ui.DispatchEvent("mouseover", mouseoverIt->second, eventData);

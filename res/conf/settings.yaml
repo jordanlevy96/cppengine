@@ -16,7 +16,17 @@ input:
     zoomIn: [ScrollUp]
     zoomOut: [ScrollDown]
   scriptPath: input.lua
+
+game:
   resourcePath: ../res/
+  logPath: ../logs/tetris.log
+  appName: Tetris
+  scenePath: scenes/MainScene.yaml
+  debug: true
+  htmlPath: ui/templates/game.html
+  cssPath: ui/styles/game.css
+  luaStatePath: ui/state/game.lua
+  templateName: Tetris
 
 window:
   targetFPS: 60

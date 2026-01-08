@@ -1,0 +1,86 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, system-ui, sans-serif;
+    background: #1e1e1e;
+    color: #cccccc;
+}
+
+.editor-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.menu-bar {
+    background: #252526;
+    padding: 8px 16px;
+    border-bottom: 1px solid #3e3e42;
+    font-size: 13px;
+}
+
+.menu-bar span {
+    margin-right: 20px;
+    cursor: pointer;
+}
+
+.menu-bar span:hover {
+    color: #ffffff;
+}
+
+.content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.panel {
+    background: #1e1e1e;
+    border: 1px solid #3e3e42;
+    margin: 4px;
+    padding: 16px;
+}
+
+.scene-tree {
+    width: 250px;
+}
+
+.entity-item {
+    padding: 4px 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.entity-item:hover {
+    background: #2d2d30;
+}
+
+.entity-item.selected {
+    background: #094771;
+    color: #ffffff;
+}
+
+.viewport {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2d2d30;
+}
+
+.inspector {
+    width: 300px;
+}
+
+h3 {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #d4d4d4;
+}
+
+.placeholder {
+    color: #d4d4d4;
+    font-size: 14px;
+}
