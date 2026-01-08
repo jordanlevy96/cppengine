@@ -1181,8 +1181,23 @@ void HTMLRendererMT::RenderThreadLoop()
 
 bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
 {
-    LOG_INFO("[HTMLRendererMT] HandleClickEvent called: Window={}x{}, Click=({}, {}), Button={}",
-             m_width, m_height, x, y, button);
+    // Convert window coordinates to framebuffer coordinates
+    // On Retina/HiDPI displays, framebuffer is 2x window size
+    int windowWidth, windowHeight;
+    glfwGetWindowSize(m_window, &windowWidth, &windowHeight);
+
+    float scaleX = (float)m_width / (float)windowWidth;
+    float scaleY = (float)m_height / (float)windowHeight;
+
+    float framebufferX = x * scaleX;
+    float framebufferY = y * scaleY;
+
+    LOG_INFO("[HTMLRendererMT] HandleClickEvent: Window={}x{} (framebuffer={}x{}), Click=({}, {}) window -> ({}, {}) framebuffer, Button={}, Scale={}x{}",
+             windowWidth, windowHeight, m_width, m_height, x, y, framebufferX, framebufferY, button, scaleX, scaleY);
+
+    // Use framebuffer coordinates for hit-testing
+    x = framebufferX;
+    y = framebufferY;
 
     // Copy interactive elements (thread-safe)
     std::vector<InteractiveElement> elements;
@@ -1194,7 +1209,7 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
     LOG_INFO("[HTMLRendererMT] Have {} interactive elements to test", elements.size());
 
     // Screen coordinates now match litehtml coordinates (no flip needed)
-    LOG_INFO("[HTMLRendererMT] Click Y: {}", y);
+    LOG_INFO("[HTMLRendererMT] Click Y (framebuffer): {}", y);
 
     // Hit-test in reverse order (highest z-index first)
     for (auto it = elements.rbegin(); it != elements.rend(); ++it)
@@ -1238,6 +1253,17 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
 
 void HTMLRendererMT::UpdateHoverState(float x, float y)
 {
+    // Convert window coordinates to framebuffer coordinates
+    // On Retina/HiDPI displays, framebuffer is 2x window size
+    int windowWidth, windowHeight;
+    glfwGetWindowSize(m_window, &windowWidth, &windowHeight);
+
+    float scaleX = (float)m_width / (float)windowWidth;
+    float scaleY = (float)m_height / (float)windowHeight;
+
+    x = x * scaleX;
+    y = y * scaleY;
+
     // Copy interactive elements (thread-safe)
     std::vector<InteractiveElement> elements;
     {

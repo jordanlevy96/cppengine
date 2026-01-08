@@ -1,0 +1,4 @@
+skills:
+  - name: handoff
+    description: Generate a comprehensive handoff document for another developer
+    command: commands/handoff.md

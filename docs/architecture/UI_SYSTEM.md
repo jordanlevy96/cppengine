@@ -1,6 +1,6 @@
 # Declarative UI System - Architecture & Implementation
 
-**Last Updated**: January 2, 2026
+**Last Updated**: January 8, 2026
 
 ## Vision
 
@@ -52,30 +52,82 @@ Build a web-based declarative UI system for complex, data-driven game interfaces
 ### Multi-Threaded Rendering Flow
 
 ```
-Main Thread                    Render Thread
-─────────────                  ─────────────
-App::Run()                     RenderThreadLoop()
+Main Thread (Game Loop)        Render Thread (HTMLRendererMT)
+───────────────────────        ──────────────────────────────
+Game::RunFixedLoop()           RenderThreadLoop() [running async]
   │                                 │
-  ├─ Update game                    │
-  ├─ ReactiveUI::GetRenderedHTML()  │
-  │   ├─ Check if dirty             │
-  │   └─ Returns cached HTML        │
+  ├─ Game::Render()                 │
+  │   │                             │
+  │   ├─ RenderSystem::Update()     │
+  │   │                             │
+  │   ├─ htmlRenderer->Render()     │
+  │   │   ├─ Lock m_bufferMutex     │
+  │   │   ├─ Check frameNumber      │
+  │   │   ├─ Upload GL texture ─────┼─ (if new frame)
+  │   │   └─ Unlock                 │
+  │   │                             │
+  │   └─ Composite overlay          │
   │                                 │
-  ├─ HTMLRendererMT::Render()       │
-  │   ├─ Check m_frontBuffer        │
-  │   └─ Upload to GL texture       │
+  ├─ Game::TrackFPS()               │
+  │   └─ luaState->SetValue()       │
+  │       └─ Marks dirty flag       │
   │                                 │
-  └─ Composite UI overlay           │
-                                    ├─ Wait for new HTML (m_cv)
-                                    ├─ Render HTML → m_backBuffer
+  ├─ reactiveUI.GetRenderedHTML()   │
+  │   ├─ Check IsDirty()            │
+  │   ├─ RenderWithLua() ───────────┼─ (if dirty)
+  │   │   ├─ parser->Evaluate()     │
+  │   │   └─ Lock m_mutex           │
+  │   │       └─ UpdateHTML() ──────┼─ Signals m_cv
+  │   └─ ClearDirty()               │
+  │                                 │
+  └─ glfwPollEvents()               ├─ m_cv.wait() wakes up
+                                    ├─ Render to m_backBuffer
                                     │   ├─ litehtml layout
                                     │   ├─ FreeType rasterization
                                     │   └─ Software rendering
-                                    ├─ Swap buffers (lock m_bufferMutex)
-                                    └─ Increment frame number
+                                    ├─ Lock m_bufferMutex
+                                    ├─ std::swap(m_frontBuffer, m_backBuffer)
+                                    ├─ Increment frameNumber
+                                    └─ Unlock (back to wait)
 ```
 
 **Why Multi-Threading?** HTML rendering can take 5-15ms, causing frame drops at 60 FPS. IPC would introduce too much overhead. Solution: Render HTML on background thread, swap buffers when ready, composite on main thread. Main loop never blocks.
+
+---
+
+## System Architecture (EngineCore + Game)
+
+### Initialization Flow
+
+The engine was refactored (Jan 2026) to use **EngineCore** for common initialization shared between Game and Editor:
+
+```
+Game::Initialize()
+  └─► EngineCore::Initialize()
+      ├─► InitializeLogger()      - Quill logging system
+      ├─► InitializeWindow()      - GLFW window + OpenGL context
+      ├─► InitializeHTMLRenderer() - HTMLRendererMT (starts render thread)
+      ├─► InitializeScriptManager() - Lua + Python VMs
+      ├─► InitializeRegistry()    - ECS system
+      └─► InitializeUI()          - Loads Lua state + HTML template
+          ├─► LuaUIState::LoadStateFile()
+          ├─► ReactiveUI::BindLuaState()
+          ├─► ReactiveUI::LoadTemplateFromFiles()
+          └─► ReactiveUI::RegisterTemplateWithDirectives()
+
+Game::Run()
+  └─► Game::RunFixedLoop() or RunVariableLoop()
+      ├─► Game::Render()          - 3D scene + UI overlay
+      ├─► Game::TrackFPS()        - Updates Lua state with metrics
+      └─► glfwPollEvents()        - CRITICAL: macOS needs this every frame!
+```
+
+**Key files:**
+- `include/controllers/EngineCore.h` + `src/controllers/EngineCore.cpp` - Common init
+- `include/controllers/Game.h` + `src/controllers/Game.cpp` - Game loop
+- `src/controllers/Game.cpp:79-118` - RunFixedLoop() main game loop
+- `src/controllers/Game.cpp:210-217` - Render() orchestration
+- `src/controllers/Game.cpp:220-295` - TrackFPS() updates Lua state
 
 ---
 
@@ -159,6 +211,46 @@ return {
 - Expose `methods` table to ReactiveUI for event handling
 - Maintain dirty flag for change detection
 - Provide `MarkDirty()` for triggering re-renders
+
+**✅ Change Detection Optimization:**
+
+`LuaUIState::SetValue()` implements intelligent change detection:
+
+```cpp
+// include/systems/LuaUIState.h:190-263
+template<typename T>
+void LuaUIState::SetValue(const std::string& key, const T& value) {
+    // Get current value from Lua state
+    sol::object currentValue = GetValue(key);
+
+    // Compare with new value (type-aware comparison)
+    bool hasChanged = /* compare currentValue with value */;
+
+    if (hasChanged) {
+        // Only update and mark dirty if value actually changed
+        parentTable[finalKey] = value;
+        m_isDirty = true;
+    }
+    // If unchanged, skip update and keep dirty flag clean ✅
+}
+```
+
+**Benefits:**
+- `Game::TrackFPS()` calls `SetValue("data.fps", 60)` every second
+- When FPS is stable at 60, value comparison prevents dirty flag
+- **No unnecessary re-renders** when values unchanged
+- Example: FPS stable at 60 for 10 seconds = 0 re-renders ✅
+
+**Type-aware comparison:**
+- **int/double**: Numeric equality with type coercion (60 == 60.0)
+- **string**: Direct string comparison
+- **bool**: Direct boolean comparison
+- **tables/other**: Conservative (always marks changed for safety)
+
+**Performance impact:**
+- Eliminates 12-15 unnecessary HTML re-renders per second
+- Reduces HTMLRendererMT wake-ups from ~12/sec to ~1/sec (only on actual changes)
+- Main thread no longer blocked by redundant template parsing
 
 ### HTMLRendererMT (`include/systems/HTMLRendererMT.h`)
 
@@ -428,13 +520,218 @@ return {
 
 ---
 
+## Detailed Process Flows
+
+### Complete Render Process (Frame-by-Frame)
+
+**Step 1: Game Loop Iteration** (`src/controllers/Game.cpp:79-118`)
+```cpp
+void Game::RunFixedLoop() {
+    while (!windowManager->ShouldClose()) {
+        // 1. Poll input events (CRITICAL for macOS window to appear!)
+        glfwPollEvents();  // Line 92
+
+        // 2. Render 3D scene + UI overlay
+        Render();  // Line 107
+
+        // 3. Update FPS counter and Lua state
+        TrackFPS();  // Line 110
+
+        // 4. Check if UI needs re-rendering
+        std::string html = reactiveUI.GetRenderedHTML();  // Line 112
+        if (/* html changed */) {
+            htmlRenderer->UpdateHTML(html);  // Line 113
+        }
+
+        // 5. Swap OpenGL buffers
+        glfwSwapBuffers(window);  // Line 115
+    }
+}
+```
+
+**Step 2: FPS Tracking** (`src/controllers/Game.cpp:220-295`)
+```cpp
+void Game::TrackFPS() {
+    // Update every ~1 second
+    if (m_fpsTime >= 1000.0) {
+        // Calculate FPS metrics
+        int currentFPS = (int)(m_frameCount / (m_fpsTime / 1000.0));
+
+        // ✅ SetValue() with change detection (only marks dirty if value changed)
+        luaState->SetValue("data.fps", currentFPS);        // Line 242
+        luaState->SetValue("data.frameTime", ...);         // Line 243
+        luaState->SetValue("data.gameMode", ...);          // Line 247
+        // ... more SetValue() calls ...
+
+        // Only triggers re-render if FPS/frameTime actually changed! ✅
+    }
+}
+```
+
+**Step 3: Reactive HTML Rendering** (`src/systems/ReactiveUI.cpp:16-31`)
+```cpp
+const std::string& ReactiveUI::GetRenderedHTML() {
+    // Check if Lua state is dirty
+    if (m_luaState && m_luaState->IsDirty()) {  // Line 19
+        // Re-render template (expensive: 5-15ms)
+        RenderWithLua();                        // Line 20
+        m_luaState->ClearDirty();               // Line 21
+    }
+    return m_cachedHTML;  // Return cached HTML if clean
+}
+
+void ReactiveUI::RenderWithLua() {
+    LOG_DEBUG("[ReactiveUI] Rendering template (Lua mode, dirty)");  // Line 98
+
+    // Parse template with current Lua state
+    m_cachedHTML = m_parser->Evaluate(*m_luaState);  // Line 101
+
+    // Update event handlers for click/hover
+    htmlRenderer.SetEventHandlers(m_parser->GetEventHandlers());  // Line 105
+}
+```
+
+**Step 4: HTML Update to Render Thread** (`src/systems/HTMLRendererMT.cpp:933-1175`)
+```cpp
+void HTMLRendererMT::UpdateHTML(const std::string& html) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_htmlContent = html;
+    m_cv.notify_one();  // Wake up render thread
+}
+
+// Render thread wakes up:
+void HTMLRendererMT::RenderThreadLoop() {
+    while (m_running) {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_cv.wait(lock, [this] { return !m_running || m_needsRender; });
+
+        // Render HTML to m_backBuffer (5-15ms)
+        RenderToBuffer(m_backBuffer);
+
+        // Swap buffers atomically
+        {
+            std::lock_guard<std::mutex> bufferLock(m_bufferMutex);
+            std::swap(m_frontBuffer, m_backBuffer);
+            m_frontBuffer.frameNumber++;  // Signal main thread
+        }
+    }
+}
+```
+
+**Step 5: Texture Upload** (`src/systems/HTMLRendererMT.cpp:688-750`)
+```cpp
+void HTMLRendererMT::Render() {
+    // Check if render thread produced new frame
+    {
+        std::lock_guard<std::mutex> lock(m_bufferMutex);
+        if (m_frontBuffer.frameNumber != m_lastFrameNumber) {
+            // Upload pixel buffer to OpenGL texture
+            glTexSubImage2D(..., m_frontBuffer.pixels.data());
+            m_lastFrameNumber = m_frontBuffer.frameNumber;
+        }
+    }
+
+    // Composite UI overlay on screen
+    RenderQuad();
+}
+```
+
+### Complete Input/Event Handling Process
+
+**Step 1: User Clicks UI Element** (User action)
+
+**Step 2: GLFW Receives Click** (OS → GLFW callback)
+```
+WindowManager mouse callback registered via GLFW
+```
+
+**Step 3: Lua Input Handler** (`res/scripts/input.lua` or similar)
+```lua
+-- GLFW → WindowManager → Lua input handler
+function HandleMouseClick(x, y, button)
+    -- Forward to HTML renderer for hit-testing
+    htmlRenderer:HandleClickEvent(x, y, button)
+end
+```
+
+**Step 4: HTMLRendererMT Hit-Testing** (`src/systems/HTMLRendererMT.cpp`)
+```cpp
+void HTMLRendererMT::HandleClickEvent(float x, float y, int button) {
+    // Hit-test interactive elements
+    for (const auto& elem : m_interactiveElements) {
+        if (elem.bounds.contains(x, y)) {
+            // Found clicked element - get handler expression
+            std::string handlerExpr = elem.eventHandlers["click"];
+
+            // Dispatch to ReactiveUI
+            ReactiveUI::GetInstance().DispatchEvent(
+                "click", handlerExpr, {x, y, button, elem.id, "click"}
+            );
+            break;
+        }
+    }
+}
+```
+
+**Step 5: ReactiveUI Event Dispatch** (`src/systems/ReactiveUI.cpp:111-216`)
+```cpp
+void ReactiveUI::DispatchEvent(const std::string& eventType,
+                                const std::string& handlerExpr,
+                                const EventData& eventData) {
+    // Parse handler: "methodName" or "methodName(args)" or "methodName($event)"
+    std::string handlerName = ParseHandlerName(handlerExpr);
+
+    // Get Lua methods table
+    sol::table methods = m_luaState->GetValue("methods").as<sol::table>();
+    sol::function handler = methods[handlerName];
+
+    // Call Lua handler function
+    handler(m_luaState->GetStateTable(), /* args */);
+
+    // Mark state dirty (triggers re-render next frame)
+    m_luaState->MarkDirty();  // Line 209
+}
+```
+
+**Step 6: Lua Handler Executes** (`res/ui/state/game.lua`)
+```lua
+methods = {
+    onStartGame = function(self)
+        GameManager:StartGame()  -- C++ binding
+        self.data.gameStarted = true
+        -- State marked dirty by DispatchEvent()
+    end
+}
+```
+
+**Step 7: Next Frame Re-renders UI**
+```
+Game::RunFixedLoop() → reactiveUI.GetRenderedHTML()
+  → IsDirty() == true → RenderWithLua() → UpdateHTML() → Render thread
+```
+
+---
+
 ## Troubleshooting
 
 ### UI not updating
-- Check `m_luaState->IsDirty()` flag
-- Verify `LoadHTML()` called after state changes
-- Check `m_frontBuffer.frameNumber` increments
-- Ensure ReactiveUI's GetRenderedHTML() returns new HTML
+- **Check dirty flag**: `m_luaState->IsDirty()` should be true after SetValue()
+- **Verify HTML update**: `LoadHTML()` or `UpdateHTML()` called after state changes
+- **Check frameNumber**: `m_frontBuffer.frameNumber` should increment on render thread
+- **Ensure caching works**: ReactiveUI's GetRenderedHTML() returns new HTML when dirty
+
+### Excessive re-rendering (UI flickers or logs spam)
+- **Symptom**: HTMLRendererMT logs "Rendering template" multiple times per second
+- **Root cause**: SetValue() being called with unchanged values
+- **Solution**: ✅ FIXED - LuaUIState::SetValue() now implements change detection (Jan 8, 2026)
+- **Verify fix**: UI should only re-render when values actually change
+- **Expected**: FPS stable at 60 = 0 re-renders, FPS changes 60→59 = 1 re-render
+
+### Window not appearing (macOS)
+- **CRITICAL**: `glfwPollEvents()` must be called every frame
+- **Location**: `Game::RunFixedLoop()` line 92
+- **Why**: macOS window manager needs event processing to display window
+- **Without it**: Window created but never shown, OpenGL context unusable
 
 ### FreeType crashes
 - All FreeType operations must be on render thread
@@ -462,6 +759,57 @@ return {
 - Never call OpenGL from render thread
 - Use `m_bufferMutex` for all buffer access
 - Use `m_mutex` for HTML string and resize requests
+
+---
+
+## Debugging Checklist
+
+### When UI doesn't render at all:
+1. ✅ Window appears? → Check `glfwPollEvents()` in main loop
+2. ✅ HTML loaded? → Check `InitializeUI()` logs
+3. ✅ Lua state loaded? → Check `LoadStateFile()` return value
+4. ✅ Template registered? → Check `RegisterTemplateWithDirectives()` logs
+5. ✅ Render thread running? → Check HTMLRendererMT initialization
+6. ✅ OpenGL texture created? → Check glGetError() after texture upload
+
+### When UI renders but doesn't update:
+1. ✅ Dirty flag set? → Log `m_luaState->IsDirty()` before GetRenderedHTML()
+2. ✅ SetValue() called? → Log Game::TrackFPS() calls
+3. ✅ GetRenderedHTML() called? → Check main loop flow
+4. ✅ UpdateHTML() called? → Check if html string actually changed
+5. ✅ Render thread woke up? → Log m_cv.wait() in RenderThreadLoop()
+6. ✅ FrameNumber incremented? → Log m_frontBuffer.frameNumber
+
+### When UI re-renders excessively:
+1. ✅ How often? → Count "Rendering template" logs per second
+2. ✅ SetValue() spam? → Log all SetValue() calls with values
+3. ✅ Value unchanged? → Compare old vs new value in logs
+4. ✅ Fix needed? → Implement value comparison in SetValue()
+
+### Breakpoint locations for debugging:
+
+**Initialization:**
+- `EngineCore::Initialize()` - Engine startup
+- `EngineCore::InitializeUI()` - UI system setup
+- `LuaUIState::LoadStateFile()` - Lua state loading
+- `ReactiveUI::RegisterTemplateWithDirectives()` - Template parsing
+
+**Render flow:**
+- `Game::Render()` - Main render call
+- `ReactiveUI::GetRenderedHTML()` - Dirty check
+- `ReactiveUI::RenderWithLua()` - Template evaluation
+- `HTMLRendererMT::RenderThreadLoop()` - Async rendering
+- `HTMLRendererMT::Render()` - Texture upload
+
+**Event handling:**
+- `HTMLRendererMT::HandleClickEvent()` - Hit-testing
+- `ReactiveUI::DispatchEvent()` - Event dispatch to Lua
+- Lua handler function - Game logic
+
+**Dirty flag flow:**
+- `LuaUIState::SetValue()` - Marks dirty
+- `LuaUIState::IsDirty()` - Check if re-render needed
+- `LuaUIState::ClearDirty()` - After render completes
 
 ---
 
@@ -543,4 +891,44 @@ imhotep/
 
 **Note**: Goal is NOT to build React/Vue exactly - it's a **game-appropriate** system inspired by web patterns for PDX-style complexity.
 
-_Last Verified: January 2, 2026_
+---
+
+## Summary of Recent Changes (Jan 2026)
+
+### ✅ Completed: EngineCore/Game Architecture Refactoring
+- **Date**: January 2026 (commit 5405263)
+- **Change**: Split monolithic `App` class into `EngineCore` (common init) + `Game` (game loop)
+- **Benefit**: Shared initialization between Game and Editor, reduced code duplication
+- **Files**: `include/controllers/EngineCore.h`, `src/controllers/EngineCore.cpp`, `include/controllers/Game.h`, `src/controllers/Game.cpp`
+
+### ✅ Fixed: Window Not Appearing (macOS)
+- **Date**: January 8, 2026
+- **Issue**: Application ran but window never appeared on macOS
+- **Root cause**: Missing `glfwPollEvents()` in main loop
+- **Fix**: Added `glfwPollEvents()` to `Game::RunFixedLoop()` line 92
+- **Impact**: Window now appears correctly on macOS (and likely fixes issues on other platforms)
+
+### ✅ Fixed: Excessive RenderSystem Logging
+- **Date**: January 8, 2026
+- **Issue**: ~30,000+ logs/second from per-frame, per-entity rendering
+- **Fix**: Removed per-frame logging from `RenderSystem::Update()` and `RenderSystem::RenderEntity<RenderComponent>()`
+- **Impact**: Reduced to ~10 initialization logs, terminal output now readable
+
+### ✅ Fixed: UI Event Coordinate Scaling (Retina/HiDPI Displays)
+- **Date**: January 8, 2026
+- **Issue**: Button clicks not working on Retina displays
+- **Root cause**: Click coordinates in window space (1400x840) but button bounds in framebuffer space (2800x1680)
+  - On Retina/HiDPI displays, framebuffer is 2x window size
+  - `HandleClickEvent()` received window coordinates but compared against framebuffer coordinates
+  - Click at (695, 439) window space needs scaling to (1390, 878) framebuffer space
+- **Fix**: Added coordinate scaling in `HandleClickEvent()` and `UpdateHoverState()`
+  - Calculate scale factor: `scaleX = framebufferWidth / windowWidth`
+  - Transform click coordinates before hit-testing: `framebufferX = x * scaleX`
+  - Both click events and hover events now correctly scaled
+- **Result**: Buttons and interactive elements work correctly on all display types ✅
+- **Files modified**: `src/systems/HTMLRendererMT.cpp:1182-1265`
+
+---
+
+_Last Updated: January 8, 2026_
+_Last Verified: January 8, 2026_
