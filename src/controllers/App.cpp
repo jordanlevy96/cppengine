@@ -45,6 +45,9 @@ bool App::Initialize()
 
     cam = new Camera(conf.WindowWidth, conf.WindowHeight);
 
+    // Store App instance in GLFW user pointer for resize callback
+    glfwSetWindowUserPointer(windowManager->window, this);
+
     glEnable(GL_DEPTH_TEST);
     glFrontFace(GL_CW);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
