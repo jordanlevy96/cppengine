@@ -35,6 +35,9 @@ bool Game::Initialize()
     // Initialize FPS tracking
     m_fpsUpdateTime = std::chrono::high_resolution_clock::now();
 
+    // Store Game instance in GLFW user pointer for resize callback
+    glfwSetWindowUserPointer(windowManager->window, this);
+
     LOG_INFO("Game initialization complete");
     return true;
 }
