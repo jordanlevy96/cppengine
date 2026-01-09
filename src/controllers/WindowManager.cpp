@@ -1,4 +1,5 @@
 #include "controllers/WindowManager.h"
+#include "controllers/App.h"
 
 #include <iostream>
 
@@ -200,7 +201,10 @@ bool WindowManager::Initialize(int const width, int const height)
 
     glfwSwapInterval(1); // Set vsync
 
-    glViewport(0, 0, width, height);
+    // Use framebuffer size for viewport (handles Retina/HiDPI displays)
+    int fbWidth, fbHeight;
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+    glViewport(0, 0, fbWidth, fbHeight);
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GLFW_TRUE);
     glfwSetInputMode(window, GLFW_STICKY_MOUSE_BUTTONS, GLFW_TRUE);
@@ -320,19 +324,26 @@ void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double y
     APPEND_EVENT()
 }
 
-void WindowManager::resize_callback(GLFWwindow *window, int in_width, int in_height)
+void WindowManager::resize_callback(GLFWwindow *window, int fbWidth, int fbHeight)
 {
-    // ScriptManager &sm = ScriptManager::GetInstance();
-    // InputEvent event;
-    // event.type = InputTypes::Resize;
-    // event.input = glm::vec2(in_width, in_height);
+    // Update OpenGL viewport to match new framebuffer size
+    glViewport(0, 0, fbWidth, fbHeight);
 
-    // APPEND_EVENT()
+    // Update camera projection if camera exists
+    // Note: Camera uses window size for aspect ratio, not framebuffer size
+    int windowWidth, windowHeight;
+    glfwGetWindowSize(window, &windowWidth, &windowHeight);
 
-    // Enforce 2:1 Aspect ratio for Tetris
-    int aspectWidth = in_width;
-    int aspectHeight = in_width * 2 / 1;
-    glfwSetWindowSize(window, aspectWidth, aspectHeight);
+    // Get App instance via user pointer if set
+    void* userPtr = glfwGetWindowUserPointer(window);
+    if (userPtr != nullptr)
+    {
+        App* app = static_cast<App*>(userPtr);
+        if (app->cam != nullptr)
+        {
+            app->cam->SetPerspective(app->cam->fov, windowWidth, windowHeight);
+        }
+    }
 }
 
 void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
