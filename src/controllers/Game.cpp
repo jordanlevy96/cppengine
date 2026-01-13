@@ -5,6 +5,7 @@
 
 #include "controllers/Game.h"
 #include "controllers/EngineCore.h"
+#include "systems/HierarchySystem.h"
 #include "systems/RenderSystem.h"
 #include "systems/ScriptSystem.h"
 #include "systems/TweenSystem.h"
@@ -111,6 +112,7 @@ void Game::RunFixedLoop()
         }
 
         TweenSystem::Update(delta);
+        HierarchySystem::Update();
 
         // Render every frame (coupled to game logic)
         Render();
@@ -171,6 +173,7 @@ void Game::RunVariableLoop()
         // If speedMultiplier == 0 (PAUSED), skip simulation entirely
 
         TweenSystem::Update(delta);
+        HierarchySystem::Update();
 
         // Render at capped framerate (decoupled from simulation)
         renderAccumulator += delta;

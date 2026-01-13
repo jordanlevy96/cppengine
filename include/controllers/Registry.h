@@ -11,6 +11,7 @@
 #include "components/ScriptComponent.h"
 #include "components/Transform.h"
 #include "components/Tween.h"
+#include "components/WorldTransform.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -337,4 +338,5 @@ private:
     SparseSet<ScriptComponent> ScriptComponents;        ///< Lua/Python behaviors
     SparseSet<Transform> TransformComponents;           ///< Position/rotation/scale
     SparseSet<Tween> TweenComponents;                   ///< Animation tweens
+    SparseSet<WorldTransform> WorldTransformComponents; ///< Computed world matrices
 };

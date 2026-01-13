@@ -26,17 +26,45 @@ EntityID Registry::RegisterEntity(const std::string &name, EntityID parent)
     RegisterComponent(i, t);
     HierarchyComponent hc = HierarchyComponent(parent);
     RegisterComponent(i, hc);
+    WorldTransform wt = WorldTransform();
+    RegisterComponent(i, wt);
     return i++;
 }
 
-// TODO: destroy child entities as well
 void Registry::DestroyEntity(EntityID id)
 {
+    // First, recursively destroy all children
+    if (HierarchyComponents.HasComponent(id))
+    {
+        HierarchyComponent& hc = HierarchyComponents.GetComponent(id);
+
+        // Copy children vector since we'll be modifying it during iteration
+        std::vector<EntityID> children = hc.Children;
+        for (EntityID child : children)
+        {
+            DestroyEntity(child);
+        }
+
+        // Remove this entity from parent's children list
+        if (hc.Parent != static_cast<EntityID>(-1) && HierarchyComponents.HasComponent(hc.Parent))
+        {
+            HierarchyComponent& parentHc = HierarchyComponents.GetComponent(hc.Parent);
+            auto it = std::find(parentHc.Children.begin(), parentHc.Children.end(), id);
+            if (it != parentHc.Children.end())
+            {
+                parentHc.Children.erase(it);
+            }
+        }
+    }
+
+    // Now remove all components for this entity
+    HierarchyComponents.RemoveComponent(id);
     LightingComponents.RemoveComponent(id);
     RenderComponents.RemoveComponent(id);
     ScriptComponents.RemoveComponent(id);
     TransformComponents.RemoveComponent(id);
     TweenComponents.RemoveComponent(id);
+    WorldTransformComponents.RemoveComponent(id);
 }
 
 EntityID Registry::GetEntityByName(const std::string &name)
@@ -120,6 +148,12 @@ template <>
 SparseSet<Tween> &Registry::GetComponentSet<Tween>()
 {
     return TweenComponents;
+}
+
+template <>
+SparseSet<WorldTransform> &Registry::GetComponentSet<WorldTransform>()
+{
+    return WorldTransformComponents;
 }
 
 bool Registry::LoadScene(const std::string &src)

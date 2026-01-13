@@ -10,6 +10,7 @@ add_library(core SHARED
     "src/controllers/ResourceManager.cpp"
     "src/controllers/ScriptManager.cpp"
     "src/controllers/WindowManager.cpp"
+    "src/systems/HierarchySystem.cpp"
     "src/systems/RenderSystem.cpp"
     "src/systems/ScriptSystem.cpp"
     "src/systems/TweenSystem.cpp"
