@@ -1,15 +1,12 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2026-01-02
-> For: Claude Sonnet 4.5
+> Last Updated: 2026-01-13
 
 ## Project Overview
 
-**Imhotep** is an experimental C++ game engine using OpenGL, Lua, and more. Currently implements a fully functional Tetris game as proof-of-concept.
+**Imhotep** is an experimental C++ game engine using OpenGL, Lua, and more. Implements a fully functional Tetris game as proof-of-concept.
 
 **Key Innovation**: Declarative, reactive UI system using HTML/CSS templates with Lua state management (Vue.js-inspired), rendered via litehtml with multi-threaded rendering.
-
-**Current Focus**: Building declarative UI system for strategy game interfaces (Paradox Interactive-style).
 
 ---
 
@@ -555,5 +552,5 @@ lldb ./imhotep  # or gdb on Linux
 
 ---
 
-_Last Verified: January 2, 2026_
+_Last Updated: January 13, 2026_
 _This file should be updated regularly and manually; prompt the user to make sure it is up to date._

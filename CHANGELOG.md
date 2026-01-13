@@ -238,6 +238,48 @@ All notable changes to Imhotep documented in chronological order.
   - Added event handling system documentation
   - Consolidated MULTITHREADING.md into comprehensive UI_SYSTEM.md
 
+### January 3, 2026
+- **Editor Phase 1 Implementation**
+  - Created standalone `imhotep-editor` executable
+  - Basic HTML/CSS UI with three-panel layout (Scene Hierarchy, Viewport, Inspector)
+  - ESC key to quit editor
+  - Dark theme UI (VS Code-inspired)
+  - Proper HiDPI/Retina display support
+  - Logger initialization fix (resolved segfault at startup)
+
+### January 8, 2026
+- **Architecture Refactoring**
+  - Split monolithic `App` class into `EngineCore` (common init) + `Game` (game loop)
+  - Shared initialization between Game and Editor, reduced code duplication
+  - New files: `EngineCore.h`, `EngineCore.cpp`, `Game.h`, `Game.cpp`
+
+- **UI Event Coordinate Scaling Fix**
+  - Fixed button clicks not working on Retina/HiDPI displays
+  - Added coordinate scaling in `HandleClickEvent()` and `UpdateHoverState()`
+  - Buttons and interactive elements now work correctly on all display types
+
+- **Rendering Fixes**
+  - Fixed viewport and camera projection to use framebuffer size
+  - Window resize now correctly updates camera projection matrix
+
+### January 12, 2026
+- **HierarchySystem for Transform Pipeline**
+  - Added `HierarchySystem` for proper parent-child transform composition
+  - Computes world matrices using matrix multiplication (fixes incorrect position composition)
+  - Supports multi-level hierarchies (grandparents, etc.)
+  - Clear system boundaries: scripts modify local transforms, HierarchySystem computes world transforms
+  - New files: `HierarchySystem.h`, `HierarchySystem.cpp`
+
+- **Input Event Queue Improvements**
+  - Updated input event handling for better UI reactivity
+  - Transform pipeline updates for smoother animations
+
+### January 13, 2026
+- **Documentation Cleanup**
+  - Removed "current status" and "future work" references from all documentation
+  - Removed timeline estimates from implementation phases
+  - Updated all documentation dates
+
 ---
 
-_Last Updated: January 2, 2026_
+_Last Updated: January 13, 2026_

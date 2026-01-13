@@ -1,7 +1,6 @@
 # Imhotep Editor - Phase 1 Implementation Notes
 
-**Date**: January 3, 2026  
-**Status**: Phase 1 Complete - Basic window and UI rendering working
+**Date**: January 3, 2026
 
 ## What Was Implemented
 
@@ -184,13 +183,5 @@ target_link_libraries(imhotep-editor PRIVATE core)
 - [x] Clean shutdown with no memory leaks (per Quill backend)
 
 ---
-
-## Next Steps (Phase 2)
-
-Per `EDITOR_ARCHITECTURE.md`, next priorities:
-1. Scene loading and Registry integration
-2. SceneViewport implementation (3D view in center panel)
-3. Entity selection and scene tree population
-4. Basic transform inspector (read-only for now)
 
 See `EDITOR_ARCHITECTURE.md` for full roadmap.
