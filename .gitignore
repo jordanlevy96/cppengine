@@ -5,6 +5,10 @@
 # Build is different per OS
 build
 
+# Quill logs
+logs/
+*.log
+
 # Prerequisites
 *.d
 
@@ -38,5 +42,8 @@ build
 *.out
 *.app
 
+.cache/
+
 # Python Stuff
-**/__pycache__/*
+**/__pycache__/
+**/__pycache__/*.cache/

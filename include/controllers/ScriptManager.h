@@ -1,6 +1,12 @@
+/**
+ * @file ScriptManager.h
+ * @brief Lua and Python scripting engine integration
+ */
+
 #pragma once
 
 #include "util/debug.h"
+#include "util/Logger.h"
 #include <sol/sol.hpp>
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
@@ -8,19 +14,43 @@
 
 namespace py = pybind11;
 
-static const std::string &EVENT_QUEUE = "EventQueue";
-static const std::string &HANDLE_INPUT_F = "HandleInput";
+static const std::string &EVENT_QUEUE = "EventQueue";     ///< Lua global for input queue
+static const std::string &HANDLE_INPUT_F = "HandleInput"; ///< Lua input handler function name
 
+// Forward declaration for InputEvent (defined in WindowManager.h)
+struct InputEvent;
+
+/**
+ * @brief Lua C++ bindings registration
+ */
 namespace LuaBindings
 {
-    void RegisterEnums(sol::state &lua);
-    void RegisterTypes(sol::state &lua);
-    void RegisterFunctions(sol::state &lua);
+    void RegisterEnums(sol::state &lua);     ///< Register InputTypes, CameraDirections, etc.
+    void RegisterTypes(sol::state &lua);     ///< Register vec2, vec3, Transform, etc.
+    void RegisterFunctions(sol::state &lua); ///< Register App, Registry, Camera functions
 }
 
+/**
+ * @brief Dual scripting engine manager (Lua + Python)
+ *
+ * Manages Lua (Sol2) and Python (pybind11) virtual machines.
+ * Both can run simultaneously for different purposes:
+ * - **Lua**: Game logic, UI state (primary, ~200KB overhead)
+ * - **Python**: Data analysis, tooling (secondary, heavier)
+ *
+ * **Input handling:**
+ * WindowManager → InputEvent queue → ScriptManager::ProcessInput() → Lua/Python handlers
+ *
+ * **Lua state access:**
+ * UI systems use GetLuaState() for reactive state management.
+ */
 class ScriptManager
 {
 public:
+    /**
+     * @brief Get singleton instance
+     * @return Reference to ScriptManager singleton
+     */
     static ScriptManager &GetInstance()
     {
         static ScriptManager instance;
@@ -30,9 +60,27 @@ public:
     ScriptManager(ScriptManager const &) = delete;
     void operator=(ScriptManager const &) = delete;
 
+    /**
+     * @brief Initialize Lua and Python VMs with engine bindings
+     * @note Registers all C++ types/functions to both languages
+     */
     void Initialize();
+
+    /**
+     * @brief Shutdown scripting VMs and cleanup
+     */
     void Shutdown();
+
+    /**
+     * @brief Execute Lua script file
+     * @param scriptSrc Path to .lua file
+     */
     void Run(const std::string &scriptSrc);
+
+    /**
+     * @brief Create empty Lua table (for event queues, etc.)
+     * @param key Global table name
+     */
     void CreateList(const std::string &key);
 
     // Lua-specific methods
@@ -42,9 +90,10 @@ public:
         sol::table table = lua[tableName];
         if (!table.valid())
         {
-            std::cerr << "Table " << tableName << " not found in Lua" << std::endl;
+            LOG_ERROR("Table {} not found in Lua", tableName);
             return;
         }
+        LOG_DEBUG("Adding value to Lua table {}", tableName);
         table.add(value);
     };
 
@@ -137,8 +186,18 @@ public:
 
     void ProcessInput();
 
+    /**
+     * @brief Add input event to Lua EventQueue as native table
+     * @param event The input event to add
+     * @note Converts C++ InputEvent to Lua table to avoid Sol2/table.remove issues
+     */
+    void AddInputEventToQueue(const InputEvent& event);
+
+    // Get reference to Lua state for UI system
+    sol::state &GetLuaState() { return lua; }
+
 private:
-    ScriptManager(){};
+    ScriptManager() {};
 
     sol::state lua;
     std::unique_ptr<py::scoped_interpreter> guard;

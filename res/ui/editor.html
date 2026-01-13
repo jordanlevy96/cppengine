@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1e1e1e;
+            color: #cccccc;
+        }
+
+        .menu-bar {
+            height: 30px;
+            background: #252526;
+            padding: 8px;
+        }
+
+        .content {
+            margin-top: 10px;
+        }
+
+        .scene-tree {
+            float: left;
+            width: 250px;
+            background: #252526;
+            padding: 10px;
+            min-height: 600px;
+        }
+
+        .viewport {
+            float: left;
+            width: 1600px;
+            background: #2d2d30;
+            padding: 10px;
+        }
+
+        .inspector {
+            float: left;
+            width: 250px;
+            background: #252526;
+            padding: 10px;
+            min-height: 600px;
+        }
+
+        h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        .entity-item {
+            padding: 4px;
+            margin-bottom: 2px;
+            background: #1e1e1e;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-bar">
+        File | Edit | View | Tools
+    </div>
+
+    <div class="content">
+        <div class="scene-tree">
+            <h3>Scene Hierarchy</h3>
+            <div v-for="entity in entities" class="entity-item">
+                {{ entity.name }}
+            </div>
+        </div>
+
+        <div class="viewport">
+            <img src="{{ viewportImage }}" width="1580" height="1185" />
+        </div>
+
+        <div class="inspector">
+            <h3>Inspector</h3>
+            <div>No selection</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -5,12 +5,76 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "(lldb) Launch",
+      "name": "(lldb) Launch Imhotep",
       "type": "lldb",
       "request": "launch",
-      "program": "${workspaceFolder}/build/cppengine",
+      "program": "${workspaceFolder}/build/imhotep",
       "args": [],
-      "cwd": "${workspaceFolder}/build"
+      "cwd": "${workspaceFolder}/build",
+      "preLaunchTask": "Build Imhotep (Debug)",
+      "sourceMap": {
+        "/Users/jordan/dev/cppengine": "${workspaceFolder}"
+      },
+      "env": {
+        "DYLD_LIBRARY_PATH": "${workspaceFolder}/build"
+      }
+    },
+    {
+      "name": "(lldb) Launch Imhotep Editor",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/imhotep-editor",
+      "args": [],
+      "cwd": "${workspaceFolder}/build",
+      "preLaunchTask": "Build Imhotep (Debug)",
+      "sourceMap": {
+        "/Users/jordan/dev/cppengine": "${workspaceFolder}"
+      },
+      "env": {
+        "DYLD_LIBRARY_PATH": "${workspaceFolder}/build"
+      }
+    },
+    {
+      "name": "(lldb) Attach to Imhotep",
+      "type": "lldb",
+      "request": "attach",
+      "program": "${workspaceFolder}/build/imhotep",
+      "waitFor": true
+    },
+    {
+      "name": "(lldb) Attach to Imhotep Editor",
+      "type": "lldb",
+      "request": "attach",
+      "program": "${workspaceFolder}/build/imhotep-editor",
+      "waitFor": true
+    },
+    {
+      "name": "(lldb) Launch Imhotep (No Build)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/imhotep",
+      "args": [],
+      "cwd": "${workspaceFolder}/build",
+      "sourceMap": {
+        "/Users/jordan/dev/cppengine": "${workspaceFolder}"
+      },
+      "env": {
+        "DYLD_LIBRARY_PATH": "${workspaceFolder}/build"
+      }
+    },
+    {
+      "name": "(lldb) Launch Imhotep Editor (No Build)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/imhotep-editor",
+      "args": [],
+      "cwd": "${workspaceFolder}/build",
+      "sourceMap": {
+        "/Users/jordan/dev/cppengine": "${workspaceFolder}"
+      },
+      "env": {
+        "DYLD_LIBRARY_PATH": "${workspaceFolder}/build"
+      }
     }
   ]
 }

@@ -1,4 +1,4 @@
-#include "controllers/App.h"
+#include "controllers/Game.h"
 #include "controllers/Registry.h"
 #include "controllers/ScriptManager.h"
 
@@ -26,16 +26,45 @@ EntityID Registry::RegisterEntity(const std::string &name, EntityID parent)
     RegisterComponent(i, t);
     HierarchyComponent hc = HierarchyComponent(parent);
     RegisterComponent(i, hc);
+    WorldTransform wt = WorldTransform();
+    RegisterComponent(i, wt);
     return i++;
 }
 
 void Registry::DestroyEntity(EntityID id)
 {
+    // First, recursively destroy all children
+    if (HierarchyComponents.HasComponent(id))
+    {
+        HierarchyComponent& hc = HierarchyComponents.GetComponent(id);
+
+        // Copy children vector since we'll be modifying it during iteration
+        std::vector<EntityID> children = hc.Children;
+        for (EntityID child : children)
+        {
+            DestroyEntity(child);
+        }
+
+        // Remove this entity from parent's children list
+        if (hc.Parent != static_cast<EntityID>(-1) && HierarchyComponents.HasComponent(hc.Parent))
+        {
+            HierarchyComponent& parentHc = HierarchyComponents.GetComponent(hc.Parent);
+            auto it = std::find(parentHc.Children.begin(), parentHc.Children.end(), id);
+            if (it != parentHc.Children.end())
+            {
+                parentHc.Children.erase(it);
+            }
+        }
+    }
+
+    // Now remove all components for this entity
+    HierarchyComponents.RemoveComponent(id);
     LightingComponents.RemoveComponent(id);
     RenderComponents.RemoveComponent(id);
     ScriptComponents.RemoveComponent(id);
     TransformComponents.RemoveComponent(id);
     TweenComponents.RemoveComponent(id);
+    WorldTransformComponents.RemoveComponent(id);
 }
 
 EntityID Registry::GetEntityByName(const std::string &name)
@@ -49,6 +78,40 @@ EntityID Registry::GetEntityByName(const std::string &name)
     {
         return std::distance(entityNames.begin(), it);
     }
+}
+
+const std::string &Registry::GetEntityName(EntityID id) const
+{
+    static const std::string empty = "";
+    if (id < entityNames.size())
+    {
+        return entityNames[id];
+    }
+    return empty;
+}
+
+void Registry::SetEntityName(EntityID id, const std::string &name)
+{
+    if (id < entityNames.size())
+    {
+        entityNames[id] = name;
+    }
+}
+
+size_t Registry::GetEntityCount() const
+{
+    return entityNames.size();
+}
+
+std::vector<EntityID> Registry::GetAllEntities() const
+{
+    std::vector<EntityID> ids;
+    ids.reserve(entityNames.size());
+    for (size_t i = 0; i < entityNames.size(); i++)
+    {
+        ids.push_back(i);
+    }
+    return ids;
 }
 
 template <>
@@ -87,9 +150,15 @@ SparseSet<Tween> &Registry::GetComponentSet<Tween>()
     return TweenComponents;
 }
 
+template <>
+SparseSet<WorldTransform> &Registry::GetComponentSet<WorldTransform>()
+{
+    return WorldTransformComponents;
+}
+
 bool Registry::LoadScene(const std::string &src)
 {
-    const std::string &res = App::GetInstance().conf.ResourcePath;
+    const std::string &res = Game::GetInstance().conf.ResourcePath;
     try
     {
         YAML::Node yaml = YAML::LoadFile(res + src);
@@ -223,7 +292,7 @@ void Registry::AttachScript(EntityID entityId, const std::string &name, py::obje
 
 std::shared_ptr<RenderComponent> Registry::CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
 {
-    const std::string &res = App::GetInstance().conf.ResourcePath;
+    const std::string &res = Game::GetInstance().conf.ResourcePath;
     std::string shaderPath = (res) + "shaders/" + shaderSrc;
     std::string meshPath = (res) + "models/" + meshSrc;
 

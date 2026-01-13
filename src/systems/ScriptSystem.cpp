@@ -1,4 +1,5 @@
 #include "systems/ScriptSystem.h"
+#include "util/Logger.h"
 
 static ScriptManager &sm = ScriptManager::GetInstance();
 static Registry &registry = Registry::GetInstance();
@@ -11,8 +12,18 @@ void ScriptSystem::Update(float delta)
 
         if (sc.Type == ScriptType::Lua)
         {
-            sol::function updateFunc = sc.LuaClass["process"];
-            updateFunc(sc.LuaClass, delta);
+            try
+            {
+                sol::function updateFunc = sc.LuaClass["process"];
+                if (updateFunc.valid())
+                {
+                    updateFunc(sc.LuaClass, delta);
+                }
+            }
+            catch (const sol::error &e)
+            {
+                LOG_ERROR("Lua script error in {}: {}", sc.Name, e.what());
+            }
         }
         else if (sc.Type == ScriptType::Python)
         {
