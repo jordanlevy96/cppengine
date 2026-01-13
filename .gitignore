@@ -42,5 +42,8 @@ logs/
 *.out
 *.app
 
+.cache/
+
 # Python Stuff
+**/__pycache__/
 **/__pycache__/*.cache/
