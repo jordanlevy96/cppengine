@@ -103,7 +103,7 @@ TetrisConstants.ROTATION_MATRIX_SIZE = 4
 -- TETRIMINO-SPECIFIC CONFIGURATION
 -- ----------------------------------------------------------------------------
 -- Tetrimino cube spacing within the 4x4 matrix (matches C++ spacingX/Y).
-TetrisConstants.TETRIMINO_SPACING = 1.0
+TetrisConstants.TETRIMINO_SPACING = 2.0
 
 -- Rotation angles in degrees
 TetrisConstants.ROTATION_ANGLE_CW = 90.0
