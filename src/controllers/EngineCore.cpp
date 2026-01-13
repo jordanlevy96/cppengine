@@ -6,6 +6,7 @@
 #include "controllers/EngineCore.h"
 #include "util/Logger.h"
 #include "util/ConfigLoader.h"
+#include "util/Version.h"
 #include <GLFW/glfw3.h>
 
 EngineCore::EngineCore()
@@ -64,7 +65,7 @@ bool EngineCore::Initialize(const std::string &configPath, Config &conf, Camera 
     }
 
     LOG_INFO("==================================");
-    LOG_INFO("   {} - Initialized", conf.AppName);
+    LOG_INFO("   {} {} - Initialized", conf.AppName, imhotep::Version::GetVersionString());
     LOG_INFO("==================================");
     LOG_INFO("[EngineCore] EngineCore initialized successfully");
     return true;
@@ -139,7 +140,7 @@ bool EngineCore::InitializeLogger(const std::string &logPath, const std::string 
     }
 
     LOG_INFO("==================================");
-    LOG_INFO("   {} - Starting", appName);
+    LOG_INFO("   {} {}", appName, imhotep::Version::GetVersionString());
     LOG_INFO("==================================");
 
     return true;

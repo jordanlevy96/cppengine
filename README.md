@@ -1,6 +1,10 @@
 # Imhotep
 
+**Version: 0.1.0**
+
 An experimental C++ game engine exploring declarative UI systems for complex, data-driven games.
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## Development Setup
 

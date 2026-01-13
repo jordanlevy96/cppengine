@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
-project(imhotep)
+project(imhotep VERSION 0.1.0)
+
+# Generate version header from CMake version
+configure_file(
+    "${CMAKE_SOURCE_DIR}/include/util/Version.h.in"
+    "${CMAKE_SOURCE_DIR}/include/util/Version.h"
+    @ONLY
+)
 
 add_library(core SHARED
     "src/Camera.cpp"
