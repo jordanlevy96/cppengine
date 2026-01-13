@@ -84,9 +84,9 @@ public:
 private:
     bool firstMouse = true;             ///< Flag to prevent jump on first mouse input
 
-    float lastWidth, lastHeight = 0;    ///< Last viewport dimensions for perspective updates
+    float lastWidth = 0, lastHeight = 0;    ///< Last viewport dimensions for perspective updates
 
     float yaw = 90.0f;                  ///< Yaw angle (left/right rotation)
     float pitch = 0.0f;                 ///< Pitch angle (up/down rotation)
-    float lastX, lastY = 0.0f;          ///< Last mouse position for delta calculation
+    float lastX = 0.0f, lastY = 0.0f;   ///< Last mouse position for delta calculation
 };

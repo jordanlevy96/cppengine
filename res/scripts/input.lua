@@ -19,6 +19,17 @@ DIRECTION_RIGHT = vec2(1, 0)
 HandleInput = function()
     while #EventQueue > 0 do
         local event = table.remove(EventQueue, 1)
+        print(event)
+        if type(event.input) == "table" then
+        for key, value in pairs(event.input) do
+            print(key, value)
+        end
+        end
+        for key, value in pairs(event) do
+            print(key, value)
+        end
+        print("[Lua HandleInput] Event type: " .. tostring(event.type))
+
         if event.type == InputTypes.KEY then
             OnKeyPress(event.input)
         elseif event.type == InputTypes.CLICK then
@@ -41,10 +52,15 @@ OnClick = function(input)
     local y = input.y
     local button = input.z
 
+    print(string.format("[Lua OnClick] Click received: x=%.2f, y=%.2f, button=%d", x, y, button))
+
     -- Pass to HTMLRendererMT for hit-testing
     local htmlRenderer = GameManager.htmlRenderer
     if htmlRenderer then
+        print("[Lua OnClick] Calling htmlRenderer:HandleClickEvent()")
         htmlRenderer:HandleClickEvent(x, y, button)
+    else
+        print("[Lua OnClick] ERROR: GameManager.htmlRenderer is nil!")
     end
 end
 
@@ -52,6 +68,8 @@ OnCursorMove = function(input)
     -- input is vec2: {x, y}
     local x = input.x
     local y = input.y
+
+    print(string.format("[Lua OnCursorMove] Cursor move received: x=%.2f, y=%.2f", x, y))
 
     -- Update hover state for UI
     local htmlRenderer = GameManager.htmlRenderer
@@ -79,9 +97,12 @@ OnCursor = function(input)
 end
 
 OnKeyPress = function(key)
+    print("[Lua OnKeyPress] Key pressed: " .. key)
+
     if key == nil then
         return
     end
+
 
     local camera = GameManager.camera
 
@@ -137,6 +158,9 @@ OnKeyPress = function(key)
     end
 end
 
+print("Loaded input.lua")
+
 return {
     HandleInput
 }
+

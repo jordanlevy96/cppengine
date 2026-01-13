@@ -372,9 +372,9 @@ void Game::CloseWindow()
 
 void Game::Shutdown()
 {
-    LOG_INFO("Shutting down");
+    LOG_INFO("[Game] Shutting down");
     htmlRenderer->Shutdown();
     windowManager->Shutdown();
     scriptManager->Shutdown();
-    // Camera is now owned by EngineCore, no need to delete
+    LOG_INFO("[Game] Shutdown complete");
 }

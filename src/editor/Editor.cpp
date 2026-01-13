@@ -60,21 +60,8 @@ bool Editor::Initialize()
     // Populate scene tree with entities from Registry
     UpdateSceneTree();
 
-    // Register keyboard shortcuts handler
-    m_keyboardHandlerId = m_windowManager->RegisterInputHandler([this](const InputEvent &event)
-                                                                {
-                                                                    if (event.type == InputTypes::Key)
-                                                                    {
-                                                                        // ESC to quit editor
-                                                                        if (std::get<std::string>(event.input) == "ESCAPE")
-                                                                        {
-                                                                            LOG_INFO("ESC pressed - closing editor");
-                                                                            m_shouldClose = true;
-                                                                            return true;
-                                                                        }
-                                                                    }
-                                                                    return false; // Don't consume other events
-                                                                });
+    // TODO: Get editor input handlers working
+    // Register keyboard input handler
 
     // Initialize timing
     m_lastFrameTime = std::chrono::high_resolution_clock::now();
@@ -126,9 +113,6 @@ void Editor::Shutdown()
     }
 
     LOG_INFO("Shutting down editor...");
-
-    // Unregister input handlers
-    m_windowManager->UnregisterInputHandler(m_keyboardHandlerId);
 
     // Shutdown systems (in reverse order of initialization)
     if (m_viewport)

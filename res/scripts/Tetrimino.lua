@@ -134,7 +134,7 @@ function Tetrimino:move(direction)
     TranslateEntity(self.entityID, vec3(direction.x, direction.y, 0))
 
     -- Update all child positions to match parent's new position
-    self:updateChildPositions()
+    -- self:updateChildPositions()
 end
 
 -- Move tetrimino with animation
@@ -229,7 +229,7 @@ function Tetrimino:rotate(rotation)
     self.childMap = newChildMap
 
     -- Update child positions to match new rotation
-    self:updateChildPositions()
+    -- self:updateChildPositions()
 end
 
 -- ============================================================================

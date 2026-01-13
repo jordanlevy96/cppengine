@@ -7,7 +7,9 @@
 
 #include <sol/sol.hpp>
 #include <string>
-#include <memory>
+#include <type_traits>
+
+#include "util/Logger.h"
 
 /**
  * @brief Reactive UI state manager backed by Lua VM
@@ -83,7 +85,8 @@
  * @note Not thread-safe - all operations must be on main thread
  * @see docs/architecture/UI_SYSTEM.md for state file conventions
  */
-class LuaUIState {
+class LuaUIState
+{
 public:
     LuaUIState();
     ~LuaUIState() = default;
@@ -96,7 +99,7 @@ public:
      * @note Marks state as dirty and ready after successful load
      * @note Uses ScriptManager's Lua VM (must be initialized first)
      */
-    bool LoadStateFile(const std::string& path);
+    bool LoadStateFile(const std::string &path);
 
     /**
      * @brief Get value from state using dot notation
@@ -105,7 +108,7 @@ public:
      * @note Returns nil object if path not found
      * @note Use .as<T>() to convert: GetValue("data.fps").as<int>()
      */
-    sol::object GetValue(const std::string& key);
+    sol::object GetValue(const std::string &key);
 
     /**
      * @brief Set value in state using dot notation
@@ -116,8 +119,8 @@ public:
      * @note Creates nested tables if path doesn't exist
      * @note Example: SetValue("data.fps", 120) updates data.fps to 120
      */
-    template<typename T>
-    void SetValue(const std::string& key, const T& value);
+    template <typename T>
+    void SetValue(const std::string &key, const T &value);
 
     /**
      * @brief Evaluate Lua expression as boolean condition
@@ -126,7 +129,7 @@ public:
      * @note Used by TemplateParser for v-if directive evaluation
      * @note Supports full Lua syntax: comparisons, logic, function calls
      */
-    bool EvaluateCondition(const std::string& expression);
+    bool EvaluateCondition(const std::string &expression);
 
     /**
      * @brief Evaluate Lua expression and return as string
@@ -136,7 +139,7 @@ public:
      * @note Returns "nil" if expression fails or is nil
      * @note Numbers converted with tostring(), tables show address
      */
-    std::string EvaluateAsString(const std::string& expression);
+    std::string EvaluateAsString(const std::string &expression);
 
     /**
      * @brief Get entire state table
@@ -178,36 +181,80 @@ private:
      * @note Internal helper for GetValue() and SetValue()
      * @note Handles arbitrary nesting depth
      */
-    sol::object NavigatePath(const std::string& path);
+    sol::object NavigatePath(const std::string &path);
 
-    sol::state* m_lua;           ///< Reference to ScriptManager's Lua VM (not owned)
-    sol::table m_stateTable;     ///< Root state table loaded from file
-    bool m_isDirty;              ///< Change detection flag
-    bool m_isReady;              ///< LoadStateFile() success flag
+    sol::state *m_lua;       ///< Reference to ScriptManager's Lua VM (not owned)
+    sol::table m_stateTable; ///< Root state table loaded from file
+    bool m_isDirty;          ///< Change detection flag
+    bool m_isReady;          ///< LoadStateFile() success flag
 };
 
 // Template implementation for SetValue
-template<typename T>
-void LuaUIState::SetValue(const std::string& key, const T& value) {
-    if (!m_isReady) return;
+template <typename T>
+void LuaUIState::SetValue(const std::string &key, const T &value)
+{
+    if (!m_isReady)
+    {
+        LOG_ERROR("LuaUIState::SetValue called before state is ready");
+        return;
+    }
+
+    // Get current value to check if it actually changed
+    sol::object current = NavigatePath(key);
+
+    // Check if value actually changed (skip re-render if unchanged)
+    bool valueChanged = true;
+    if constexpr (std::is_same_v<T, int>)
+    {
+        valueChanged = !current.is<int>() || current.as<int>() != value;
+    }
+    else if constexpr (std::is_same_v<T, double>)
+    {
+        valueChanged = !current.is<double>() || current.as<double>() != value;
+    }
+    else if constexpr (std::is_same_v<T, float>)
+    {
+        valueChanged = !current.is<double>() || static_cast<float>(current.as<double>()) != value;
+    }
+    else if constexpr (std::is_same_v<T, bool>)
+    {
+        valueChanged = !current.is<bool>() || current.as<bool>() != value;
+    }
+    else if constexpr (std::is_same_v<T, std::string>)
+    {
+        valueChanged = !current.is<std::string>() || current.as<std::string>() != value;
+    }
+    // For complex types (tables, etc.), assume changed (conservative)
+
+    if (!valueChanged)
+    {
+        LOG_TRACE_L1("Value unchanged for key '{}'", key);
+        return; // Early exit - no change needed
+    }
+    // Mark state as dirty otherwise
+    m_isDirty = true;
 
     // Parse the key path (e.g., "data.fps" -> navigate to data table, set fps)
     size_t lastDot = key.rfind('.');
 
-    if (lastDot == std::string::npos) {
+    if (lastDot == std::string::npos)
+    {
         // Simple key, set directly on state table
         m_stateTable[key] = value;
-    } else {
+    }
+    else
+    {
         // Nested key, navigate to parent table
         std::string parentPath = key.substr(0, lastDot);
         std::string finalKey = key.substr(lastDot + 1);
 
         sol::object parent = NavigatePath(parentPath);
-        if (parent.is<sol::table>()) {
+        if (parent.is<sol::table>())
+        {
             sol::table parentTable = parent.as<sol::table>();
             parentTable[finalKey] = value;
         }
     }
 
-    m_isDirty = true;
+    LOG_TRACE_L1("Value set for key '{}'", key);
 }

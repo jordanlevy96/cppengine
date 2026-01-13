@@ -12,9 +12,12 @@
 #include "systems/ReactiveUI.h"
 #include "systems/HTMLRendererMT.h"
 
+#include "controllers/WindowManager.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <variant>
 
 // ============================================================================
 // Lua Scripting
@@ -30,6 +33,44 @@ void ScriptManager::CreateList(const std::string &key)
 {
     sol::table targetTable = lua.create_table();
     lua[key] = targetTable;
+    LOG_DEBUG("Created new Lua table with key '{}'", key);
+}
+
+void ScriptManager::AddInputEventToQueue(const InputEvent &event)
+{
+    LOG_WARNING("Adding input event to Lua queue");
+    LOG_WARNING("Event type: {}", static_cast<int>(event.type));
+    sol::table luaEvent = lua.create_table();
+    luaEvent["type"] = event.type;
+    luaEvent["mods"] = event.mods;
+
+    // Convert std::variant to appropriate Lua type
+    std::visit([&](auto &&arg)
+               {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, std::string>) {
+            luaEvent["input"] = arg;
+        } else if constexpr (std::is_same_v<T, glm::vec2>) {
+            sol::table v = lua.create_table();
+            v["x"] = arg.x;
+            v["y"] = arg.y;
+            luaEvent["input"] = v;
+        } else if constexpr (std::is_same_v<T, glm::vec3>) {
+            sol::table v = lua.create_table();
+            v["x"] = arg.x;
+            v["y"] = arg.y;
+            v["z"] = arg.z;
+            luaEvent["input"] = v;
+        } }, event.input);
+
+    sol::table queue = lua["EventQueue"];
+    if (!queue.valid())
+    {
+        LOG_ERROR("[ScriptManager] EventQueue not found in Lua");
+        return;
+    }
+    queue.add(luaEvent);
+    LOG_DEBUG("[ScriptManager] Added input event to Lua EventQueue");
 }
 
 void ScriptManager::ProcessInput()
@@ -37,81 +78,22 @@ void ScriptManager::ProcessInput()
     Game &game = Game::GetInstance();
     GLFWwindow *window = WindowManager::GetInstance().window;
 
-    // Static variables for key debouncing
-    static bool speedKeyPressed = false;
-
-    // Speed controls (only in VARIABLE mode)
-    if (game.GetGameMode() == GameMode::VARIABLE)
-    {
-        bool anySpeedKeyPressed = false;
-
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        {
-            if (!speedKeyPressed)
-            {
-                game.SetSimulationSpeed(SimulationSpeed::PAUSED);
-                std::cout << "[Speed] PAUSED" << std::endl;
-            }
-            anySpeedKeyPressed = true;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-        {
-            if (!speedKeyPressed)
-            {
-                game.SetSimulationSpeed(SimulationSpeed::NORMAL);
-                std::cout << "[Speed] NORMAL (1x)" << std::endl;
-            }
-            anySpeedKeyPressed = true;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-        {
-            if (!speedKeyPressed)
-            {
-                game.SetSimulationSpeed(SimulationSpeed::FAST);
-                std::cout << "[Speed] FAST (2x)" << std::endl;
-            }
-            anySpeedKeyPressed = true;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
-        {
-            if (!speedKeyPressed)
-            {
-                game.SetSimulationSpeed(SimulationSpeed::FASTER);
-                std::cout << "[Speed] FASTER (3x)" << std::endl;
-            }
-            anySpeedKeyPressed = true;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
-        {
-            if (!speedKeyPressed)
-            {
-                game.SetSimulationSpeed(SimulationSpeed::FASTEST);
-                std::cout << "[Speed] FASTEST (5x)" << std::endl;
-            }
-            anySpeedKeyPressed = true;
-        }
-        else if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
-        {
-            if (!speedKeyPressed)
-            {
-                game.SetSimulationSpeed(SimulationSpeed::UNCAPPED);
-                std::cout << "[Speed] UNCAPPED (MAX)" << std::endl;
-            }
-            anySpeedKeyPressed = true;
-        }
-
-        speedKeyPressed = anySpeedKeyPressed;
-    }
-
     // Call Lua input handler for game-specific input
     sol::function handleInputFunction = lua[HANDLE_INPUT_F];
+
+    if (!handleInputFunction.valid())
+    {
+        LOG_ERROR("[ScriptManager] HandleInput function is not valid!");
+        return;
+    }
+
     try
     {
         handleInputFunction();
     }
     catch (const sol::error &e)
     {
-        std::cerr << "Error calling HandleInput: " << e.what() << std::endl;
+        LOG_ERROR("[ScriptManager] Error calling HandleInput: {}", e.what());
     }
 }
 
@@ -203,7 +185,8 @@ namespace LuaBindings
         lua.new_usertype<InputEvent>(
             "InputEvent",
             "type", &InputEvent::type,
-            "input", &InputEvent::input);
+            "input", &InputEvent::input,
+            "mods", &InputEvent::mods);
     }
 
     void RegisterFunctions(sol::state &lua)
@@ -311,24 +294,61 @@ py::object ScriptManager::ImportModule(const std::string &moduleName)
 }
 
 // ============================================================================
-// Initialization & Shutdown - Both Languages
+// Initialization & Shutdown - Lua and Python
 // ============================================================================
 
 void ScriptManager::Initialize()
 {
+    LOG_TRACE_L3("Initializing ScriptManager...");
     // Initialize Lua
     LuaBindings::RegisterEnums(lua);
     LuaBindings::RegisterTypes(lua);
     LuaBindings::RegisterFunctions(lua);
-    lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math);
+    lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math, sol::lib::string, sol::lib::debug);
+
+    // Override Lua's print function to route through C++ logging with source location
+    lua.set_function("print", [](sol::variadic_args args, sol::this_state s)
+                     {
+        sol::state_view lua(s);
+
+        // Get caller's source location using debug.getinfo
+        std::string source = "?";
+        int line = 0;
+        sol::function getinfo = lua["debug"]["getinfo"];
+        if (getinfo.valid()) {
+            sol::table info = getinfo(2, "Sl"); // level 2 = caller, "Sl" = source + line
+            if (info.valid()) {
+                sol::optional<std::string> src = info["short_src"];
+                sol::optional<int> ln = info["currentline"];
+                if (src) source = *src;
+                if (ln) line = *ln;
+            }
+        }
+
+        // Build output string
+        std::string output;
+        bool first = true;
+        for (auto arg : args) {
+            if (!first) output += "\t";
+            first = false;
+            sol::function tostring = lua["tostring"];
+            sol::object result = tostring(arg);
+            if (result.is<std::string>()) {
+                output += result.as<std::string>();
+            } else {
+                output += "<unprintable>";
+            }
+        }
+        LOG_INFO("[Lua] {}:{} - {}", source, line, output); });
+
     CreateList(EVENT_QUEUE);
 
+    LOG_TRACE_L1("Lua: Running init.lua");
     Run(Game::GetInstance().conf.ResourcePath + "scripts/init.lua");
 
     // Initialize Python
     guard = std::make_unique<py::scoped_interpreter>();
-    std::cout << "Python: Running init.py" << std::endl;
-
+    LOG_TRACE_L1("Python: Running init.py");
     std::ifstream file(Game::GetInstance().conf.ResourcePath + "scripts/init.py");
     if (!file.is_open())
     {
@@ -339,7 +359,7 @@ void ScriptManager::Initialize()
     std::string script_content = buffer.str();
     py::exec(script_content, py::globals());
 
-    std::cout << "INIT - ScriptManager: SUCCESS" << std::endl;
+    LOG_INFO("INIT - ScriptManager: SUCCESS");
 }
 
 void ScriptManager::Shutdown()
@@ -349,7 +369,6 @@ void ScriptManager::Shutdown()
     lua.collect_garbage();
 
     // Shutdown Python
-    std::cout << "SHUTDOWN - Python" << std::endl;
     try
     {
         // Clear globals
@@ -370,6 +389,9 @@ void ScriptManager::Shutdown()
     }
     catch (const py::error_already_set &e)
     {
-        std::cerr << "Error clearing Python globals: " << e.what() << std::endl;
+        LOG_ERROR("Error clearing Python globals: {}", e.what());
     }
+    guard.reset(); // End the Python interpreter
+
+    LOG_INFO("SHUTDOWN - Python");
 }

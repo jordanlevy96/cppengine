@@ -70,6 +70,7 @@ imhotep-editor (new):
 ### 1. Editor Application (`src/editor/Editor.cpp`)
 
 **Responsibilities**:
+
 - Initialize editor window with HTMLRendererMT
 - Load editor UI templates (scene tree, inspector, etc.)
 - Manage editor state (selection, tools, modes)
@@ -77,6 +78,7 @@ imhotep-editor (new):
 - Coordinate between editor UI and scene viewport
 
 **Key methods**:
+
 ```cpp
 class Editor {
     bool Initialize();
@@ -104,6 +106,7 @@ private:
 ### 2. Scene Viewport (`src/editor/SceneViewport.cpp`)
 
 **Responsibilities**:
+
 - Embed game rendering in editor window
 - Separate camera for editor (not game camera)
 - Handle viewport-specific input (orbit, pan, zoom)
@@ -111,6 +114,7 @@ private:
 - Entity picking (click to select)
 
 **Key features**:
+
 ```cpp
 class SceneViewport {
     void Initialize(int width, int height);
@@ -138,12 +142,14 @@ private:
 ### 3. File Watcher (`src/editor/FileWatcher.cpp`)
 
 **Responsibilities**:
+
 - Watch res/ directory for file changes
 - Trigger hot reload on HTML/CSS/Lua changes
 - Reload scenes on YAML changes
 - Notify editor UI of changes
 
 **Platform-specific implementations**:
+
 - macOS: FSEvents API
 - Linux: inotify
 - Windows: ReadDirectoryChangesW
@@ -174,74 +180,92 @@ private:
 ### 4. Editor UI Templates (HTML/CSS/Lua)
 
 #### Scene Tree Panel (`res/editor/templates/scene_tree.html`)
+
 ```html
 <div class="panel scene-tree">
-    <h2>Scene Hierarchy</h2>
-    <div v-for="entity in entities" class="entity-row"
-         :class="{selected: entity.id == selectedId}"
-         @click="selectEntity(entity.id)">
-        <span class="entity-icon">{{ entity.icon }}</span>
-        <span class="entity-name">{{ entity.name }}</span>
-    </div>
+  <h2>Scene Hierarchy</h2>
+  <div
+    v-for="entity in entities"
+    class="entity-row"
+    :class="{selected: entity.id == selectedId}"
+    @click="selectEntity(entity.id)"
+  >
+    <span class="entity-icon">{{ entity.icon }}</span>
+    <span class="entity-name">{{ entity.name }}</span>
+  </div>
 </div>
 ```
 
 #### Inspector Panel (`res/editor/templates/inspector.html`)
+
 ```html
 <div class="panel inspector">
-    <h2>Inspector</h2>
-    <div v-if="selectedEntity">
-        <h3>{{ selectedEntity.name }}</h3>
+  <h2>Inspector</h2>
+  <div v-if="selectedEntity">
+    <h3>{{ selectedEntity.name }}</h3>
 
-        <!-- Transform Component -->
-        <div class="component">
-            <h4>Transform</h4>
-            <label>Position</label>
-            <input type="number" v-model="selectedEntity.transform.x" @change="updateTransform">
-            <input type="number" v-model="selectedEntity.transform.y" @change="updateTransform">
-            <input type="number" v-model="selectedEntity.transform.z" @change="updateTransform">
-        </div>
-
-        <!-- Other components -->
-        <div v-for="comp in selectedEntity.components" class="component">
-            <h4>{{ comp.type }}</h4>
-            <!-- Component-specific fields -->
-        </div>
+    <!-- Transform Component -->
+    <div class="component">
+      <h4>Transform</h4>
+      <label>Position</label>
+      <input
+        type="number"
+        v-model="selectedEntity.transform.x"
+        @change="updateTransform"
+      />
+      <input
+        type="number"
+        v-model="selectedEntity.transform.y"
+        @change="updateTransform"
+      />
+      <input
+        type="number"
+        v-model="selectedEntity.transform.z"
+        @change="updateTransform"
+      />
     </div>
+
+    <!-- Other components -->
+    <div v-for="comp in selectedEntity.components" class="component">
+      <h4>{{ comp.type }}</h4>
+      <!-- Component-specific fields -->
+    </div>
+  </div>
 </div>
 ```
 
 #### UI Editor Panel (`res/editor/templates/ui_editor.html`)
+
 ```html
 <div class="panel ui-editor">
-    <h2>UI Editor</h2>
+  <h2>UI Editor</h2>
 
-    <!-- Template selector -->
-    <select v-model="currentTemplate" @change="loadTemplate">
-        <option v-for="tpl in templates">{{ tpl.name }}</option>
-    </select>
+  <!-- Template selector -->
+  <select v-model="currentTemplate" @change="loadTemplate">
+    <option v-for="tpl in templates">{{ tpl.name }}</option>
+  </select>
 
-    <!-- Code editor (syntax highlighted textarea or Monaco editor) -->
-    <div class="code-section">
-        <h3>HTML Template</h3>
-        <textarea v-model="htmlCode" @input="onHTMLChange"></textarea>
-    </div>
+  <!-- Code editor (syntax highlighted textarea or Monaco editor) -->
+  <div class="code-section">
+    <h3>HTML Template</h3>
+    <textarea v-model="htmlCode" @input="onHTMLChange"></textarea>
+  </div>
 
-    <div class="code-section">
-        <h3>CSS Styles</h3>
-        <textarea v-model="cssCode" @input="onCSSChange"></textarea>
-    </div>
+  <div class="code-section">
+    <h3>CSS Styles</h3>
+    <textarea v-model="cssCode" @input="onCSSChange"></textarea>
+  </div>
 
-    <div class="code-section">
-        <h3>Lua State</h3>
-        <textarea v-model="luaCode" @input="onLuaChange"></textarea>
-    </div>
+  <div class="code-section">
+    <h3>Lua State</h3>
+    <textarea v-model="luaCode" @input="onLuaChange"></textarea>
+  </div>
 
-    <!-- Live preview -->
-    <div class="preview-panel">
-        <h3>Live Preview</h3>
-        <div class="preview-content" v-html="previewHTML"></div>
-    </div>
+  <!-- Live preview -->
+  <div class="preview-panel">
+    <h3>Live Preview</h3>
+    <div class="preview-content" v-html="previewHTML"></div>
+  </div>
 </div>
 ```
 
@@ -340,17 +364,20 @@ imhotep/
 **Goal**: Get basic editor window running with UI panels
 
 1. **Refactor build system**
+
    - Make `libcore` a true shared library
    - Ensure all engine code is in `libcore`
    - Create new `imhotep-editor` CMake target
 
 2. **Create Editor application skeleton**
+
    - `src/editor/main.cpp` - Entry point
    - `src/editor/Editor.cpp` - Main loop
    - Initialize window with HTMLRendererMT
    - Load basic editor UI template
 
 3. **Build basic UI layout**
+
    - Top menu bar (File, Edit, View)
    - Panel system with resizable splits
    - Empty panels for: Scene Tree, Viewport, Inspector, UI Editor
@@ -367,12 +394,14 @@ imhotep/
 **Goal**: Embed game rendering, camera control, entity picking
 
 1. **SceneViewport implementation**
+
    - Render to texture (FBO)
    - Display texture in editor UI panel
    - Separate editor camera (orbit/pan/zoom)
    - Sync with Registry entities
 
 2. **Entity picking**
+
    - Color-coded picking buffer
    - Mouse click → EntityID lookup
    - Highlight selected entity
@@ -390,12 +419,14 @@ imhotep/
 **Goal**: View and modify entity components
 
 1. **Inspector panel**
+
    - Display selected entity name
    - Show Transform component (editable)
    - Show RenderComponent (shader, mesh paths)
    - Show other components (read-only initially)
 
 2. **Component editing**
+
    - Input fields for Transform (pos, rot, scale)
    - Update Registry on change
    - Instant visual feedback in viewport
@@ -412,11 +443,13 @@ imhotep/
 **Goal**: File watching and automatic reloading
 
 1. **FileWatcher implementation**
+
    - Platform-specific file monitoring
    - Detect changes to res/ files
    - Debounce rapid changes
 
 2. **Hot reload handlers**
+
    - HTML/CSS changes → Reload ReactiveUI templates
    - Lua state changes → Reload LuaUIState
    - Scene YAML changes → Reload scene
@@ -434,18 +467,21 @@ imhotep/
 **Goal**: Visual UI template editing with live preview
 
 1. **UI Editor panel**
+
    - Template selector dropdown
    - Code editor for HTML/CSS/Lua
    - Syntax highlighting (basic)
    - Save buttons
 
 2. **Live preview**
+
    - Separate preview panel
    - Render current template
    - Update on code change (debounced)
    - Show errors inline
 
 3. **Template management**
+
    - Create new template
    - Duplicate template
    - Delete template
@@ -463,6 +499,7 @@ imhotep/
 **Goal**: Professional workflow enhancements
 
 1. **Scene manipulation**
+
    - Create new entities
    - Delete entities
    - Duplicate entities
@@ -470,16 +507,19 @@ imhotep/
    - Copy/paste entities
 
 2. **Component management**
+
    - Add components to entities
    - Remove components
    - Edit component properties (all types)
 
 3. **Undo/Redo**
+
    - Command pattern for all actions
    - Undo stack (Ctrl+Z)
    - Redo stack (Ctrl+Shift+Z)
 
 4. **Save/Load**
+
    - Save scene to YAML
    - Save UI templates to files
    - Project management
@@ -502,8 +542,8 @@ imhotep/
 5. **src/editor/EditorState.cpp/.h** - Editor state
 6. **src/editor/Gizmos.cpp/.h** - Transform gizmos
 7. **src/editor/EntityPicker.cpp/.h** - Entity selection
-8. **res/editor/templates/*.html** - Editor UI templates
-9. **res/editor/styles/*.css** - Editor CSS
+8. **res/editor/templates/\*.html** - Editor UI templates
+9. **res/editor/styles/\*.css** - Editor CSS
 10. **res/editor/state/editor.lua** - Editor Lua state
 
 ### Files to Modify
@@ -518,6 +558,7 @@ imhotep/
 ### Build System Changes
 
 **Current CMakeLists.txt** (line 5-12, 178) creates `libcore.so` but bundles main.cpp:
+
 ```cmake
 add_library(core SHARED
     "src/Camera.cpp"
@@ -531,6 +572,7 @@ add_executable(imhotep src/main.cpp)  # <- Line 178: Also defines main()
 **Problem**: Both `libcore.so` and `imhotep` define `main()`. When `imhotep-editor` links against `libcore.so`, linker will fail with duplicate symbol error.
 
 **Fix** (CMakeLists.txt):
+
 ```cmake
 # Remove line 12 ("src/main.cpp") from add_library(core SHARED ...)
 
@@ -553,6 +595,7 @@ target_include_directories(imhotep-editor PRIVATE ${core_INCLUDE_DIRS})
 ```
 
 **Verification**: After fix, run:
+
 ```bash
 nm -g build/libcore.dylib | grep " T _main"  # Should return nothing
 ```
@@ -560,6 +603,7 @@ nm -g build/libcore.dylib | grep " T _main"  # Should return nothing
 ### Rendering Architecture
 
 **Single window with FBO-based viewport** (preferred approach):
+
 ```cpp
 // Editor window (uses existing singleton - will need refactoring)
 WindowManager& wm = WindowManager::GetInstance();
@@ -587,6 +631,7 @@ viewport->SetRegistry(&Registry::GetInstance());
 ### Shared Registry Pattern
 
 Both editor and game manipulate the same Registry:
+
 ```cpp
 // In Editor::Initialize()
 registry = &Registry::GetInstance();  // Same singleton as game uses!
@@ -634,17 +679,18 @@ EntityID CloneEntity(EntityID source);
 ```
 
 **SaveScene implementation** (add to `Registry.cpp`):
+
 ```cpp
 bool Registry::SaveScene(const std::string& path) {
     YAML::Emitter out;
     out << YAML::BeginMap;
     out << YAML::Key << "scene" << YAML::Value << YAML::BeginMap;
     out << YAML::Key << "objects" << YAML::Value << YAML::BeginSeq;
-    
+
     for (size_t i = 0; i < entityNames.size(); i++) {
         out << YAML::BeginMap;
         out << YAML::Key << "name" << YAML::Value << entityNames[i];
-        
+
         if (TransformComponents.HasComponent(i)) {
             Transform& t = TransformComponents.GetComponent(i);
             out << YAML::Key << "transform" << YAML::Value << YAML::BeginMap;
@@ -659,9 +705,9 @@ bool Registry::SaveScene(const std::string& path) {
         // ... other components
         out << YAML::EndMap;
     }
-    
+
     out << YAML::EndSeq << YAML::EndMap << YAML::EndMap;
-    
+
     std::ofstream fout(path);
     fout << out.c_str();
     return fout.good();
@@ -695,19 +741,22 @@ void FileWatcher::OnFileChanged(const std::string& path) {
 ### Input Routing Architecture
 
 **Problem**: Current input flow goes directly to Lua (WindowManager.cpp lines 240-305):
+
 ```
 GLFW → WindowManager callbacks → ScriptManager event queue → Lua handlers
 ```
 
 The editor needs C++ to handle:
+
 - Gizmo dragging (transform manipulation)
 - Viewport camera (orbit/pan/zoom)
 - Keyboard shortcuts (Ctrl+Z, Ctrl+S, etc.)
 - Panel interactions
 
-**Solution**: Add interceptor pattern to WindowManager.
+** Potential Solution**: Add interceptor pattern to WindowManager.
 
 **Add to `WindowManager.h`**:
+
 ```cpp
 /// Input handler callback type (return true to consume event)
 using InputHandler = std::function<bool(const InputEvent&)>;
@@ -715,14 +764,14 @@ using InputHandler = std::function<bool(const InputEvent&)>;
 class WindowManager {
 public:
     // ... existing methods ...
-    
+
     /**
      * @brief Register C++ input handler (called before Lua)
      * @param handler Callback that returns true to consume event
      * @return Handler ID for unregistration
      */
     size_t RegisterInputHandler(InputHandler handler);
-    
+
     /**
      * @brief Unregister input handler
      * @param id Handler ID from RegisterInputHandler
@@ -736,17 +785,18 @@ private:
 ```
 
 **Modify callbacks** (e.g., `click_callback`):
+
 ```cpp
 void WindowManager::click_callback(GLFWwindow* window, int button, int action, int mods) {
     if (action != GLFW_PRESS) return;
-    
+
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
-    
+
     InputEvent event;
     event.type = InputTypes::Click;
     event.input = glm::vec3(xpos, ypos, button);
-    
+
     // NEW: Try C++ handlers first
     WindowManager& wm = GetInstance();
     for (auto& [id, handler] : wm.m_inputHandlers) {
@@ -754,7 +804,7 @@ void WindowManager::click_callback(GLFWwindow* window, int button, int action, i
             return;  // Event consumed by C++ handler
         }
     }
-    
+
     // Fall through to Lua
     ScriptManager& sm = ScriptManager::GetInstance();
     sm.AddToTable(EVENT_QUEUE, event);
@@ -762,10 +812,11 @@ void WindowManager::click_callback(GLFWwindow* window, int button, int action, i
 ```
 
 **Editor usage**:
+
 ```cpp
 void Editor::Initialize() {
     WindowManager& wm = WindowManager::GetInstance();
-    
+
     // Register gizmo handler (high priority)
     m_gizmoHandlerId = wm.RegisterInputHandler([this](const InputEvent& e) {
         if (e.type == InputTypes::Click) {
@@ -773,7 +824,7 @@ void Editor::Initialize() {
         }
         return false;
     });
-    
+
     // Register keyboard shortcuts
     m_shortcutHandlerId = wm.RegisterInputHandler([this](const InputEvent& e) {
         if (e.type == InputTypes::Key) {
@@ -800,7 +851,7 @@ class KeyboardShortcuts {
 public:
     void Register(int key, int mods, std::function<void()> action);
     bool HandleKey(int key, int mods);  // Returns true if shortcut matched
-    
+
 private:
     std::vector<Shortcut> m_shortcuts;
 };
@@ -825,28 +876,34 @@ m_shortcuts.Register(GLFW_KEY_DELETE, 0, [this]() {
 ## Risks & Mitigations
 
 1. **Risk**: Editor UI complexity overwhelms the reactive UI system
+
    - **Mitigation**: Start simple, add features incrementally. The Tetris UI proves the system works.
    - **Fallback**: If performance degrades, implement virtual scrolling for large lists (scene tree with 1000+ entities).
 
 2. **Risk**: Single OpenGL context limits architecture
+
    - **Mitigation**: Use FBO for viewport rendering, single context is sufficient.
    - **Note**: We're NOT using two contexts. SceneViewport renders to FBO, texture displayed in editor UI.
 
 3. **Risk**: File watching doesn't work on all platforms
+
    - **Mitigation**: Implement polling fallback first (simple `stat()` checks), add native APIs (FSEvents, inotify) as optimization.
    - **Polling cost**: ~1ms per 100 files checked. Debounce to 500ms intervals.
 
 4. **Risk**: Gizmo rendering is complex
+
    - **Mitigation**: Use simple line rendering initially, can upgrade later.
    - **Reference**: Blender's transform gizmos for visual design.
 
 5. **Risk**: Viewport texture display in litehtml
+
    - **Problem**: litehtml doesn't understand OpenGL textures natively.
    - **Solution A**: Implement custom `document_container::load_image()` that returns a sentinel URL, then in `draw_background()` detect sentinel and blit from FBO texture.
    - **Solution B**: Copy FBO to CPU buffer, encode as data URI (slow but simple for Phase 1).
    - **Mitigation**: Start with Solution B, optimize to Solution A in Phase 3.
 
 6. **Risk**: Undo/redo complexity
+
    - **Mitigation**: Command pattern with simple value snapshots initially. Deep cloning only for complex operations.
    - **Memory**: Limit undo stack to 100 operations or 50MB.
 
@@ -856,12 +913,14 @@ m_shortcuts.Register(GLFW_KEY_DELETE, 0, [this]() {
 ## Success Criteria
 
 **Phase 1-2 (Foundation)**:
+
 - [ ] Editor launches successfully with panel layout
 - [ ] Can see game scene in viewport with editor camera
 - [ ] Can orbit/pan/zoom viewport camera
 - [ ] Scene tree displays all entities
 
 **Phase 3-4 (Core Editing)**:
+
 - [ ] Can select entities (click in viewport or tree)
 - [ ] Inspector shows selected entity components
 - [ ] Can modify Transform and see changes instantly
@@ -869,6 +928,7 @@ m_shortcuts.Register(GLFW_KEY_DELETE, 0, [this]() {
 - [ ] Basic keyboard shortcuts work (Ctrl+Z, Ctrl+S)
 
 **Phase 5-6 (Advanced)**:
+
 - [ ] Can edit UI templates with live preview
 - [ ] Can manipulate Lua state at runtime
 - [ ] Undo/redo works for all operations
@@ -876,6 +936,7 @@ m_shortcuts.Register(GLFW_KEY_DELETE, 0, [this]() {
 - [ ] Auto-save prevents data loss
 
 **Non-Goals** (explicit exclusions):
+
 - ❌ ImGui code anywhere
 - ❌ Multi-window support (deferred to future)
 - ❌ Asset import pipeline (use external tools)
@@ -886,12 +947,14 @@ m_shortcuts.Register(GLFW_KEY_DELETE, 0, [this]() {
 ### 1. **DON'T: Mix Editor and Game State**
 
 ❌ **Wrong**:
+
 ```cpp
 // In Editor.cpp
 bool gameIsRunning = true;  // Global state confusion!
 ```
 
 ✅ **Correct**:
+
 ```cpp
 // Clear separation
 EditorState m_editorState;  // Editor-only (selection, tools, etc.)
@@ -905,12 +968,14 @@ EditorState m_editorState;  // Editor-only (selection, tools, etc.)
 ### 2. **DON'T: Call Game Loop from Editor**
 
 ❌ **Wrong**:
+
 ```cpp
 // In Editor::Run()
 App::GetInstance().Run();  // Deadlock! Both have event loops
 ```
 
 ✅ **Correct**:
+
 ```cpp
 // Editor has its own loop, renders scene manually
 void Editor::Render() {
@@ -925,6 +990,7 @@ void Editor::Render() {
 ### 3. **DON'T: Forget to Sync Viewport Texture to Editor UI**
 
 ❌ **Wrong**:
+
 ```cpp
 // Render to FBO but never display it
 viewport->Render();
@@ -932,6 +998,7 @@ viewport->Render();
 ```
 
 ✅ **Correct**:
+
 ```cpp
 // 1. Render scene to texture
 viewport->Render();
@@ -950,12 +1017,14 @@ editorState->SetValue("viewportTexture", texId);
 ### 4. **DON'T: Use ImGui Anywhere**
 
 ❌ **Wrong**:
+
 ```cpp
 #include "systems/UI.h"  // Old ImGui code
 ui->RenderWindow();
 ```
 
 ✅ **Correct**:
+
 ```cpp
 // Use your own HTML/CSS/Lua system exclusively
 htmlRenderer->Render();
@@ -968,6 +1037,7 @@ htmlRenderer->Render();
 ### 5. **DON'T: Tightly Couple Editor to Specific Game Logic**
 
 ❌ **Wrong**:
+
 ```cpp
 // In Inspector.cpp
 if (entity.name == "TetrisGrid") {
@@ -976,6 +1046,7 @@ if (entity.name == "TetrisGrid") {
 ```
 
 ✅ **Correct**:
+
 ```cpp
 // Generic component inspection
 for (auto& comp : entity.GetComponents()) {
@@ -990,12 +1061,14 @@ for (auto& comp : entity.GetComponents()) {
 ### 6. **DON'T: Modify Registry Without Dirty Tracking**
 
 ❌ **Wrong**:
+
 ```cpp
 Transform& t = registry->GetComponent<Transform>(entity);
 t.position.x = 10.0f;  // Changed but viewport doesn't know!
 ```
 
 ✅ **Correct**:
+
 ```cpp
 Transform& t = registry->GetComponent<Transform>(entity);
 t.position.x = 10.0f;
@@ -1010,12 +1083,14 @@ m_viewport->MarkDirty();  // OR use dirty flag system
 ### 7. **DON'T: Create Multiple WindowManager Instances**
 
 ❌ **Wrong**:
+
 ```cpp
 WindowManager editorWindow;  // Instance 1
 WindowManager gameWindow;    // Instance 2 - CONFLICT!
 ```
 
 ✅ **Correct**:
+
 ```cpp
 // WindowManager is a singleton
 WindowManager& wm = WindowManager::GetInstance();
@@ -1032,12 +1107,14 @@ WindowManager& wm = WindowManager::GetInstance();
 ### 8. **DON'T: Assume Viewport Size = Window Size**
 
 ❌ **Wrong**:
+
 ```cpp
 viewport->Initialize(windowWidth, windowHeight);
 // Viewport takes full window - no room for panels!
 ```
 
 ✅ **Correct**:
+
 ```cpp
 // Viewport is one panel among many
 viewport->Initialize(800, 600);  // Fixed size or calculated from layout
@@ -1053,6 +1130,7 @@ viewport->Initialize(800, 600);  // Fixed size or calculated from layout
 ### 9. **DON'T: Hot Reload Without Error Handling**
 
 ❌ **Wrong**:
+
 ```cpp
 void OnFileChanged(const std::string& path) {
     registry->LoadScene(path);  // What if YAML is malformed?
@@ -1060,6 +1138,7 @@ void OnFileChanged(const std::string& path) {
 ```
 
 ✅ **Correct**:
+
 ```cpp
 void OnFileChanged(const std::string& path) {
     try {
@@ -1079,6 +1158,7 @@ void OnFileChanged(const std::string& path) {
 ### 10. **DON'T: Block the Editor Loop with File I/O**
 
 ❌ **Wrong**:
+
 ```cpp
 void Editor::Run() {
     while (!shouldClose) {
@@ -1089,6 +1169,7 @@ void Editor::Run() {
 ```
 
 ✅ **Correct**:
+
 ```cpp
 void Editor::Run() {
     while (!shouldClose) {
@@ -1105,12 +1186,14 @@ void Editor::Run() {
 ### 11. **DON'T: Expose OpenGL Textures Directly to HTML UI**
 
 ❌ **Wrong**:
+
 ```html
 <!-- Can't do this! -->
-<img src="gl://texture/42">
+<img src="gl://texture/42" />
 ```
 
 ✅ **Correct**:
+
 ```cpp
 // Option 1: Copy texture to CPU, base64 encode
 std::string base64 = EncodeTextureToBase64(texId);
@@ -1127,6 +1210,7 @@ luaState->SetValue("viewportImage", "data:image/png;base64," + base64);
 ### 12. **DON'T: Forget Thread Safety for HTMLRendererMT**
 
 ❌ **Wrong**:
+
 ```cpp
 // Main thread
 htmlRenderer->LoadHTML(newHTML);
@@ -1136,6 +1220,7 @@ htmlRenderer->RenderToBuffer();  // RACE CONDITION!
 ```
 
 ✅ **Correct**:
+
 ```cpp
 // HTMLRendererMT already handles this internally with mutexes
 // Just call LoadHTML() from main thread, it's safe
@@ -1149,11 +1234,13 @@ htmlRenderer->LoadHTML(newHTML);
 ### 13. **DON'T: Hardcode Paths**
 
 ❌ **Wrong**:
+
 ```cpp
 registry->LoadScene("/Users/jordan/dev/cppengine/res/scenes/MainScene.yaml");
 ```
 
 ✅ **Correct**:
+
 ```cpp
 registry->LoadScene("../res/scenes/MainScene.yaml");  // Relative to build/
 // OR use conf.ResourcePath from settings.yaml
@@ -1166,12 +1253,14 @@ registry->LoadScene("../res/scenes/MainScene.yaml");  // Relative to build/
 ### 14. **DON'T: Build Editor UI Before Reading UI_SYSTEM.md**
 
 ❌ **Wrong**:
+
 ```cpp
 // Guessing at directive syntax
 <div v-for="entity in entities">  // Is this right?
 ```
 
 ✅ **Correct**:
+
 ```cpp
 // Read docs first!
 // docs/architecture/UI_SYSTEM.md has:
@@ -1188,6 +1277,7 @@ registry->LoadScene("../res/scenes/MainScene.yaml");  // Relative to build/
 ### 15. **DON'T: Over-Engineer Phase 1**
 
 ❌ **Wrong** (Phase 1):
+
 ```cpp
 // Trying to build everything at once
 class UndoRedoSystem { ... };
@@ -1196,6 +1286,7 @@ class MonacoEditorIntegration { ... };
 ```
 
 ✅ **Correct** (Phase 1):
+
 ```cpp
 // Just get a window with panels
 Editor::Initialize() {
@@ -1222,37 +1313,37 @@ public:
         std::filesystem::create_directories(m_autosaveDir);
         m_lastSaveTime = std::chrono::steady_clock::now();
     }
-    
+
     void Update() {
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - m_lastSaveTime);
-        
+
         if (elapsed.count() >= 60 && m_hasUnsavedChanges) {
             SaveBackup();
             m_lastSaveTime = now;
         }
     }
-    
+
     void SaveBackup() {
         std::string timestamp = GetTimestamp();  // e.g., "2026-01-03_051500"
         std::string backupPath = m_autosaveDir + "scene_" + timestamp + ".yaml";
         Registry::GetInstance().SaveScene(backupPath);
-        
+
         // Keep only last 5 backups
         CleanOldBackups(5);
     }
-    
+
     bool HasRecoverableBackup() {
         return !GetLatestBackup().empty();
     }
-    
+
     void RecoverFromBackup() {
         std::string latest = GetLatestBackup();
         if (!latest.empty()) {
             Registry::GetInstance().LoadScene(latest);
         }
     }
-    
+
 private:
     std::string m_autosaveDir;
     std::chrono::steady_clock::time_point m_lastSaveTime;
@@ -1323,19 +1414,19 @@ class TransformCommand : public Command {
 public:
     TransformCommand(EntityID entity, const Transform& oldValue, const Transform& newValue)
         : m_entity(entity), m_oldValue(oldValue), m_newValue(newValue) {}
-    
+
     void Execute() override {
         Registry::GetInstance().GetComponent<Transform>(m_entity) = m_newValue;
     }
-    
+
     void Undo() override {
         Registry::GetInstance().GetComponent<Transform>(m_entity) = m_oldValue;
     }
-    
+
     std::string GetDescription() const override {
         return "Transform " + Registry::GetInstance().GetEntityName(m_entity);
     }
-    
+
 private:
     EntityID m_entity;
     Transform m_oldValue;
@@ -1346,21 +1437,21 @@ class UndoStack {
 public:
     void Execute(std::unique_ptr<Command> cmd) {
         cmd->Execute();
-        
+
         // Clear redo stack on new action
         m_redoStack.clear();
-        
+
         // Add to undo stack
         m_undoStack.push_back(std::move(cmd));
         m_totalMemory += m_undoStack.back()->GetMemorySize();
-        
+
         // Enforce limits
         while (m_undoStack.size() > MAX_UNDO_COUNT || m_totalMemory > MAX_UNDO_MEMORY) {
             m_totalMemory -= m_undoStack.front()->GetMemorySize();
             m_undoStack.pop_front();
         }
     }
-    
+
     void Undo() {
         if (m_undoStack.empty()) return;
         auto cmd = std::move(m_undoStack.back());
@@ -1368,7 +1459,7 @@ public:
         cmd->Undo();
         m_redoStack.push_back(std::move(cmd));
     }
-    
+
     void Redo() {
         if (m_redoStack.empty()) return;
         auto cmd = std::move(m_redoStack.back());
@@ -1376,14 +1467,14 @@ public:
         cmd->Execute();
         m_undoStack.push_back(std::move(cmd));
     }
-    
+
     bool CanUndo() const { return !m_undoStack.empty(); }
     bool CanRedo() const { return !m_redoStack.empty(); }
-    
+
 private:
     static constexpr size_t MAX_UNDO_COUNT = 100;
     static constexpr size_t MAX_UNDO_MEMORY = 50 * 1024 * 1024;  // 50MB
-    
+
     std::deque<std::unique_ptr<Command>> m_undoStack;
     std::vector<std::unique_ptr<Command>> m_redoStack;
     size_t m_totalMemory = 0;
@@ -1399,17 +1490,17 @@ public:
     void Add(std::unique_ptr<Command> cmd) {
         m_commands.push_back(std::move(cmd));
     }
-    
+
     void Execute() override {
         for (auto& cmd : m_commands) cmd->Execute();
     }
-    
+
     void Undo() override {
         for (auto it = m_commands.rbegin(); it != m_commands.rend(); ++it) {
             (*it)->Undo();
         }
     }
-    
+
 private:
     std::vector<std::unique_ptr<Command>> m_commands;
 };
@@ -1443,6 +1534,7 @@ litehtml renders HTML/CSS to a pixel buffer, but doesn't understand OpenGL textu
 ### Solution: Custom Image Sentinel Pattern
 
 **Phase 1 (Simple but slow)**:
+
 ```cpp
 // Copy FBO to CPU, encode as data URI
 std::vector<uint8_t> pixels(viewport->GetWidth() * viewport->GetHeight() * 4);
@@ -1456,7 +1548,7 @@ luaState->SetValue("viewportImage", "data:image/png;base64," + base64);
 
 ```html
 <div class="viewport-panel">
-    <img src="{{ viewportImage }}">
+  <img src="{{ viewportImage }}" />
 </div>
 ```
 
@@ -1473,28 +1565,30 @@ void SoftwareRenderer::draw_background(uint_ptr hdc, const background_paint& bg)
     if (bg.image.starts_with("viewport://")) {
         // Extract viewport name: "viewport://scene" → "scene"
         std::string viewportName = bg.image.substr(11);
-        
+
         // Get viewport texture from editor
         GLuint texId = Editor::GetInstance().GetViewportTexture(viewportName);
-        
+
         // Read viewport pixels (FBO → CPU)
         // This is fast because it's already on GPU, just need one readback
         std::vector<uint8_t> vpPixels;
         ReadTextureToBuffer(texId, vpPixels);
-        
+
         // Blit into current pixel buffer at bg.position_x, bg.position_y
         BlitPixels(vpPixels, bg.position_x, bg.position_y, bg.image_size.width, bg.image_size.height);
         return;
     }
-    
+
     // Normal background rendering
     // ... existing code ...
 }
 ```
 
 ```html
-<div class="viewport-panel" style="background-image: url('viewport://scene');">
-</div>
+<div
+  class="viewport-panel"
+  style="background-image: url('viewport://scene');"
+></div>
 ```
 
 **Why this works**: The sentinel URL triggers special handling in the software renderer. We do ONE texture readback per viewport per frame instead of full PNG encoding.
@@ -1507,18 +1601,18 @@ Don't embed viewport in HTML at all. Render HTML to texture, then composite view
 void Editor::Render() {
     // 1. Render scene to viewport FBO
     m_viewport->Render();
-    
+
     // 2. Render editor HTML UI (with placeholder for viewport)
     m_editorUI->Render();
-    
+
     // 3. Composite: draw viewport texture over the placeholder region
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     m_compositeShader->Use();
-    
+
     // Draw editor UI
     glBindTexture(GL_TEXTURE_2D, m_editorUI->GetTexture());
     DrawFullscreenQuad();
-    
+
     // Draw viewport texture over viewport region
     glBindTexture(GL_TEXTURE_2D, m_viewport->GetColorTexture());
     DrawQuadAt(m_viewportRect);  // Position from CSS layout
@@ -1534,6 +1628,7 @@ void Editor::Render() {
 ### Target Frame Time: 16.67ms (60 FPS)
 
 **Budget breakdown:**
+
 - Scene rendering (viewport): 4ms - 3D scene to FBO
 - Editor UI HTML rendering: 8ms - Async on render thread (doesn't block main)
 - Viewport texture readback: 2ms - Only if using data URI approach
@@ -1545,16 +1640,19 @@ void Editor::Render() {
 ### Worst-Case Scenarios
 
 **Large scene tree (1000+ entities)**:
+
 - Scene tree HTML generation: could take 50ms+
 - **Mitigation**: Virtual scrolling, only render visible items
 - Implementation: Track scroll position in Lua, compute visible range, only generate HTML for visible entities
 
 **Complex inspector (many components)**:
+
 - Inspector HTML generation: could take 10ms+
 - **Mitigation**: Lazy expansion, collapsed sections by default
 - Implementation: Only expand component details on user click
 
 **Hot reload during editing**:
+
 - Full UI re-render: 15ms+
 - **Mitigation**: Already async on render thread, no main thread impact
 - Just ensure dirty flag propagates correctly
@@ -1567,22 +1665,23 @@ Add timing instrumentation to these functions:
 // Add to Editor.cpp
 void Editor::Render() {
     PROFILE_SCOPE("Editor::Render");
-    
+
     {
         PROFILE_SCOPE("Viewport::Render");
         m_viewport->Render();
     }
-    
+
     {
         PROFILE_SCOPE("EditorUI::Render");
         m_editorUI->Render();
     }
-    
+
     // ...
 }
 ```
 
 Use existing Quill logging with timestamps for manual profiling:
+
 ```cpp
 LOG_TRACE_L1("Editor::Render start");
 // ... work ...
@@ -1645,6 +1744,7 @@ event.mods = mods;  // NEW: Pass through modifiers
 ### 3. Add Registry Query Methods (Phase 2)
 
 Add these methods to `Registry.h` (see "Required Registry Extensions" section above):
+
 - `GetEntityCount()`
 - `GetAllEntities()`
 - `GetEntityName(EntityID)`

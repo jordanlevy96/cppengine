@@ -10,7 +10,7 @@
 // stb_image for decoding PNGs from data URIs (implementation in Mesh.cpp)
 #include "stb_image.h"
 
-#include <yaml-cpp/binary.h>  // For base64 decoding
+#include <yaml-cpp/binary.h> // For base64 decoding
 
 // Software rendering document container for litehtml
 class HTMLRendererMT::SoftwareRenderer : public litehtml::document_container
@@ -38,7 +38,7 @@ public:
         int width = 0;
         int height = 0;
         int channels = 0;
-        std::vector<uint8_t> pixels;  // RGBA pixels
+        std::vector<uint8_t> pixels; // RGBA pixels
     };
 
     SoftwareRenderer(FrameBuffer *buffer)
@@ -210,7 +210,7 @@ public:
 
             auto glyphLoadEnd = std::chrono::high_resolution_clock::now();
             auto glyphLoadDuration = std::chrono::duration_cast<std::chrono::milliseconds>(glyphLoadEnd - glyphLoadStart).count();
-            LOG_DEBUG("[SoftwareRenderer] Loaded {} glyphs at size {} in {}ms", fontInfo.glyphs.size(), descr.size, glyphLoadDuration);
+            LOG_TRACE_L3("[SoftwareRenderer] Loaded {} glyphs at size {} in {}ms", fontInfo.glyphs.size(), descr.size, glyphLoadDuration);
 
             // Set font metrics
             if (fm)
@@ -357,7 +357,8 @@ public:
 
     void load_image(const char *src, const char *baseurl, bool redraw_on_ready) override
     {
-        if (!src) return;
+        if (!src)
+            return;
 
         std::string url(src);
 
@@ -371,7 +372,7 @@ public:
         if (url.find("data:image/png;base64,") == 0)
         {
             // Extract base64 data
-            std::string base64Data = url.substr(22);  // Skip "data:image/png;base64,"
+            std::string base64Data = url.substr(22); // Skip "data:image/png;base64,"
 
             // Decode base64
             std::vector<unsigned char> pngData = YAML::DecodeBase64(base64Data);
@@ -384,13 +385,13 @@ public:
 
             // Decode PNG using stb_image
             int width, height, channels;
-            unsigned char* pixels = stbi_load_from_memory(
+            unsigned char *pixels = stbi_load_from_memory(
                 pngData.data(),
                 pngData.size(),
                 &width,
                 &height,
                 &channels,
-                4  // Force RGBA
+                4 // Force RGBA
             );
 
             if (!pixels)
@@ -446,7 +447,7 @@ public:
         auto it = m_imageCache.find(url);
         if (it == m_imageCache.end())
         {
-            return;  // Image not loaded
+            return; // Image not loaded
         }
 
         const ImageData &img = it->second;

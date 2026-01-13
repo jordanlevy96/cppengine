@@ -1,5 +1,5 @@
 #include "controllers/WindowManager.h"
-#include "controllers/App.h"
+#include "controllers/Game.h"
 
 #include <iostream>
 
@@ -240,47 +240,22 @@ glm::vec2 WindowManager::GetSize()
     return glm::vec2(width, height);
 }
 
-size_t WindowManager::RegisterInputHandler(std::function<bool(const InputEvent &)> handler)
-{
-    size_t id = m_nextHandlerId++;
-    m_inputHandlers.emplace_back(id, handler);
-    return id;
-}
-
-void WindowManager::UnregisterInputHandler(size_t id)
-{
-    m_inputHandlers.erase(
-        std::remove_if(m_inputHandlers.begin(), m_inputHandlers.end(),
-                       [id](const auto &pair)
-                       { return pair.first == id; }),
-        m_inputHandlers.end());
-}
-
-// Input handling is done via Lua
-#define APPEND_EVENT() sm.AddToTable(EVENT_QUEUE, event);
+// Input handling is done via Lua - converts to native Lua table for proper queue handling
+#define APPEND_EVENT(event) sm.AddInputEventToQueue(event);
 
 void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     if (action == GLFW_PRESS || action == GLFW_REPEAT)
     {
+        ScriptManager &sm = ScriptManager::GetInstance();
         InputEvent event;
         event.type = InputTypes::Key;
         event.input = GLFW_KEY(key);
         event.mods = mods;
 
-        // Try C++ handlers first (for editor shortcuts, etc.)
-        WindowManager &wm = GetInstance();
-        for (auto &[id, handler] : wm.m_inputHandlers)
-        {
-            if (handler(event))
-            {
-                return; // Event consumed by C++ handler
-            }
-        }
+        LOG_INFO("[WindowManager] Key event: key={}, action={}, mods={}", GLFW_KEY(key), action, mods);
 
-        // Fall through to Lua
-        ScriptManager &sm = ScriptManager::GetInstance();
-        APPEND_EVENT()
+        APPEND_EVENT(event)
     }
 }
 
@@ -294,24 +269,15 @@ void WindowManager::click_callback(GLFWwindow *window, int button, int action, i
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
 
+    LOG_INFO("[WindowManager] Mouse click detected: button={}, pos=({}, {})", button, xpos, ypos);
+
+    ScriptManager &sm = ScriptManager::GetInstance();
     InputEvent event;
     event.type = InputTypes::Click;
     event.input = glm::vec3(xpos, ypos, button);
     event.mods = mods;
 
-    // Try C++ handlers first (for editor gizmos, viewport clicks, etc.)
-    WindowManager &wm = GetInstance();
-    for (auto &[id, handler] : wm.m_inputHandlers)
-    {
-        if (handler(event))
-        {
-            return; // Event consumed by C++ handler
-        }
-    }
-
-    // Fall through to Lua
-    ScriptManager &sm = ScriptManager::GetInstance();
-    APPEND_EVENT()
+    APPEND_EVENT(event)
 }
 
 void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double ypos)
@@ -321,7 +287,7 @@ void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double y
     event.type = InputTypes::Cursor;
     event.input = glm::vec2(xpos, ypos);
 
-    APPEND_EVENT()
+    APPEND_EVENT(event)
 }
 
 void WindowManager::resize_callback(GLFWwindow *window, int fbWidth, int fbHeight)
@@ -334,15 +300,23 @@ void WindowManager::resize_callback(GLFWwindow *window, int fbWidth, int fbHeigh
     int windowWidth, windowHeight;
     glfwGetWindowSize(window, &windowWidth, &windowHeight);
 
-    // Get App instance via user pointer if set
-    void* userPtr = glfwGetWindowUserPointer(window);
+    // Get Game instance via user pointer if set
+    void *userPtr = glfwGetWindowUserPointer(window);
     if (userPtr != nullptr)
     {
-        App* app = static_cast<App*>(userPtr);
-        if (app->cam != nullptr)
+        Game *game = static_cast<Game *>(userPtr);
+        if (game->cam != nullptr)
         {
-            app->cam->SetPerspective(app->cam->fov, windowWidth, windowHeight);
+            game->cam->SetPerspective(game->cam->fov, windowWidth, windowHeight);
         }
+        else
+        {
+            LOG_ERROR("[WindowManager] Camera is null, cannot update perspective on resize");
+        }
+    }
+    else
+    {
+        LOG_ERROR("[WindowManager] User pointer is null, cannot update perspective on resize");
     }
 }
 
@@ -353,5 +327,5 @@ void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double y
     event.type = InputTypes::Scroll;
     event.input = glm::vec2(xoffset, yoffset);
 
-    APPEND_EVENT()
+    APPEND_EVENT(event)
 }

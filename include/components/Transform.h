@@ -22,9 +22,9 @@ typedef size_t EntityID;
  */
 namespace EulerAngles
 {
-    const glm::vec3 Pitch(0.0f, 0.0f, 1.0f);  ///< Z-axis rotation (nodding)
-    const glm::vec3 Roll(1.0f, 0.0f, 0.0f);   ///< X-axis rotation (barrel roll)
-    const glm::vec3 Yaw(0.0f, 1.0f, 0.0f);    ///< Y-axis rotation (turning)
+    const glm::vec3 Pitch(0.0f, 0.0f, 1.0f); ///< Z-axis rotation (nodding)
+    const glm::vec3 Roll(1.0f, 0.0f, 0.0f);  ///< X-axis rotation (barrel roll)
+    const glm::vec3 Yaw(0.0f, 1.0f, 0.0f);   ///< Y-axis rotation (turning)
 };
 
 /**
@@ -58,8 +58,8 @@ namespace EulerAngles
  */
 struct Transform
 {
-    glm::vec3 Pos = glm::vec3(0.0f);                      ///< World position (x, y, z)
-    glm::vec3 Scale = glm::vec3(1.0f);                    ///< Local scale (x, y, z) - 1.0 = original size
+    glm::vec3 Pos = glm::vec3(0.0f);                        ///< Local position relative to parent (x, y, z)
+    glm::vec3 Scale = glm::vec3(1.0f);                      ///< Local scale (x, y, z) - 1.0 = original size
     glm::quat Rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); ///< Orientation quaternion (w, x, y, z) - identity = no rotation
-    glm::vec3 Color = glm::vec3(1.0f);                    ///< Base tint color (r, g, b) normalized [0-1] - white = no tint
+    glm::vec3 Color = glm::vec3(1.0f);                      ///< Base tint color (r, g, b) normalized [0-1] - white = no tint
 };

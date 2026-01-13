@@ -45,6 +45,7 @@ namespace imhotep
             "root",
             {std::move(console_sink), std::move(file_sink)});
 
+        // TODO: Set log level from config
         m_logger->set_log_level(quill::LogLevel::TraceL3);
 
         m_initialized = true;

@@ -29,6 +29,7 @@ EntityID Registry::RegisterEntity(const std::string &name, EntityID parent)
     return i++;
 }
 
+// TODO: destroy child entities as well
 void Registry::DestroyEntity(EntityID id)
 {
     LightingComponents.RemoveComponent(id);
@@ -51,7 +52,7 @@ EntityID Registry::GetEntityByName(const std::string &name)
     }
 }
 
-const std::string& Registry::GetEntityName(EntityID id) const
+const std::string &Registry::GetEntityName(EntityID id) const
 {
     static const std::string empty = "";
     if (id < entityNames.size())
@@ -61,7 +62,7 @@ const std::string& Registry::GetEntityName(EntityID id) const
     return empty;
 }
 
-void Registry::SetEntityName(EntityID id, const std::string& name)
+void Registry::SetEntityName(EntityID id, const std::string &name)
 {
     if (id < entityNames.size())
     {

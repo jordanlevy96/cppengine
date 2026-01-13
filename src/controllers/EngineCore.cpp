@@ -221,7 +221,6 @@ bool EngineCore::InitializeScriptManager()
 {
     m_scriptManager = &ScriptManager::GetInstance();
     m_scriptManager->Initialize();
-    LOG_INFO("INIT - ScriptManager: SUCCESS");
     return true;
 }
 

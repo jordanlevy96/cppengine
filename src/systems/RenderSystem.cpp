@@ -26,31 +26,8 @@ void RenderSystem::RenderEntity<RenderComponent>(EntityID id, Camera *cam)
     RenderComponent rc = registry->GetComponent<RenderComponent>(id);
     HierarchyComponent hc = registry->GetComponent<HierarchyComponent>(id);
 
-    // Log first render only (one-time debug info)
-    static bool logged = false;
-    if (!logged)
-    {
-        std::string entityName = registry->GetEntityName(id);
-        LOG_INFO("First render - entity {} at pos({}, {}, {}), scale({}, {}, {})",
-                 entityName, t.Pos.x, t.Pos.y, t.Pos.z, t.Scale.x, t.Scale.y, t.Scale.z);
-        if (rc.mesh)
-        {
-            LOG_INFO("  VAO: {}, mesh indices: {}", rc.mesh->VAO, rc.mesh->indices.size());
-        }
-        logged = true;
-    }
-
-    // Null check for shader and mesh
-    if (!rc.shader)
-    {
-        LOG_ERROR("Entity {} has null shader, skipping render", registry->GetEntityName(id));
-        return;
-    }
-    if (!rc.mesh)
-    {
-        LOG_ERROR("Entity {} has null mesh, skipping render", registry->GetEntityName(id));
-        return;
-    }
+    static int childCount = 0;
+    bool hasParent = hc.Parent < std::numeric_limits<size_t>::max();
 
     if (hc.Parent < std::numeric_limits<size_t>::max())
     {
@@ -62,15 +39,6 @@ void RenderSystem::RenderEntity<RenderComponent>(EntityID id, Camera *cam)
 
     rc.AddUniform("objectColor", t.Color, UniformTypeMap::vec3);
     rc.shader->Use();
-
-    // Camera null check (critical, but only once)
-    if (!cam)
-    {
-        LOG_CRITICAL("Camera pointer is NULL! Skipping render.");
-        LOG_CRITICAL("EXITING");
-        std::exit(EXIT_FAILURE);
-        return;
-    }
 
     glm::vec3 cameraPos = cam->transform.Pos;
 

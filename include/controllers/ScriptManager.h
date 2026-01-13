@@ -6,6 +6,7 @@
 #pragma once
 
 #include "util/debug.h"
+#include "util/Logger.h"
 #include <sol/sol.hpp>
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
@@ -13,17 +14,20 @@
 
 namespace py = pybind11;
 
-static const std::string &EVENT_QUEUE = "EventQueue";      ///< Lua global for input queue
-static const std::string &HANDLE_INPUT_F = "HandleInput";  ///< Lua input handler function name
+static const std::string &EVENT_QUEUE = "EventQueue";     ///< Lua global for input queue
+static const std::string &HANDLE_INPUT_F = "HandleInput"; ///< Lua input handler function name
+
+// Forward declaration for InputEvent (defined in WindowManager.h)
+struct InputEvent;
 
 /**
  * @brief Lua C++ bindings registration
  */
 namespace LuaBindings
 {
-    void RegisterEnums(sol::state &lua);      ///< Register InputTypes, CameraDirections, etc.
-    void RegisterTypes(sol::state &lua);      ///< Register vec2, vec3, Transform, etc.
-    void RegisterFunctions(sol::state &lua);  ///< Register App, Registry, Camera functions
+    void RegisterEnums(sol::state &lua);     ///< Register InputTypes, CameraDirections, etc.
+    void RegisterTypes(sol::state &lua);     ///< Register vec2, vec3, Transform, etc.
+    void RegisterFunctions(sol::state &lua); ///< Register App, Registry, Camera functions
 }
 
 /**
@@ -86,9 +90,10 @@ public:
         sol::table table = lua[tableName];
         if (!table.valid())
         {
-            std::cerr << "Table " << tableName << " not found in Lua" << std::endl;
+            LOG_ERROR("Table {} not found in Lua", tableName);
             return;
         }
+        LOG_DEBUG("Adding value to Lua table {}", tableName);
         table.add(value);
     };
 
@@ -181,11 +186,18 @@ public:
 
     void ProcessInput();
 
+    /**
+     * @brief Add input event to Lua EventQueue as native table
+     * @param event The input event to add
+     * @note Converts C++ InputEvent to Lua table to avoid Sol2/table.remove issues
+     */
+    void AddInputEventToQueue(const InputEvent& event);
+
     // Get reference to Lua state for UI system
-    sol::state& GetLuaState() { return lua; }
+    sol::state &GetLuaState() { return lua; }
 
 private:
-    ScriptManager(){};
+    ScriptManager() {};
 
     sol::state lua;
     std::unique_ptr<py::scoped_interpreter> guard;
