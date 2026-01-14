@@ -54,20 +54,25 @@ The Imhotep game engine needs a functional scene editor built using the new HTML
   - Standardized event polling order (all loops now poll events first)
   - Unified system update order: Input → Scripts → Tweens → Hierarchy → Render
   - Reduced code duplication in Game::RunFixedLoop(), Game::RunVariableLoop(), and Editor::Run()
+- **[NEW] C++ input handler system for editor shortcuts** (Commit 4e97109)
+  - Implemented `WindowManager::RegisterInputHandler()` / `UnregisterInputHandler()` API
+  - Modified GLFW callbacks (key, click, cursor, scroll) to check C++ handlers before Lua
+  - Keyboard shortcuts: ESC (close), Ctrl+S/O/Z/Shift+Z (stubbed for future implementation)
+  - Handler lifecycle: registered in Initialize(), unregistered in Shutdown()
 
 ### In Progress
 
-- Wire up input handlers in Editor
+- Scene tree click-to-select functionality
 
 ### Not Started
 
-1. Scene tree click-to-select functionality
-2. Basic Inspector panel (Transform display)
-3. Selection highlight in viewport
+1. Basic Inspector panel (Transform display)
+2. Selection highlight in viewport
+3. Scene save/load actual implementation (Ctrl+S/O)
+4. Undo/redo actual implementation (Ctrl+Z/Shift+Z)
 
 ### Known Issues
 
-- `src/editor/Editor.cpp:63` has `TODO: Get editor input handlers working`
 - Viewport texture encoding is slow (~5-10ms/frame) - acceptable for Phase 1
 - Magic numbers in HTML (1580x1185 viewport size hardcoded)
 
@@ -79,8 +84,8 @@ The Imhotep game engine needs a functional scene editor built using the new HTML
 
 **Editor-specific:**
 
-- `include/editor/Editor.h` - Main editor controller (updated with FrameTiming)
-- `src/editor/Editor.cpp` - Main loop, UI loading, scene tree (uses FrameTiming; line 65 has input TODO)
+- `include/editor/Editor.h` - Main editor controller (updated with FrameTiming, input handlers)
+- `src/editor/Editor.cpp` - Main loop, UI loading, scene tree, input handler registration/cleanup (complete)
 - `include/editor/SceneViewport.h` - Viewport rendering
 - `src/editor/SceneViewport.cpp` - FBO rendering, PNG encoding (complete)
 - `src/editor/main.cpp` - Entry point
@@ -110,7 +115,8 @@ The Imhotep game engine needs a functional scene editor built using the new HTML
 - `src/controllers/EngineCore.cpp` - Subsystem initialization
 - `src/systems/ReactiveUI.cpp` - Template parsing, directive handling, event binding
 - `src/systems/HTMLRendererMT.cpp` - Multi-threaded UI rendering
-- `src/controllers/WindowManager.cpp` - Input event registration
+- `include/controllers/WindowManager.h` - Window/input management, input handler API (NEW)
+- `src/controllers/WindowManager.cpp` - GLFW callbacks, input event dispatch (updated with handler checks)
 
 ### Key Classes/Functions
 
@@ -125,16 +131,24 @@ The Imhotep game engine needs a functional scene editor built using the new HTML
 - `FrameTiming::SetSimulationMultiplier(float)` - Set speed for VARIABLE mode
 - `FrameTiming::GetFrameElapsedMS()` - Elapsed since frame started (for sleep calculation)
 
-**Editor:**
+**WindowManager (NEW input handler API):**
 
-- `Editor::Initialize()` - Where input handlers should be registered
-- `Editor::Run()` - Main loop tick (now uses FrameTiming)
+- `WindowManager::RegisterInputHandler(handler)` - Register C++ input handler, returns handler ID
+- `WindowManager::UnregisterInputHandler(id)` - Unregister handler by ID
+- Handler is called before Lua - returns true to consume event
+- Implemented in all 4 GLFW callbacks (key, click, cursor, scroll)
+
+**Editor (NEW input handling):**
+
+- `Editor::Initialize()` - Registers keyboard input handler in constructor lambda
+- `Editor::HandleEditorInput(event)` - Processes keyboard shortcuts (ESC, Ctrl+S/O/Z)
+- `Editor::Run()` - Main loop tick (uses FrameTiming)
 - `Editor::UpdateSceneTree()` - Populates Lua state with entities
 - `Editor::UpdateSystems(delta)` - Updates TweenSystem and HierarchySystem
+- `Editor::Shutdown()` - Unregisters input handler before cleanup
 
 **Other key classes:**
 
-- `WindowManager::RegisterInputHandler()` - Input registration API (exists but unused by Editor)
 - `ReactiveUI::GetRenderedHTML()` - Processes templates with directives
 - `SceneViewport::Render()` - FBO rendering
 - `SceneViewport::GetTextureAsDataURI()` - Texture to base64 conversion
@@ -236,11 +250,21 @@ The Imhotep game engine needs a functional scene editor built using the new HTML
    - Both game modes (FIXED and VARIABLE) tested successfully
    - Editor tested and working
 
-2. **Wire up input handlers in Editor** (~2-3 hrs)
+2. **[COMPLETED] Wire up input handlers in Editor**
 
-   - Complete TODO at `Editor.cpp:63`
-   - Call `WindowManager::RegisterInputHandler()` in `Editor::Initialize()`
-   - Implement keyboard shortcut dispatch (ESC works, add Ctrl+S, etc.)
+   ✅ **Completed**: Implemented C++ input handler system with keyboard shortcuts
+
+   **What was done:**
+   - Implemented `WindowManager::RegisterInputHandler()` / `UnregisterInputHandler()` API
+   - Modified all 4 GLFW callbacks (key, click, cursor, scroll) to check C++ handlers before Lua
+   - Implemented `Editor::HandleEditorInput()` with keyboard shortcuts:
+     - ESC: Close editor (fully working)
+     - Ctrl+S: Save scene (stubbed, ready for Phase 4)
+     - Ctrl+O: Open scene (stubbed, ready for Phase 4)
+     - Ctrl+Z: Undo (stubbed, ready for Phase 6)
+     - Ctrl+Shift+Z: Redo (stubbed, ready for Phase 6)
+   - Handler registered in `Editor::Initialize()` and cleaned up in `Shutdown()`
+   - Commit: 4e97109
 
 3. **Implement scene tree click-to-select** (~3-4 hrs)
 
