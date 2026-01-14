@@ -15,8 +15,6 @@
 #include "editor/SceneViewport.h"
 #include "util/Config.h"
 
-#include <chrono>
-
 /**
  * @brief Editor application singleton
  *
@@ -105,9 +103,8 @@ private:
     bool m_initialized = false;
     bool m_shouldClose = false;
 
-    // Timing for game loop
+    // Timing for game loop (FrameTiming manages timing internally)
     double m_delta = 0.0;
-    std::chrono::high_resolution_clock::time_point m_lastFrameTime;
 
     // Input handler IDs
     size_t m_keyboardHandlerId = 0;

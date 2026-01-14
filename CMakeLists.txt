@@ -28,6 +28,7 @@ add_library(core SHARED
     "src/systems/LuaUIState.cpp"
     "src/systems/TemplateParser.cpp"
     "src/util/ConfigLoader.cpp"
+    "src/util/FrameTiming.cpp"
     "src/util/Logger.cpp"
     "src/util/Mesh.cpp"
     "src/util/SceneTraversal.cpp"

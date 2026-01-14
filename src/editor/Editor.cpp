@@ -6,9 +6,11 @@
 #include "editor/Editor.h"
 #include "util/Logger.h"
 #include "util/ConfigLoader.h"
+#include "util/FrameTiming.h"
 #include "systems/LuaUIState.h"
 #include "systems/ScriptSystem.h"
 #include "systems/TweenSystem.h"
+#include "systems/HierarchySystem.h"
 #include "controllers/Game.h"
 #include "controllers/ScriptManager.h"
 
@@ -63,10 +65,6 @@ bool Editor::Initialize()
     // TODO: Get editor input handlers working
     // Register keyboard input handler
 
-    // Initialize timing
-    m_lastFrameTime = std::chrono::high_resolution_clock::now();
-    m_delta = 0.0;
-
     m_initialized = true;
     LOG_INFO("Editor initialized successfully");
     return true;
@@ -82,23 +80,26 @@ void Editor::Run()
 
     LOG_INFO("Starting editor main loop...");
 
+    // Initialize frame timing (SIMPLE mode: delta-only, no fixed timestep)
+    FrameTiming timing(FrameTimingMode::SIMPLE, 60.0);
+
     while (!glfwWindowShouldClose(m_windowManager->window) && !m_shouldClose)
     {
-        // Calculate delta time
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        m_delta = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      currentTime - m_lastFrameTime)
-                      .count();
-        m_lastFrameTime = currentTime;
-
-        // Poll input events
+        // CRITICAL: Poll input events first so window is responsive
         glfwPollEvents();
 
-        // Update game systems
+        // Update frame timing (calculates delta)
+        timing.Update();
+        m_delta = timing.GetDelta();
+
+        // Update game systems (tweens, tweens + hierarchy)
+        // Note: ScriptSystem is deliberately skipped in editor mode
         UpdateSystems(m_delta);
 
-        // Render frame
+        // Render editor frame (viewport + UI)
         Render();
+
+        // Swap buffers
         glfwSwapBuffers(m_windowManager->window);
     }
 
@@ -298,6 +299,9 @@ void Editor::UpdateSystems(double deltaTime)
     // Note: ScriptSystem::Update() is skipped in editor mode to avoid requiring
     // game-specific Lua EventQueue setup. Scripts should be tested in the game runtime.
 
-    // Update tween system (animations)
+    // Update animation system (tweens)
     TweenSystem::Update(deltaTime);
+
+    // Update transform hierarchy (for parenting)
+    HierarchySystem::Update();
 }

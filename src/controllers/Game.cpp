@@ -12,6 +12,7 @@
 #include "util/TransformUtils.h"
 #include "util/Logger.h"
 #include "util/ConfigLoader.h"
+#include "util/FrameTiming.h"
 #include <fstream>
 #include <chrono>
 #include <thread>
@@ -82,126 +83,97 @@ void Game::Run()
 
 void Game::RunFixedLoop()
 {
-    double frameTime = 1000.0 / conf.targetFPS; // 16.67ms for 60 FPS
-    double accumulator = 0.0;
+    LOG_INFO("Starting FIXED loop (60 FPS)");
 
-    // Enable VSync for fixed-speed games (prevents tearing)
+    // Initialize frame timing with fixed timestep
+    FrameTiming timing(FrameTimingMode::FIXED, conf.targetFPS);
+    timing.SetVSync(true);  // Enable VSync for fixed-speed games
     glfwSwapInterval(1);
-
-    auto prevTime = std::chrono::high_resolution_clock::now();
 
     while (!m_core.ShouldClose())
     {
         // CRITICAL: Poll events first so window appears and responds
         glfwPollEvents();
 
-        auto currTime = std::chrono::high_resolution_clock::now();
-        delta = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    currTime - prevTime)
-                    .count();
-        prevTime = currTime;
+        // Update frame timing (calculates delta and accumulators)
+        timing.Update();
+        delta = timing.GetDelta();
 
-        accumulator += delta;
-
+        // Process input
         scriptManager->ProcessInput();
 
-        while (accumulator >= frameTime)
+        // Update game logic at fixed timestep
+        while (timing.ShouldUpdateFixedStep())
         {
-            accumulator -= frameTime;
-            ScriptSystem::Update(frameTime); // Pass fixed delta
+            ScriptSystem::Update(timing.GetFixedDelta());
         }
 
+        // Update animation and hierarchy
         TweenSystem::Update(delta);
         HierarchySystem::Update();
 
-        // Render every frame (coupled to game logic)
+        // Render (every frame in fixed mode)
         Render();
-
         m_core.EndFrame();
 
+        // Track FPS for UI display
         TrackFPS();
     }
 
-    LOG_INFO("Exited main loop");
+    LOG_INFO("Exited FIXED main loop");
 }
 
 void Game::RunVariableLoop()
 {
-    double simFrameTime = 1000.0 / 60.0; // 16.67ms base tick
-    double renderFrameTime = 1000.0 / conf.targetFPS;
-    double simAccumulator = 0.0;
-    double renderAccumulator = 0.0;
+    LOG_INFO("Starting VARIABLE loop (decoupled sim/render)");
 
-    // Disable VSync (we control frame timing)
+    // Initialize frame timing with variable speed (60 FPS sim, conf.targetFPS render)
+    FrameTiming timing(FrameTimingMode::VARIABLE, 60.0, conf.targetFPS);
+    timing.SetVSync(false);  // We control frame timing
     glfwSwapInterval(0);
-
-    auto prevTime = std::chrono::high_resolution_clock::now();
 
     while (!m_core.ShouldClose())
     {
-        auto currTime = std::chrono::high_resolution_clock::now();
-        delta = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    currTime - prevTime)
-                    .count();
-        prevTime = currTime;
+        // CRITICAL: Poll events first so window appears and responds
+        glfwPollEvents();
 
+        // Update frame timing (calculates delta and accumulators)
+        timing.Update();
+        delta = timing.GetDelta();
+
+        // Sync simulation speed with current setting
+        timing.SetSimulationMultiplier(GetSimulationMultiplier());
+
+        // Process input
         scriptManager->ProcessInput();
 
-        // Variable speed simulation
-        float speedMultiplier = GetSimulationMultiplier();
-
-        if (speedMultiplier == -1.0f)
+        // Update game logic at variable speed
+        while (timing.ShouldUpdateSimulation())
         {
-            // UNCAPPED: Run as many sim updates as possible
-            int maxUpdates = 100; // Safety cap to prevent freeze
-            for (int i = 0; i < maxUpdates; i++)
-            {
-                ScriptSystem::Update(simFrameTime);
-            }
+            ScriptSystem::Update(timing.GetFixedDelta());
         }
-        else if (speedMultiplier > 0.0f)
-        {
-            // NORMAL/FAST/etc: Run sim at multiplied speed
-            simAccumulator += delta * speedMultiplier;
 
-            while (simAccumulator >= simFrameTime)
-            {
-                simAccumulator -= simFrameTime;
-                ScriptSystem::Update(simFrameTime);
-            }
-        }
-        // If speedMultiplier == 0 (PAUSED), skip simulation entirely
-
+        // Update animation and hierarchy
         TweenSystem::Update(delta);
         HierarchySystem::Update();
 
         // Render at capped framerate (decoupled from simulation)
-        renderAccumulator += delta;
-
-        if (renderAccumulator >= renderFrameTime)
+        if (timing.ShouldRenderFrame())
         {
-            renderAccumulator -= renderFrameTime;
-
             Render();
-
             m_core.EndFrame();
             TrackFPS();
         }
 
-        glfwPollEvents();
-
         // Sleep to avoid spinning CPU
-        auto frameEnd = std::chrono::high_resolution_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           frameEnd - currTime)
-                           .count();
-        if (elapsed < 1.0)
+        auto frameElapsed = timing.GetFrameElapsedMS();
+        if (frameElapsed < 1.0)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
-    LOG_INFO("Exited main loop");
+    LOG_INFO("Exited VARIABLE main loop");
 }
 
 void Game::Render()
