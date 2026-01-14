@@ -36,6 +36,13 @@ struct InputEvent
 };
 
 /**
+ * @brief Input handler callback type
+ * @param event The input event to handle
+ * @return true to consume event (prevent propagation to Lua), false to pass through
+ */
+using InputHandler = std::function<bool(const InputEvent&)>;
+
+/**
  * @brief GLFW window manager singleton handling window lifecycle and input
  *
  * Creates OpenGL context via GLFW, manages window state, and dispatches
@@ -92,6 +99,20 @@ public:
      */
     glm::vec2 GetSize();
 
+    /**
+     * @brief Register C++ input handler (called before Lua)
+     * @param handler Callback that returns true to consume event
+     * @return Handler ID for unregistration
+     * @note Handlers are called in registration order. First handler to return true consumes event.
+     */
+    size_t RegisterInputHandler(InputHandler handler);
+
+    /**
+     * @brief Unregister input handler by ID
+     * @param id Handler ID from RegisterInputHandler
+     */
+    void UnregisterInputHandler(size_t id);
+
     GLFWwindow *window; ///< GLFW window handle (public for renderer access)
 
 private:
@@ -111,4 +132,10 @@ private:
 
     /// GLFW scroll wheel callback
     static void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
+
+    /// Input handler storage (handler ID, callback)
+    std::vector<std::pair<size_t, InputHandler>> m_inputHandlers;
+
+    /// Next handler ID for registration
+    size_t m_nextHandlerId = 0;
 };

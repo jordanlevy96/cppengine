@@ -83,6 +83,13 @@ private:
      */
     void UpdateSystems(double deltaTime);
 
+    /**
+     * @brief Handle editor-specific input (shortcuts)
+     * @param event Input event to handle
+     * @return true if event was consumed
+     */
+    bool HandleEditorInput(const InputEvent& event);
+
     // Configuration
     Config conf;
 

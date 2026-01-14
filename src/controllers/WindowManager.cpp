@@ -240,6 +240,30 @@ glm::vec2 WindowManager::GetSize()
     return glm::vec2(width, height);
 }
 
+size_t WindowManager::RegisterInputHandler(InputHandler handler)
+{
+    size_t id = m_nextHandlerId++;
+    m_inputHandlers.push_back({id, handler});
+    LOG_INFO("[WindowManager] Registered input handler ID {}", id);
+    return id;
+}
+
+void WindowManager::UnregisterInputHandler(size_t id)
+{
+    auto it = std::remove_if(m_inputHandlers.begin(), m_inputHandlers.end(),
+                             [id](const auto& pair) { return pair.first == id; });
+
+    if (it != m_inputHandlers.end())
+    {
+        m_inputHandlers.erase(it, m_inputHandlers.end());
+        LOG_INFO("[WindowManager] Unregistered input handler ID {}", id);
+    }
+    else
+    {
+        LOG_WARNING("[WindowManager] Attempted to unregister unknown handler ID {}", id);
+    }
+}
+
 // Input handling is done via Lua - converts to native Lua table for proper queue handling
 #define APPEND_EVENT(event) sm.AddInputEventToQueue(event);
 
@@ -247,7 +271,6 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
 {
     if (action == GLFW_PRESS || action == GLFW_REPEAT)
     {
-        ScriptManager &sm = ScriptManager::GetInstance();
         InputEvent event;
         event.type = InputTypes::Key;
         event.input = GLFW_KEY(key);
@@ -255,6 +278,19 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
 
         LOG_INFO("[WindowManager] Key event: key={}, action={}, mods={}", GLFW_KEY(key), action, mods);
 
+        // Try C++ handlers first
+        WindowManager& wm = GetInstance();
+        for (const auto& [id, handler] : wm.m_inputHandlers)
+        {
+            if (handler(event))
+            {
+                LOG_DEBUG("[WindowManager] Key input consumed by handler ID {}", id);
+                return;  // Event consumed, don't send to Lua
+            }
+        }
+
+        // Fall through to Lua if no C++ handler consumed event
+        ScriptManager &sm = ScriptManager::GetInstance();
         APPEND_EVENT(event)
     }
 }
@@ -271,22 +307,46 @@ void WindowManager::click_callback(GLFWwindow *window, int button, int action, i
 
     LOG_INFO("[WindowManager] Mouse click detected: button={}, pos=({}, {})", button, xpos, ypos);
 
-    ScriptManager &sm = ScriptManager::GetInstance();
     InputEvent event;
     event.type = InputTypes::Click;
     event.input = glm::vec3(xpos, ypos, button);
     event.mods = mods;
 
+    // Try C++ handlers first
+    WindowManager& wm = GetInstance();
+    for (const auto& [id, handler] : wm.m_inputHandlers)
+    {
+        if (handler(event))
+        {
+            LOG_DEBUG("[WindowManager] Click input consumed by handler ID {}", id);
+            return;  // Event consumed, don't send to Lua
+        }
+    }
+
+    // Fall through to Lua if no C++ handler consumed event
+    ScriptManager &sm = ScriptManager::GetInstance();
     APPEND_EVENT(event)
 }
 
 void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double ypos)
 {
-    ScriptManager &sm = ScriptManager::GetInstance();
     InputEvent event;
     event.type = InputTypes::Cursor;
     event.input = glm::vec2(xpos, ypos);
 
+    // Try C++ handlers first
+    WindowManager& wm = GetInstance();
+    for (const auto& [id, handler] : wm.m_inputHandlers)
+    {
+        if (handler(event))
+        {
+            LOG_DEBUG("[WindowManager] Cursor input consumed by handler ID {}", id);
+            return;  // Event consumed, don't send to Lua
+        }
+    }
+
+    // Fall through to Lua if no C++ handler consumed event
+    ScriptManager &sm = ScriptManager::GetInstance();
     APPEND_EVENT(event)
 }
 
@@ -322,10 +382,22 @@ void WindowManager::resize_callback(GLFWwindow *window, int fbWidth, int fbHeigh
 
 void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
-    ScriptManager &sm = ScriptManager::GetInstance();
     InputEvent event;
     event.type = InputTypes::Scroll;
     event.input = glm::vec2(xoffset, yoffset);
 
+    // Try C++ handlers first
+    WindowManager& wm = GetInstance();
+    for (const auto& [id, handler] : wm.m_inputHandlers)
+    {
+        if (handler(event))
+        {
+            LOG_DEBUG("[WindowManager] Scroll input consumed by handler ID {}", id);
+            return;  // Event consumed, don't send to Lua
+        }
+    }
+
+    // Fall through to Lua if no C++ handler consumed event
+    ScriptManager &sm = ScriptManager::GetInstance();
     APPEND_EVENT(event)
 }

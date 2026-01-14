@@ -62,8 +62,10 @@ bool Editor::Initialize()
     // Populate scene tree with entities from Registry
     UpdateSceneTree();
 
-    // TODO: Get editor input handlers working
-    // Register keyboard input handler
+    // Register keyboard input handler for editor shortcuts
+    m_keyboardHandlerId = m_windowManager->RegisterInputHandler([this](const InputEvent& event) {
+        return HandleEditorInput(event);
+    });
 
     m_initialized = true;
     LOG_INFO("Editor initialized successfully");
@@ -114,6 +116,13 @@ void Editor::Shutdown()
     }
 
     LOG_INFO("Shutting down editor...");
+
+    // Unregister input handler
+    if (m_keyboardHandlerId != 0)
+    {
+        m_windowManager->UnregisterInputHandler(m_keyboardHandlerId);
+        m_keyboardHandlerId = 0;
+    }
 
     // Shutdown systems (in reverse order of initialization)
     if (m_viewport)
@@ -304,4 +313,59 @@ void Editor::UpdateSystems(double deltaTime)
 
     // Update transform hierarchy (for parenting)
     HierarchySystem::Update();
+}
+
+bool Editor::HandleEditorInput(const InputEvent& event)
+{
+    // Only handle keyboard events
+    if (event.type != InputTypes::Key)
+    {
+        return false;  // Pass through to Lua
+    }
+
+    // Get key name from variant
+    std::string key = std::get<std::string>(event.input);
+
+    // ESC - Quit editor
+    if (key == "ESCAPE" && event.mods == 0)
+    {
+        LOG_INFO("[Editor] ESC pressed - closing editor");
+        m_shouldClose = true;
+        return true;  // Consume event
+    }
+
+    // Ctrl+S - Save scene (future)
+    if (key == "S" && (event.mods & GLFW_MOD_CONTROL))
+    {
+        LOG_INFO("[Editor] Ctrl+S pressed - save not implemented yet");
+        // TODO: Implement scene saving
+        return true;
+    }
+
+    // Ctrl+O - Open scene (future)
+    if (key == "O" && (event.mods & GLFW_MOD_CONTROL))
+    {
+        LOG_INFO("[Editor] Ctrl+O pressed - open not implemented yet");
+        // TODO: Implement scene loading
+        return true;
+    }
+
+    // Ctrl+Z - Undo (future)
+    if (key == "Z" && (event.mods & GLFW_MOD_CONTROL) && !(event.mods & GLFW_MOD_SHIFT))
+    {
+        LOG_INFO("[Editor] Ctrl+Z pressed - undo not implemented yet");
+        // TODO: Implement undo
+        return true;
+    }
+
+    // Ctrl+Shift+Z - Redo (future)
+    if (key == "Z" && (event.mods & GLFW_MOD_CONTROL) && (event.mods & GLFW_MOD_SHIFT))
+    {
+        LOG_INFO("[Editor] Ctrl+Shift+Z pressed - redo not implemented yet");
+        // TODO: Implement redo
+        return true;
+    }
+
+    // Event not handled by editor, pass to Lua
+    return false;
 }
