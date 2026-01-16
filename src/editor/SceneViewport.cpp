@@ -9,7 +9,7 @@
 #include "components/Lighting.h"
 #include "util/Logger.h"
 
-#include <yaml-cpp/binary.h>  // For base64 encoding
+#include <yaml-cpp/binary.h> // For base64 encoding
 #include <fstream>
 
 // stb_image_write for PNG encoding
@@ -49,7 +49,7 @@ bool SceneViewport::Initialize(int width, int height, Camera *camera)
 
     // Update camera perspective for viewport dimensions
     m_camera->SetPerspective(45.0f, static_cast<float>(width), static_cast<float>(height));
-    m_camera->transform.Pos = glm::vec3(0.0f, 5.0f, 15.0f);  // Position behind and above origin
+    m_camera->transform.Pos = glm::vec3(0.0f, 5.0f, 15.0f); // Position behind and above origin
 
     // Create framebuffer
     if (!CreateFramebuffer())
@@ -225,8 +225,7 @@ std::string SceneViewport::GetTextureAsDataURI()
         std::memcpy(
             flippedPixels.data() + y * rowSize,
             pixels.data() + (m_height - 1 - y) * rowSize,
-            rowSize
-        );
+            rowSize);
     }
 
     // Encode as PNG + base64
@@ -243,17 +242,16 @@ std::string SceneViewport::GetTextureAsDataURI()
         {
             // PNG encode without base64
             int pngSize;
-            unsigned char* pngData = stbi_write_png_to_mem(
+            unsigned char *pngData = stbi_write_png_to_mem(
                 flippedPixels.data(),
                 m_width * 4,
                 m_width,
                 m_height,
                 4,
-                &pngSize
-            );
+                &pngSize);
             if (pngData)
             {
-                outFile.write(reinterpret_cast<char*>(pngData), pngSize);
+                outFile.write(reinterpret_cast<char *>(pngData), pngSize);
                 STBIW_FREE(pngData);
                 LOG_INFO("Saved viewport debug image to ../viewport_debug.png");
             }
@@ -266,18 +264,17 @@ std::string SceneViewport::GetTextureAsDataURI()
     return dataURI;
 }
 
-std::string SceneViewport::EncodePNGBase64(const std::vector<uint8_t>& pixels, int width, int height)
+std::string SceneViewport::EncodePNGBase64(const std::vector<uint8_t> &pixels, int width, int height)
 {
     // PNG encode using stb_image_write
     int pngSize;
-    unsigned char* pngData = stbi_write_png_to_mem(
+    unsigned char *pngData = stbi_write_png_to_mem(
         pixels.data(),
-        width * 4,  // stride
+        width * 4, // stride
         width,
         height,
-        4,  // RGBA
-        &pngSize
-    );
+        4, // RGBA
+        &pngSize);
 
     if (!pngData)
     {

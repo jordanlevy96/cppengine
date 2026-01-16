@@ -37,6 +37,12 @@ public:
     bool Initialize(int width, int height, Camera *camera);
 
     /**
+     * @brief Set which entity to highlight in the viewport
+     * @param entityId Entity to highlight (or ENTITY_NULL for no highlight)
+     */
+    void SetSelectedEntity(EntityID entityId) { m_selectedEntityId = entityId; }
+
+    /**
      * @brief Render scene to FBO texture
      * @note Binds FBO, clears, renders all entities, unbinds FBO
      */
@@ -117,4 +123,7 @@ private:
 
     // Registry reference (shared with game)
     Registry* m_registry = nullptr;
+
+    // Selection state
+    EntityID m_selectedEntityId = ENTITY_NULL;  ///< Entity to highlight in viewport
 };

@@ -17,8 +17,9 @@ namespace imhotep
     {
         if (m_initialized)
         {
-            LOG_CRITICAL("Logger already initialized");
-            return false;
+            // Already initialized, just return true
+            // This allows multiple initialization calls without error
+            return true;
         }
 
         // Start the backend thread

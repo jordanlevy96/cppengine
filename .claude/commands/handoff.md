@@ -71,19 +71,14 @@ Analyze the ENTIRE current conversation context and generate a comprehensive han
 ## Output Instructions
 
 1. Generate the handoff document in clean Markdown format
-2. Get the current timestamp: `date +%Y%m%d-%H%M%S`
-3. Save the content to `./docs/handoff.<timestamp>.md` AND copy to clipboard in one command using:
-   ```bash
-   cat <<'EOF' | tee ./docs/handoff.<timestamp>.md | pbcopy
-   <handoff content here>
-   EOF
-   ```
-4. Confirm to the user that the handoff has been saved to Desktop and copied to clipboard
+2. Create a 1-3 word summary/identifier
+3. Save the content to `./docs/handoff.<id>.md`
+4. Confirm to the user that the handoff has been saved
 
 ## Format Guidelines
 
 - Be concise but complete
 - Use bullet points for scannability
-- Include file paths as `path/to/file.py:line_number` where relevant
+- Include file paths as `path/to/file.*:line_number` where relevant
 - Reference function/class names without including actual code
 - Focus on enabling continuation, not documenting everything

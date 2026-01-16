@@ -42,7 +42,11 @@ logs/
 *.out
 *.app
 
+# IDEs and editors
+.vscode/
 .cache/
+.idea/
+*.code-workspace
 
 # Python Stuff
 **/__pycache__/

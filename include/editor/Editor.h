@@ -84,11 +84,31 @@ private:
     void UpdateSystems(double deltaTime);
 
     /**
-     * @brief Handle editor-specific input (shortcuts)
+     * @brief Handle editor-specific input (shortcuts and UI events)
      * @param event Input event to handle
      * @return true if event was consumed
      */
-    bool HandleEditorInput(const InputEvent& event);
+    bool HandleEditorInput(const InputEvent &event);
+
+    /**
+     * @brief Handle UI click events from HTMLRenderer
+     * @param x Click X coordinate
+     * @param y Click Y coordinate
+     * @param button Mouse button (0=left, 1=right, 2=middle)
+     * @return true if click was handled by editor UI, false if it should propagate to game
+     */
+    bool HandleUIClick(float x, float y, int button);
+
+    /**
+     * @brief Select an entity in the editor
+     * @param entityId ID of entity to select
+     */
+    void SelectEntity(EntityID entityId);
+
+    /**
+     * @brief Update inspector panel with selected entity's transform data
+     */
+    void UpdateInspector();
 
     // Configuration
     Config conf;
@@ -109,10 +129,12 @@ private:
     // Editor state
     bool m_initialized = false;
     bool m_shouldClose = false;
+    EntityID m_selectedEntityId = ENTITY_NULL;
 
     // Timing for game loop (FrameTiming manages timing internally)
     double m_delta = 0.0;
 
     // Input handler IDs
     size_t m_keyboardHandlerId = 0;
+    size_t m_clickHandlerId = 0;
 };
