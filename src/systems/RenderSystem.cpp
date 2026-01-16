@@ -12,8 +12,8 @@ void RenderSystem::RenderEntity<Lighting>(EntityID id, Camera *cam)
 {
     Lighting lightComp = registry->GetComponent<Lighting>(id);
     RenderComponent &rc = registry->GetComponent<RenderComponent>(id);
-    Transform& lightTrans = registry->GetComponent<Transform>(lightComp.LightID);
-    WorldTransform& lightWorld = registry->GetComponent<WorldTransform>(lightComp.LightID);
+    Transform &lightTrans = registry->GetComponent<Transform>(lightComp.LightID);
+    WorldTransform &lightWorld = registry->GetComponent<WorldTransform>(lightComp.LightID);
 
     // Extract world position from world matrix
     glm::vec3 worldLightPos = glm::vec3(lightWorld.matrix[3]);
@@ -27,8 +27,8 @@ template <>
 void RenderSystem::RenderEntity<RenderComponent>(EntityID id, Camera *cam)
 {
     // Get world transform (computed by HierarchySystem)
-    WorldTransform& wt = registry->GetComponent<WorldTransform>(id);
-    Transform& t = registry->GetComponent<Transform>(id);  // Only for Color
+    WorldTransform &wt = registry->GetComponent<WorldTransform>(id);
+    Transform &t = registry->GetComponent<Transform>(id); // Only for Color
     RenderComponent rc = registry->GetComponent<RenderComponent>(id);
 
     // Color is NOT affected by hierarchy (as per design doc)

@@ -5,12 +5,12 @@
 
 #pragma once
 
+#include "systems/LuaUIState.h"
+#include "systems/TemplateParser.h"
 #include <string>
 #include <unordered_map>
 #include <functional>
 #include <memory>
-#include "systems/LuaUIState.h"
-#include "systems/TemplateParser.h"
 
 /**
  * @brief Reactive UI system with change detection and declarative templates
@@ -49,19 +49,21 @@
  * @note Thread-safe singleton - safe to call from main thread only
  * @see docs/architecture/UI_SYSTEM.md for directive syntax and examples
  */
-class ReactiveUI {
+class ReactiveUI
+{
 public:
     /**
      * @brief Get singleton instance
      * @return Reference to ReactiveUI singleton
      */
-    static ReactiveUI& GetInstance() {
+    static ReactiveUI &GetInstance()
+    {
         static ReactiveUI instance;
         return instance;
     }
 
-    ReactiveUI(ReactiveUI const&) = delete;
-    void operator=(ReactiveUI const&) = delete;
+    ReactiveUI(ReactiveUI const &) = delete;
+    void operator=(ReactiveUI const &) = delete;
 
     // === Legacy API (simple {{placeholder}} substitution) ===
 
@@ -72,7 +74,7 @@ public:
      * @note Example: "FPS: {{fps}}, FrameTime: {{frameTime}}ms"
      * @note Switches to legacy rendering mode, disables Lua directives
      */
-    void RegisterTemplate(const std::string& name, const std::string& htmlTemplate);
+    void RegisterTemplate(const std::string &name, const std::string &htmlTemplate);
 
     /**
      * @brief Set value for placeholder (legacy mode)
@@ -82,8 +84,8 @@ public:
      * @note Only marks dirty if value actually changed (prevents redundant renders)
      * @note Example: SetValue("fps", 60) replaces {{fps}} with "60"
      */
-    template<typename T>
-    void SetValue(const std::string& key, const T& value);
+    template <typename T>
+    void SetValue(const std::string &key, const T &value);
 
     // === New Lua-based API (v-if, v-for, {{}} directives) ===
 
@@ -103,7 +105,7 @@ public:
      * @note Parses directives immediately, caches for future renders
      * @see docs/architecture/UI_SYSTEM.md for directive syntax
      */
-    void RegisterTemplateWithDirectives(const std::string& name, const std::string& htmlTemplate);
+    void RegisterTemplateWithDirectives(const std::string &name, const std::string &htmlTemplate);
 
     /**
      * @brief Get reference to bound Lua state
@@ -117,7 +119,8 @@ public:
      * @return Map of element ID → {eventType → handlerExpression}
      * @note Returns empty map if parser not initialized
      */
-    const std::map<std::string, std::map<std::string, std::string>>& GetEventHandlers() const {
+    const std::map<std::string, std::map<std::string, std::string>> &GetEventHandlers() const
+    {
         static const std::map<std::string, std::map<std::string, std::string>> empty;
         return m_parser ? m_parser->GetEventHandlers() : empty;
     }
@@ -127,11 +130,12 @@ public:
     /**
      * @brief Event data passed to UI event handlers
      */
-    struct EventData {
-        float x, y;              ///< Mouse coordinates (window space)
-        int button;              ///< Mouse button (0=left, 1=right, 2=middle)
-        std::string elemId;      ///< Element ID that triggered event
-        std::string eventType;   ///< Event type (click, mouseover, mouseout, etc.)
+    struct EventData
+    {
+        float x, y;            ///< Mouse coordinates (window space)
+        int button;            ///< Mouse button (0=left, 1=right, 2=middle)
+        std::string elemId;    ///< Element ID that triggered event
+        std::string eventType; ///< Event type (click, mouseover, mouseout, etc.)
     };
 
     /**
@@ -142,9 +146,9 @@ public:
      * @note Parses handler syntax: "method", "method(arg)", "method($event)"
      * @note Calls methods table in Lua state: methods.handlerName(self, ...)
      */
-    void DispatchEvent(const std::string& eventType,
-                       const std::string& handlerExpr,
-                       const EventData& eventData);
+    void DispatchEvent(const std::string &eventType,
+                       const std::string &handlerExpr,
+                       const EventData &eventData);
 
     // === Template Loading API ===
 
@@ -157,9 +161,8 @@ public:
      * @note Example: LoadTemplateFromFiles("../res/ui/templates/tetris.html", "../res/ui/styles/tetris.css")
      */
     static std::string LoadTemplateFromFiles(
-        const std::string& templatePath,
-        const std::string& cssPath
-    );
+        const std::string &templatePath,
+        const std::string &cssPath);
 
     // === Common API ===
 
@@ -169,7 +172,7 @@ public:
      * @note Only re-renders if dirty flag is set (change detection)
      * @note Safe to call every frame - caches result when clean
      */
-    const std::string& GetRenderedHTML();
+    const std::string &GetRenderedHTML();
 
     /**
      * @brief Force immediate re-render bypassing dirty check
@@ -187,7 +190,7 @@ private:
      * @return File contents, or empty string on error
      * @note Logs error if file cannot be opened
      */
-    static std::string LoadTextFile(const std::string& path);
+    static std::string LoadTextFile(const std::string &path);
 
     // Legacy mode members
     std::string m_template;                                ///< HTML template with {{placeholders}}
@@ -196,9 +199,9 @@ private:
     bool m_isDirty = true;                                 ///< Re-render needed flag
 
     // Lua-based mode members
-    std::shared_ptr<LuaUIState> m_luaState;                ///< Reactive Lua state (nullptr in legacy mode)
-    std::unique_ptr<TemplateParser> m_parser;              ///< Directive parser (nullptr in legacy mode)
-    bool m_useLuaMode = false;                             ///< true = Lua directives, false = legacy placeholders
+    std::shared_ptr<LuaUIState> m_luaState;   ///< Reactive Lua state (nullptr in legacy mode)
+    std::unique_ptr<TemplateParser> m_parser; ///< Directive parser (nullptr in legacy mode)
+    bool m_useLuaMode = false;                ///< true = Lua directives, false = legacy placeholders
 
     /**
      * @brief Render template with legacy placeholder substitution
@@ -214,22 +217,26 @@ private:
 };
 
 // Template implementation
-template<typename T>
-void ReactiveUI::SetValue(const std::string& key, const T& value) {
+template <typename T>
+void ReactiveUI::SetValue(const std::string &key, const T &value)
+{
     std::string valueStr = std::to_string(value);
 
     auto it = m_values.find(key);
-    if (it == m_values.end() || it->second != valueStr) {
+    if (it == m_values.end() || it->second != valueStr)
+    {
         m_values[key] = valueStr;
         m_isDirty = true;
     }
 }
 
 // Specialization for string
-template<>
-inline void ReactiveUI::SetValue<std::string>(const std::string& key, const std::string& value) {
+template <>
+inline void ReactiveUI::SetValue<std::string>(const std::string &key, const std::string &value)
+{
     auto it = m_values.find(key);
-    if (it == m_values.end() || it->second != value) {
+    if (it == m_values.end() || it->second != value)
+    {
         m_values[key] = value;
         m_isDirty = true;
     }

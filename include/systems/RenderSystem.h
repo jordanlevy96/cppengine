@@ -39,16 +39,18 @@ public:
      */
     static void Update(Camera *cam, float delta);
 
-private:
     /**
      * @brief Render a single entity based on component type
      * @tparam T Component type (RenderComponent or Lighting)
      * @param id Entity ID to render
      * @param cam Camera for view/projection calculations
      * @note Template specializations handle different component types
+     * @note Made public to allow custom rendering (e.g., selection highlighting in editor)
      */
     template <typename T>
     static void RenderEntity(EntityID id, Camera *cam);
+
+private:
 
     /**
      * @brief Apply uniform values to active shader program

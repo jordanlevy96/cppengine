@@ -1,15 +1,13 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2026-01-02
-> For: Claude Sonnet 4.5
+> Last Updated: 2026-01-16
+> Version: 0.1.0
 
 ## Project Overview
 
-**Imhotep** is an experimental C++ game engine using OpenGL, Lua, and more. Currently implements a fully functional Tetris game as proof-of-concept.
+**Imhotep** is an experimental C++ game engine using OpenGL, Lua, and more. Implements a fully functional Tetris game as proof-of-concept.
 
 **Key Innovation**: Declarative, reactive UI system using HTML/CSS templates with Lua state management (Vue.js-inspired), rendered via litehtml with multi-threaded rendering.
-
-**Current Focus**: Building declarative UI system for strategy game interfaces (Paradox Interactive-style).
 
 ---
 
@@ -46,7 +44,7 @@ App (controllers/App.cpp)
 | **Lua + Sol2**        | Lua scripting   | Git submodule  | In `external/`                  |
 | **Python + pybind11** | Python bindings | Git submodule  | In `external/`                  |
 | **yaml-cpp**          | Config parsing  | Git submodule  | In `external/`                  |
-| **Dear ImGui**        | Debug UI        | Git submodule  | In `external/`                  |
+| **Dear ImGui**        | Debug UI (legacy) | Git submodule  | In `external/`                |
 
 ### Platform-Specific Setup
 
@@ -103,14 +101,14 @@ mkdir build && cd build && cmake .. && make -j8
 
 **Steps**:
 
-1. Create Lua state file: `res/ui/state/my_screen.lua`
-2. Update `App.cpp` → `Initialize()` to load your state
-3. Update HTML template (currently inline in App.cpp, lines 72-200)
+1. Create HTML template: `res/ui/templates/my_screen.html`
+2. Create CSS styles: `res/ui/styles/my_screen.css`
+3. Create Lua state file: `res/ui/state/my_screen.lua`
+4. Load via ReactiveUI (see `docs/architecture/UI_SYSTEM.md` for details)
 
-**Example Lua state**:
+**Example Lua state** (`res/ui/state/my_screen.lua`):
 
 ```lua
--- res/ui/state/my_screen.lua
 return {
     data = {
         title = "My Screen",
@@ -123,7 +121,7 @@ return {
 }
 ```
 
-**Example HTML template** (in App.cpp):
+**Example HTML template** (`res/ui/templates/my_screen.html`):
 
 ```html
 <div v-if="showPanel">
@@ -138,6 +136,8 @@ return {
 m_luaState->MarkDirty();  // Next frame will re-render
 ```
 
+For full directive syntax and event handling, see `docs/architecture/UI_SYSTEM.md`.
+
 ### 2. Adding a New Shader
 
 **Steps**:
@@ -150,7 +150,7 @@ m_luaState->MarkDirty();  // Next frame will re-render
 
 - `Composite.shader` - HTMLRendererMT UI overlay
 - `Text.shader` - Text rendering (if used)
-- `UI.shader` - ImGui rendering
+- `UI.shader` - Legacy ImGui (deprecated)
 
 ### 3. Debugging Multi-Threaded Renderer
 
@@ -173,7 +173,7 @@ m_luaState->MarkDirty();  // Next frame will re-render
 **Lua is used for**:
 
 - UI state (`res/ui/state/`)
-- Game logic (see Tetris example in git history - commit f4462e2)
+- Game logic (`res/scripts/`)
 
 **Executing Lua from C++**:
 
@@ -372,11 +372,15 @@ luaState->LoadStateFile("../res/ui/state/fps.lua");
 
 ## Critical Documentation References
 
+See `docs/INDEX.md` for full documentation index with status tracking.
+
 **Read these FIRST for work in these areas**:
 
 | Area                 | Document                                | When to Read                                         |
 | -------------------- | --------------------------------------- | ---------------------------------------------------- |
 | **UI System**        | `docs/architecture/UI_SYSTEM.md`        | UI architecture, directives, templates, multi-threading, event handling |
+| **Editor**           | `docs/architecture/EDITOR_ARCHITECTURE.md` | Editor design, implementation phases |
+| **Transform System** | `docs/architecture/TRANSFORM_PIPELINE.md` | Hierarchy refactor, world transforms |
 | **Vulkan Migration** | `docs/architecture/VULKAN_MIGRATION.md` | Planning OpenGL → Vulkan migration (future research) |
 | **Project History**  | `CHANGELOG.md`                          | Understanding why architecture evolved               |
 
@@ -540,13 +544,49 @@ lldb ./imhotep  # or gdb on Linux
 
 ---
 
+## Versioning
+
+This project uses [Semantic Versioning 2.0.0](https://semver.org/).
+
+**Version Format**: `MAJOR.MINOR.PATCH`
+- **MAJOR**: Incompatible API changes
+- **MINOR**: Backwards-compatible feature additions
+- **PATCH**: Backwards-compatible bug fixes
+
+**Version Source of Truth**: `CMakeLists.txt` line 3:
+```cmake
+project(imhotep VERSION 0.1.0)
+```
+
+**Version Header**: `include/util/Version.h` (auto-generated from `Version.h.in`)
+
+**Usage in Code**:
+```cpp
+#include "util/Version.h"
+
+LOG_INFO("Running {}", imhotep::Version::GetBanner());  // "Imhotep Engine v0.1.0"
+LOG_INFO("Version: {}", imhotep::Version::STRING);      // "0.1.0"
+
+if (imhotep::Version::IsAtLeast(1, 0)) {
+    // Feature requiring v1.0.0+
+}
+```
+
+**Updating Version**:
+1. Update `project(imhotep VERSION X.Y.Z)` in `CMakeLists.txt`
+2. Run `cmake ..` to regenerate `Version.h`
+3. Add changelog entry to `CHANGELOG.md` under `[Unreleased]` or new version section
+4. Update version in `README.md` and `CLAUDE.md` headers
+
+---
+
 ## Version & Compatibility
 
 **C++ Standard**: C++17
 **OpenGL Version**: 3.3 Core Profile (minimum)
 **CMake Version**: 3.12+ (required)
 
-**Tested Platforms** (as of Dec 2025):
+**Tested Platforms** (as of Jan 2026):
 
 - ✅ macOS (M1/Intel) - Primary development
 - ⚠️ Ubuntu 20.04+ - Should work, not recently tested
@@ -555,5 +595,5 @@ lldb ./imhotep  # or gdb on Linux
 
 ---
 
-_Last Verified: January 2, 2026_
-_This file should be updated regularly and manually; prompt the user to make sure it is up to date._
+_Last Updated: January 16, 2026_
+_This file should be updated when project structure changes significantly._

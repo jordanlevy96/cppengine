@@ -180,4 +180,7 @@ private:
     // Initialization flags
     bool m_windowInitialized = false;
     bool m_htmlRendererInitialized = false;
+
+    // Input handler ID for UI click forwarding
+    size_t m_uiClickHandlerId = 0;
 };

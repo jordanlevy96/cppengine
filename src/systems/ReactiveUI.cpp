@@ -6,6 +6,7 @@
 #include <sstream>
 
 // === Legacy API Implementation ===
+// TODO: Remove legacy API?
 
 void ReactiveUI::RegisterTemplate(const std::string &name, const std::string &htmlTemplate)
 {
@@ -28,6 +29,7 @@ const std::string &ReactiveUI::GetRenderedHTML()
     else
     {
         // Legacy rendering: check if local dirty flag is set
+        // TODO: Remove legacy mode?
         if (m_isDirty)
         {
             RenderTemplate();
@@ -180,7 +182,8 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
     sol::object methodsObj = m_luaState->GetValue("methods");
     if (!methodsObj.is<sol::table>())
     {
-        LOG_ERROR("[ReactiveUI] No 'methods' table found in Lua state");
+        LOG_ERROR("[ReactiveUI] {} event dispatch failed: No 'methods' table found in Lua state (handler: '{}')",
+                  eventType, handlerExpr);
         return;
     }
 
@@ -188,7 +191,8 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
     sol::object handlerObj = methods[handlerName];
     if (!handlerObj.is<sol::function>())
     {
-        LOG_ERROR("[ReactiveUI] Handler '{}' not found in methods table", handlerName);
+        LOG_ERROR("[ReactiveUI] {} event dispatch failed: Handler '{}' not found in methods table (elem: '{}')",
+                  eventType, handlerName, eventData.elemId);
         return;
     }
 
@@ -220,21 +224,70 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
         else
         {
             // Literal arg: handler(self, arg)
-            // Try to parse as number first, otherwise use as string
+            // Try to evaluate as Lua expression in the state table context
+            sol::object argValue;
+            bool evaluatedSuccessfully = false;
+
+            // Try to evaluate as Lua expression (e.g., "entity.id") within the state table context
             try
             {
-                int numArg = std::stoi(args[0]);
-                result = handler(stateTable, numArg);
-            }
-            catch (...)
-            {
-                // Not a number, use as string (remove quotes if present)
-                std::string strArg = args[0];
-                if (strArg.front() == '\'' || strArg.front() == '"')
+                // Use the state table as the context for evaluation
+                // This allows accessing properties like entity.id from the state
+                sol::object result_obj = stateTable[args[0]];
+                if (result_obj.valid() && result_obj.get_type() != sol::type::nil)
                 {
-                    strArg = strArg.substr(1, strArg.length() - 2);
+                    argValue = result_obj;
+                    evaluatedSuccessfully = true;
+                    LOG_DEBUG("[ReactiveUI] Got arg '{}' directly from state table", args[0]);
                 }
-                result = handler(stateTable, strArg);
+                else
+                {
+                    // Not a direct property, try to evaluate as Lua expression
+                    std::string luaCode = "return " + args[0];
+                    sol::state &lua = ScriptManager::GetInstance().GetLuaState();
+
+                    // Load and execute the expression with state table as environment
+                    sol::load_result loadResult = lua.load(luaCode);
+                    if (loadResult.valid())
+                    {
+                        sol::protected_function_result scriptResult = loadResult();
+                        if (scriptResult.valid())
+                        {
+                            argValue = scriptResult.get<sol::object>();
+                            evaluatedSuccessfully = true;
+                            LOG_DEBUG("[ReactiveUI] Evaluated arg '{}' as Lua expression", args[0]);
+                        }
+                    }
+                }
+            }
+            catch (const std::exception &e)
+            {
+                LOG_DEBUG("[ReactiveUI] Failed to evaluate '{}' as Lua expression: {}", args[0], e.what());
+            }
+
+            if (evaluatedSuccessfully && argValue.valid())
+            {
+                // Use the evaluated value
+                result = handler(stateTable, argValue);
+            }
+            else
+            {
+                // Fall back to parsing as number or string literal
+                try
+                {
+                    int numArg = std::stoi(args[0]);
+                    result = handler(stateTable, numArg);
+                }
+                catch (...)
+                {
+                    // Not a number, use as string (remove quotes if present)
+                    std::string strArg = args[0];
+                    if (!strArg.empty() && (strArg.front() == '\'' || strArg.front() == '"'))
+                    {
+                        strArg = strArg.substr(1, strArg.length() - 2);
+                    }
+                    result = handler(stateTable, strArg);
+                }
             }
         }
 

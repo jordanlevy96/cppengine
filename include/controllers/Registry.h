@@ -18,6 +18,9 @@
 /// Entity unique identifier (size_t index)
 typedef size_t EntityID;
 
+/// Null entity ID constant (used for invalid/unselected entities)
+static const EntityID ENTITY_NULL = 0;
+
 /**
  * @brief Cache-friendly sparse set for component storage
  *

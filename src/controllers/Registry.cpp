@@ -36,7 +36,7 @@ void Registry::DestroyEntity(EntityID id)
     // First, recursively destroy all children
     if (HierarchyComponents.HasComponent(id))
     {
-        HierarchyComponent& hc = HierarchyComponents.GetComponent(id);
+        HierarchyComponent &hc = HierarchyComponents.GetComponent(id);
 
         // Copy children vector since we'll be modifying it during iteration
         std::vector<EntityID> children = hc.Children;
@@ -48,7 +48,7 @@ void Registry::DestroyEntity(EntityID id)
         // Remove this entity from parent's children list
         if (hc.Parent != static_cast<EntityID>(-1) && HierarchyComponents.HasComponent(hc.Parent))
         {
-            HierarchyComponent& parentHc = HierarchyComponents.GetComponent(hc.Parent);
+            HierarchyComponent &parentHc = HierarchyComponents.GetComponent(hc.Parent);
             auto it = std::find(parentHc.Children.begin(), parentHc.Children.end(), id);
             if (it != parentHc.Children.end())
             {
@@ -264,12 +264,13 @@ bool Registry::LoadScene(const std::string &src)
                 }
             }
         }
-        std::cout << "INIT - Registry: SUCCESS" << std::endl;
+
+        LOG_INFO("Loaded scene: {}", res + src);
         return true;
     }
     catch (const YAML::Exception &e)
     {
-        std::cerr << "YAML parsing error: " << e.what() << std::endl;
+        LOG_ERROR("Failed to load scene: {} ({})", res + src, e.what());
         return false;
     }
 }

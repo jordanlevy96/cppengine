@@ -9,7 +9,7 @@
 #include "components/Lighting.h"
 #include "util/Logger.h"
 
-#include <yaml-cpp/binary.h>  // For base64 encoding
+#include <yaml-cpp/binary.h> // For base64 encoding
 #include <fstream>
 
 // stb_image_write for PNG encoding
@@ -49,7 +49,7 @@ bool SceneViewport::Initialize(int width, int height, Camera *camera)
 
     // Update camera perspective for viewport dimensions
     m_camera->SetPerspective(45.0f, static_cast<float>(width), static_cast<float>(height));
-    m_camera->transform.Pos = glm::vec3(0.0f, 5.0f, 15.0f);  // Position behind and above origin
+    m_camera->transform.Pos = glm::vec3(0.0f, 5.0f, 15.0f); // Position behind and above origin
 
     // Create framebuffer
     if (!CreateFramebuffer())
@@ -153,6 +153,42 @@ void SceneViewport::Render()
     // Render scene using RenderSystem
     RenderSystem::Update(m_camera, 0.0f);
 
+    // Render selection highlight (if entity is selected)
+    if (m_selectedEntityId != ENTITY_NULL)
+    {
+        // Check if entity has required components for rendering
+        if (m_registry->HasComponent<Transform>(m_selectedEntityId) &&
+            m_registry->HasComponent<RenderComponent>(m_selectedEntityId))
+        {
+            Transform &transform = m_registry->GetComponent<Transform>(m_selectedEntityId);
+            RenderComponent &rc = m_registry->GetComponent<RenderComponent>(m_selectedEntityId);
+
+            // Save original color
+            glm::vec3 originalColor = transform.Color;
+
+            // Set bright highlight color (yellow/orange)
+            transform.Color = glm::vec3(1.0f, 0.8f, 0.0f);
+
+            // Enable wireframe mode for outline effect
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glLineWidth(3.0f);
+
+            // Disable depth test so outline draws on top
+            glDisable(GL_DEPTH_TEST);
+
+            // Render entity again as wireframe
+            RenderSystem::RenderEntity<RenderComponent>(m_selectedEntityId, m_camera);
+
+            // Restore OpenGL state
+            glEnable(GL_DEPTH_TEST);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            glLineWidth(1.0f);
+
+            // Restore original color
+            transform.Color = originalColor;
+        }
+    }
+
     // Check for OpenGL errors
     GLenum error = glGetError();
     if (error != GL_NO_ERROR)
@@ -225,8 +261,7 @@ std::string SceneViewport::GetTextureAsDataURI()
         std::memcpy(
             flippedPixels.data() + y * rowSize,
             pixels.data() + (m_height - 1 - y) * rowSize,
-            rowSize
-        );
+            rowSize);
     }
 
     // Encode as PNG + base64
@@ -243,17 +278,16 @@ std::string SceneViewport::GetTextureAsDataURI()
         {
             // PNG encode without base64
             int pngSize;
-            unsigned char* pngData = stbi_write_png_to_mem(
+            unsigned char *pngData = stbi_write_png_to_mem(
                 flippedPixels.data(),
                 m_width * 4,
                 m_width,
                 m_height,
                 4,
-                &pngSize
-            );
+                &pngSize);
             if (pngData)
             {
-                outFile.write(reinterpret_cast<char*>(pngData), pngSize);
+                outFile.write(reinterpret_cast<char *>(pngData), pngSize);
                 STBIW_FREE(pngData);
                 LOG_INFO("Saved viewport debug image to ../viewport_debug.png");
             }
@@ -266,18 +300,17 @@ std::string SceneViewport::GetTextureAsDataURI()
     return dataURI;
 }
 
-std::string SceneViewport::EncodePNGBase64(const std::vector<uint8_t>& pixels, int width, int height)
+std::string SceneViewport::EncodePNGBase64(const std::vector<uint8_t> &pixels, int width, int height)
 {
     // PNG encode using stb_image_write
     int pngSize;
-    unsigned char* pngData = stbi_write_png_to_mem(
+    unsigned char *pngData = stbi_write_png_to_mem(
         pixels.data(),
-        width * 4,  // stride
+        width * 4, // stride
         width,
         height,
-        4,  // RGBA
-        &pngSize
-    );
+        4, // RGBA
+        &pngSize);
 
     if (!pngData)
     {

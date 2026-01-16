@@ -51,6 +51,17 @@
             padding: 4px;
             margin-bottom: 2px;
             background: #1e1e1e;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .entity-item:hover {
+            background: #2a2a2a;
+        }
+
+        .entity-item.selected {
+            background: #0e639c;
+            color: #ffffff;
         }
     </style>
 </head>
@@ -62,7 +73,7 @@
     <div class="content">
         <div class="scene-tree">
             <h3>Scene Hierarchy</h3>
-            <div v-for="entity in entities" class="entity-item">
+            <div v-for="entity in entities" v-bind:class="'entity-item' .. (selectedEntityId == entity.id and ' selected' or '')" @click="selectEntity(entity.id)">
                 {{ entity.name }}
             </div>
         </div>
@@ -73,7 +84,30 @@
 
         <div class="inspector">
             <h3>Inspector</h3>
-            <div>No selection</div>
+            <div v-if="selectedEntityId">
+                <div><strong>{{ selectedEntityName }}</strong></div>
+                <div style="margin-top: 10px;">
+                    <div><strong>Position</strong></div>
+                    <div>X: {{ selectedEntityPosition.x }}</div>
+                    <div>Y: {{ selectedEntityPosition.y }}</div>
+                    <div>Z: {{ selectedEntityPosition.z }}</div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div><strong>Rotation</strong></div>
+                    <div>X: {{ selectedEntityRotation.x }}</div>
+                    <div>Y: {{ selectedEntityRotation.y }}</div>
+                    <div>Z: {{ selectedEntityRotation.z }}</div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div><strong>Scale</strong></div>
+                    <div>X: {{ selectedEntityScale.x }}</div>
+                    <div>Y: {{ selectedEntityScale.y }}</div>
+                    <div>Z: {{ selectedEntityScale.z }}</div>
+                </div>
+            </div>
+            <div v-else>
+                No selection
+            </div>
         </div>
     </div>
 </body>

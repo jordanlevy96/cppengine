@@ -10,6 +10,9 @@
 
 int main(int argc, char *argv[])
 {
+    // Initialize logger with separate file for editor (must be done before EngineCore initialization)
+    imhotep::Logger::GetInstance().Initialize("../logs/imhotep-editor.log");
+
     Editor &editor = Editor::GetInstance();
 
     if (!editor.Initialize())

@@ -1,6 +1,19 @@
 # Imhotep Editor - Full Architecture Plan
 
-**Last Updated**: January 3, 2026
+**Last Updated**: January 16, 2026
+
+## Implementation Status
+
+| Phase | Name | Status | Date |
+|-------|------|--------|------|
+| 1 | Foundation & Selection | ✅ Complete | 2026-01-16 |
+| 2 | Scene Viewport | Planned | - |
+| 3 | Inspector & Editing | Planned | - |
+| 4 | Hot Reload | Planned | - |
+| 5 | UI Editor | Planned | - |
+| 6 | Advanced Features | Planned | - |
+
+**Phase 1 Complete**: Click-to-select entity interaction, inspector panel with Transform display, and viewport selection highlighting. See `docs/handoff.20260116.md` for implementation details.
 
 ## Overview
 
@@ -359,25 +372,26 @@ imhotep/
 
 ## Implementation Phases
 
-### Phase 1: Foundation (Week 1-2)
+### Phase 1: Foundation & Selection (Complete)
 
-**Goal**: Get basic editor window running with UI panels
+**Status**: ✅ Complete (January 16, 2026)
+
+**Goal**: Get basic editor window running with UI panels, entity selection, and inspector
+
+**Tasks**:
 
 1. **Refactor build system**
-
    - Make `libcore` a true shared library
    - Ensure all engine code is in `libcore`
    - Create new `imhotep-editor` CMake target
 
 2. **Create Editor application skeleton**
-
    - `src/editor/main.cpp` - Entry point
    - `src/editor/Editor.cpp` - Main loop
    - Initialize window with HTMLRendererMT
    - Load basic editor UI template
 
 3. **Build basic UI layout**
-
    - Top menu bar (File, Edit, View)
    - Panel system with resizable splits
    - Empty panels for: Scene Tree, Viewport, Inspector, UI Editor
@@ -387,9 +401,77 @@ imhotep/
    - Bind to ReactiveUI
    - Test reactive updates
 
-**Deliverable**: Editor window opens, shows panel layout, no functionality yet
+**Deliverable**: Editor window with working entity selection, inspector panel, and 3D viewport
 
-### Phase 2: Scene Viewport (Week 3-4)
+#### Phase 1 Implementation Notes
+
+**What was implemented**:
+- Standalone `imhotep-editor` executable
+- Basic HTML/CSS UI using HTMLRendererMT
+- Three-panel layout (Scene Hierarchy, Viewport, Inspector)
+- **Scene Hierarchy Panel**:
+  - Lists all entities from Registry
+  - Click to select entity
+  - Blue highlight on selected entity
+  - Dynamic v-for rendering from Lua state
+- **Inspector Panel**:
+  - Displays selected entity Transform component
+  - Shows Position, Rotation (Euler angles), Scale
+  - Read-only display (editing in Phase 2)
+  - "No selection" state when nothing selected
+- **3D Viewport**:
+  - Renders game scene to FBO texture
+  - Displays as base64 PNG in HTML img tag
+  - Yellow wireframe selection highlight on selected entity
+  - 800x600 resolution
+- **Input Handling**:
+  - ESC key to quit editor
+  - Click-to-select working via HTMLRendererMT hit-testing
+  - Event routing through ReactiveUI to C++ handlers
+- Dark theme UI (VS Code-inspired)
+- Proper HiDPI/Retina display support
+
+**Critical fixes applied during implementation**:
+
+1. **Logger Initialization (Segfault Fix)**: `LOG_*` macros crashed before `Logger::Initialize()` was called. Solution: Initialize logger in `main.cpp` before `Editor::GetInstance()`.
+
+2. **Input Key Case Sensitivity**: WindowManager's `keyMap` uses UPPERCASE strings ("ESCAPE" not "escape"). Input handlers must compare against uppercase.
+
+3. **HiDPI/Retina Rendering**: Must use `glfwGetFramebufferSize()` not `glfwGetWindowSize()` when initializing HTMLRendererMT and setting glViewport.
+
+4. **CSS Color Contrast**: Changed text from `#888888` to `#d4d4d4` for readability on dark background.
+
+5. **TemplateParser Loop Variable Expansion (Jan 16)**: `ProcessIterationInterpolations()` only handled `{{ entity.id }}` syntax but not bare `entity.id` in event handlers. Added second regex pass to expand bare references.
+
+6. **Selection Highlight (Jan 16)**: Made `RenderSystem::RenderEntity` public and added wireframe overlay rendering in `SceneViewport::Render()`.
+
+**Build configuration**:
+```cmake
+add_executable(imhotep-editor
+    src/editor/main.cpp
+    src/editor/Editor.cpp
+    src/editor/SceneViewport.cpp
+)
+target_link_libraries(imhotep-editor PRIVATE core)
+```
+
+**Binary output**: `build/imhotep-editor`, logs to `build/logs/editor.log`
+
+**Phase 1 Complete** - All MVP features working:
+- ✅ Entity selection from Scene Hierarchy
+- ✅ Inspector shows Transform data
+- ✅ Viewport selection highlight visible
+- ✅ 60 FPS performance
+
+**Known Phase 1 limitations** (addressed in later phases):
+- No transform editing (read-only inspector)
+- No viewport picking (select via tree only)
+- No hot reload
+- No undo/redo
+- No scene save/load
+- Menu items non-interactive
+
+### Phase 2: Scene Viewport
 
 **Goal**: Embed game rendering, camera control, entity picking
 
@@ -414,7 +496,7 @@ imhotep/
 
 **Deliverable**: Can see game scene in editor, click entities to select, see in tree
 
-### Phase 3: Inspector & Editing (Week 5-6)
+### Phase 3: Inspector & Editing
 
 **Goal**: View and modify entity components
 
@@ -438,7 +520,7 @@ imhotep/
 
 **Deliverable**: Can select entity, modify transform, see changes live
 
-### Phase 4: Hot Reload (Week 7-8)
+### Phase 4: Hot Reload
 
 **Goal**: File watching and automatic reloading
 
@@ -462,7 +544,7 @@ imhotep/
 
 **Deliverable**: Edit files externally, see changes instantly in editor
 
-### Phase 5: UI Editor (Week 9-10)
+### Phase 5: UI Editor
 
 **Goal**: Visual UI template editing with live preview
 
@@ -494,7 +576,7 @@ imhotep/
 
 **Deliverable**: Can edit UI templates visually, see live preview, manipulate state
 
-### Phase 6: Advanced Features (Week 11-12)
+### Phase 6: Advanced Features
 
 **Goal**: Professional workflow enhancements
 
@@ -912,18 +994,31 @@ m_shortcuts.Register(GLFW_KEY_DELETE, 0, [this]() {
 
 ## Success Criteria
 
-**Phase 1-2 (Foundation)**:
+**Phase 1 (Foundation & Selection)** - ✅ Complete:
 
-- [ ] Editor launches successfully with panel layout
-- [ ] Can see game scene in viewport with editor camera
+- [x] Editor launches successfully with panel layout
+- [x] Window displays at correct resolution with HiDPI support
+- [x] UI renders with readable text and proper contrast
+- [x] ESC key closes editor cleanly
+- [x] Scene tree displays all entities from Registry
+- [x] Can select entities (click in scene tree)
+- [x] Selected entity highlighted in tree (blue background)
+- [x] Inspector shows selected entity Transform component
+- [x] Viewport renders game scene to texture
+- [x] Selected entity highlighted in viewport (yellow wireframe)
+- [x] 60 FPS performance
+
+**Phase 2 (Camera Controls & Viewport Picking)** - Planned:
+
 - [ ] Can orbit/pan/zoom viewport camera
-- [ ] Scene tree displays all entities
+- [ ] Can select entities by clicking in 3D viewport (picking)
+- [ ] Viewport gizmos for transform manipulation
 
-**Phase 3-4 (Core Editing)**:
+**Phase 3 (Editing & Persistence)**:
 
-- [ ] Can select entities (click in viewport or tree)
-- [ ] Inspector shows selected entity components
-- [ ] Can modify Transform and see changes instantly
+- [ ] Can modify Transform values in inspector
+- [ ] Changes reflect immediately in viewport
+- [ ] Can save/load scenes (Ctrl+S/O)
 - [ ] Hot reload works for HTML/CSS/Lua files
 - [ ] Basic keyboard shortcuts work (Ctrl+Z, Ctrl+S)
 
@@ -1758,4 +1853,4 @@ Add C++ input interceptors to `WindowManager` (see "Input Routing Architecture" 
 
 ---
 
-_Last Verified: January 3, 2026_
+_Last Updated: January 16, 2026_

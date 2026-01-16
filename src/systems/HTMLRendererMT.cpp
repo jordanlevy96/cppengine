@@ -384,6 +384,10 @@ public:
             }
 
             // Decode PNG using stb_image
+            // Temporarily disable vertical flip - PNG images are already top-down,
+            // and the viewport PNG was pre-flipped in GetTextureAsDataURI()
+            stbi_set_flip_vertically_on_load(false);
+
             int width, height, channels;
             unsigned char *pixels = stbi_load_from_memory(
                 pngData.data(),
@@ -393,6 +397,9 @@ public:
                 &channels,
                 4 // Force RGBA
             );
+
+            // Restore flip setting for other texture loads (e.g., 3D textures)
+            stbi_set_flip_vertically_on_load(true);
 
             if (!pixels)
             {
@@ -1231,9 +1238,10 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
             auto clickIt = elem.handlers.find("click");
             if (clickIt != elem.handlers.end())
             {
-                LOG_DEBUG("[HTMLRendererMT] Dispatching click handler: {}", clickIt->second);
+                LOG_INFO("[HTMLRendererMT] Element '{}' has click handler: '{}'", elem.id, clickIt->second);
 
                 // Dispatch to ReactiveUI
+                // Note: Pass framebuffer coordinates directly - they match the hit-test coordinates
                 ReactiveUI &ui = ReactiveUI::GetInstance();
                 ReactiveUI::EventData eventData;
                 eventData.x = x;
@@ -1241,7 +1249,11 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
                 eventData.button = button;
                 eventData.elemId = elem.id;
                 eventData.eventType = "click";
+
+                LOG_INFO("[HTMLRendererMT] Dispatching click event for element '{}' with coords ({}, {}), button={}",
+                         elem.id, x, y, button);
                 ui.DispatchEvent("click", clickIt->second, eventData);
+                LOG_INFO("[HTMLRendererMT] Click dispatch completed for element '{}'", elem.id);
 
                 return true; // Event handled
             }
@@ -1305,7 +1317,7 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                     auto mouseoutIt = elem.handlers.find("mouseout");
                     if (mouseoutIt != elem.handlers.end())
                     {
-                        LOG_DEBUG("[HTMLRendererMT] Dispatching mouseout: {}", mouseoutIt->second);
+                        LOG_INFO("[HTMLRendererMT] Element '{}' has mouseout handler: '{}'", elem.id, mouseoutIt->second);
 
                         // Dispatch to ReactiveUI
                         ReactiveUI &ui = ReactiveUI::GetInstance();
@@ -1315,7 +1327,11 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                         eventData.button = -1; // No button for hover events
                         eventData.elemId = elem.id;
                         eventData.eventType = "mouseout";
+
+                        LOG_INFO("[HTMLRendererMT] Dispatching mouseout event for element '{}' with coords ({}, {})",
+                                 elem.id, x, y);
                         ui.DispatchEvent("mouseout", mouseoutIt->second, eventData);
+                        LOG_INFO("[HTMLRendererMT] Mouseout dispatch completed for element '{}'", elem.id);
                     }
                     break;
                 }
@@ -1333,7 +1349,7 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                     auto mouseoverIt = elem.handlers.find("mouseover");
                     if (mouseoverIt != elem.handlers.end())
                     {
-                        LOG_DEBUG("[HTMLRendererMT] Dispatching mouseover: {}", mouseoverIt->second);
+                        LOG_INFO("[HTMLRendererMT] Element '{}' has mouseover handler: '{}'", elem.id, mouseoverIt->second);
 
                         // Dispatch to ReactiveUI
                         ReactiveUI &ui = ReactiveUI::GetInstance();
@@ -1343,7 +1359,11 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                         eventData.button = -1; // No button for hover events
                         eventData.elemId = elem.id;
                         eventData.eventType = "mouseover";
+
+                        LOG_INFO("[HTMLRendererMT] Dispatching mouseover event for element '{}' with coords ({}, {})",
+                                 elem.id, x, y);
                         ui.DispatchEvent("mouseover", mouseoverIt->second, eventData);
+                        LOG_INFO("[HTMLRendererMT] Mouseover dispatch completed for element '{}'", elem.id);
                     }
                     break;
                 }

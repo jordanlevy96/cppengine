@@ -6,15 +6,19 @@
 #include "editor/Editor.h"
 #include "util/Logger.h"
 #include "util/ConfigLoader.h"
+#include "util/FrameTiming.h"
 #include "systems/LuaUIState.h"
 #include "systems/ScriptSystem.h"
 #include "systems/TweenSystem.h"
+#include "systems/HierarchySystem.h"
 #include "controllers/Game.h"
 #include "controllers/ScriptManager.h"
 
 #include <sol/sol.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <fstream>
 #include <iostream>
+#include <variant>
 
 bool Editor::Initialize()
 {
@@ -60,15 +64,79 @@ bool Editor::Initialize()
     // Populate scene tree with entities from Registry
     UpdateSceneTree();
 
-    // TODO: Get editor input handlers working
-    // Register keyboard input handler
+    // Register keyboard input handler for editor shortcuts
+    m_keyboardHandlerId = m_windowManager->RegisterInputHandler([this](const InputEvent &event)
+                                                                { return HandleEditorInput(event); });
 
-    // Initialize timing
-    m_lastFrameTime = std::chrono::high_resolution_clock::now();
-    m_delta = 0.0;
+    // TODO: clean up this lambda
+    // Register click input handler for UI interactions
+    m_clickHandlerId = m_windowManager->RegisterInputHandler([this](const InputEvent &event)
+                                                             {
+                                                                 if (event.type == InputTypes::Click)
+                                                                 {
+                                                                     // Safely extract click payload - some platforms store vec2, some vec3
+                                                                     try
+                                                                     {
+                                                                         if (std::holds_alternative<glm::vec3>(event.input))
+                                                                         {
+                                                                             auto clickData = std::get<glm::vec3>(event.input);
+                                                                             LOG_INFO("[Editor] Click handler: click at ({}, {}), button={}", clickData.x, clickData.y, static_cast<int>(clickData.z));
+                                                                             bool handled = HandleUIClick(clickData.x, clickData.y, static_cast<int>(clickData.z));
+                                                                             LOG_INFO("[Editor] Click handler result: {}", handled ? "CONSUMED" : "PASS_TO_LUA");
+                                                                             return handled;
+                                                                         }
+                                                                         else if (std::holds_alternative<glm::vec2>(event.input))
+                                                                         {
+                                                                             auto clickData2 = std::get<glm::vec2>(event.input);
+                                                                             // If button isn't encoded, assume left (0)
+                                                                             LOG_INFO("[Editor] Click handler: click at ({}, {}), button=0", clickData2.x, clickData2.y);
+                                                                             bool handled = HandleUIClick(clickData2.x, clickData2.y, 0);
+                                                                             LOG_INFO("[Editor] Click handler result: {}", handled ? "CONSUMED" : "PASS_TO_LUA");
+                                                                             return handled;
+                                                                         }
+                                                                         else
+                                                                         {
+                                                                             LOG_WARNING("[Editor] Click event payload has unexpected type");
+                                                                             return false;
+                                                                         }
+                                                                     }
+                                                                     catch (const std::bad_variant_access &)
+                                                                     {
+                                                                         LOG_WARNING("[Editor] Failed to read click event payload");
+                                                                         return false;
+                                                                     }
+                                                                 }
+                                                                 return false; // Not a click event
+                                                             });
+
+    // Register selectEntity function for Lua event binding in ReactiveUI's state
+    std::shared_ptr<LuaUIState> luaUIState = m_reactiveUI->GetLuaState();
+
+    // Get Lua state and create methods table for ReactiveUI event dispatching
+    sol::table stateTable = luaUIState->GetStateTable();
+
+    // Get or create methods table (defensive - editor.lua should have it, but be safe)
+    sol::table methods = stateTable["methods"];
+    if (!methods.valid())
+    {
+        ScriptManager &scriptManager = ScriptManager::GetInstance();
+        sol::state &lua = scriptManager.GetLuaState();
+        methods = lua.create_table();
+        stateTable["methods"] = methods;
+        LOG_WARNING("[Editor] Created methods table - it should exist in editor.lua");
+    }
+
+    // Register selectEntity in the methods table - bind to C++ implementation
+    methods["selectEntity"] = [this](sol::table self, uint32_t entityId)
+    {
+        LOG_INFO("[Editor::methods.selectEntity] Called with entityId={}", entityId);
+        SelectEntity(static_cast<EntityID>(entityId));
+    };
+
+    luaUIState->SetValue("methods", methods);
+    LOG_INFO("[Editor] Created methods table for UI event handlers");
 
     m_initialized = true;
-    LOG_INFO("Editor initialized successfully");
     return true;
 }
 
@@ -82,23 +150,26 @@ void Editor::Run()
 
     LOG_INFO("Starting editor main loop...");
 
+    // Initialize frame timing (SIMPLE mode: delta-only, no fixed timestep)
+    FrameTiming timing(FrameTimingMode::SIMPLE, 60.0);
+
     while (!glfwWindowShouldClose(m_windowManager->window) && !m_shouldClose)
     {
-        // Calculate delta time
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        m_delta = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      currentTime - m_lastFrameTime)
-                      .count();
-        m_lastFrameTime = currentTime;
-
-        // Poll input events
+        // CRITICAL: Poll input events first so window is responsive
         glfwPollEvents();
 
-        // Update game systems
+        // Update frame timing (calculates delta)
+        timing.Update();
+        m_delta = timing.GetDelta();
+
+        // Update game systems (tweens, tweens + hierarchy)
+        // Note: ScriptSystem is deliberately skipped in editor mode
         UpdateSystems(m_delta);
 
-        // Render frame
+        // Render editor frame (viewport + UI)
         Render();
+
+        // Swap buffers
         glfwSwapBuffers(m_windowManager->window);
     }
 
@@ -113,6 +184,18 @@ void Editor::Shutdown()
     }
 
     LOG_INFO("Shutting down editor...");
+
+    // Unregister input handlers
+    if (m_keyboardHandlerId != 0)
+    {
+        m_windowManager->UnregisterInputHandler(m_keyboardHandlerId);
+        m_keyboardHandlerId = 0;
+    }
+    if (m_clickHandlerId != 0)
+    {
+        m_windowManager->UnregisterInputHandler(m_clickHandlerId);
+        m_clickHandlerId = 0;
+    }
 
     // Shutdown systems (in reverse order of initialization)
     if (m_viewport)
@@ -298,6 +381,183 @@ void Editor::UpdateSystems(double deltaTime)
     // Note: ScriptSystem::Update() is skipped in editor mode to avoid requiring
     // game-specific Lua EventQueue setup. Scripts should be tested in the game runtime.
 
-    // Update tween system (animations)
+    // Update animation system (tweens)
     TweenSystem::Update(deltaTime);
+
+    // Update transform hierarchy (for parenting)
+    HierarchySystem::Update();
+}
+
+bool Editor::HandleEditorInput(const InputEvent &event)
+{
+    // Only handle keyboard events
+    if (event.type != InputTypes::Key)
+    {
+        return false; // Pass through to Lua
+    }
+
+    // Get key name from variant
+    std::string key = std::get<std::string>(event.input);
+
+    // ESC - Quit editor
+    if (key == "ESCAPE" && event.mods == 0)
+    {
+        LOG_INFO("[Editor] ESC pressed - closing editor");
+        m_shouldClose = true;
+        return true; // Consume event
+    }
+
+    // Ctrl+S - Save scene (future)
+    if (key == "S" && (event.mods & GLFW_MOD_CONTROL))
+    {
+        LOG_INFO("[Editor] Ctrl+S pressed - save not implemented yet");
+        // TODO: Implement scene saving
+        return true;
+    }
+
+    // Ctrl+O - Open scene (future)
+    if (key == "O" && (event.mods & GLFW_MOD_CONTROL))
+    {
+        LOG_INFO("[Editor] Ctrl+O pressed - open not implemented yet");
+        // TODO: Implement scene loading
+        return true;
+    }
+
+    // Ctrl+Z - Undo (future)
+    if (key == "Z" && (event.mods & GLFW_MOD_CONTROL) && !(event.mods & GLFW_MOD_SHIFT))
+    {
+        LOG_INFO("[Editor] Ctrl+Z pressed - undo not implemented yet");
+        // TODO: Implement undo
+        return true;
+    }
+
+    // Ctrl+Shift+Z - Redo (future)
+    if (key == "Z" && (event.mods & GLFW_MOD_CONTROL) && (event.mods & GLFW_MOD_SHIFT))
+    {
+        LOG_INFO("[Editor] Ctrl+Shift+Z pressed - redo not implemented yet");
+        // TODO: Implement redo
+        return true;
+    }
+
+    // Event not handled by editor, pass to Lua
+    return false;
+}
+
+void Editor::SelectEntity(EntityID entityId)
+{
+    if (entityId == ENTITY_NULL)
+    {
+        m_selectedEntityId = ENTITY_NULL;
+        LOG_DEBUG("Deselected entity");
+    }
+    else
+    {
+        m_selectedEntityId = entityId;
+        LOG_DEBUG("Selected entity: {}", m_registry->GetEntityName(entityId));
+    }
+
+    // Update viewport highlight
+    if (m_viewport)
+    {
+        m_viewport->SetSelectedEntity(entityId);
+    }
+
+    UpdateInspector();
+
+    // Mark Lua state dirty to trigger UI re-render
+    if (m_reactiveUI && m_reactiveUI->GetLuaState())
+    {
+        m_reactiveUI->GetLuaState()->MarkDirty();
+    }
+}
+
+void Editor::UpdateInspector()
+{
+    if (!m_reactiveUI || !m_reactiveUI->GetLuaState())
+    {
+        return;
+    }
+
+    auto luaState = m_reactiveUI->GetLuaState();
+
+    if (m_selectedEntityId == ENTITY_NULL)
+    {
+        // Clear selection
+        luaState->SetValue("selectedEntityId", nullptr);
+        luaState->SetValue("selectedEntityName", "");
+        return;
+    }
+
+    // Get entity name
+    std::string entityName = m_registry->GetEntityName(m_selectedEntityId);
+    luaState->SetValue("selectedEntityId", static_cast<uint32_t>(m_selectedEntityId));
+    luaState->SetValue("selectedEntityName", entityName);
+
+    // Get Transform component
+    ScriptManager &scriptManager = ScriptManager::GetInstance();
+    sol::state &lua = scriptManager.GetLuaState();
+
+    if (m_registry->HasComponent<Transform>(m_selectedEntityId))
+    {
+        const Transform &transform = m_registry->GetComponent<Transform>(m_selectedEntityId);
+
+        // Set position
+        sol::table posTable = lua.create_table();
+        posTable["x"] = transform.Pos.x;
+        posTable["y"] = transform.Pos.y;
+        posTable["z"] = transform.Pos.z;
+        luaState->SetValue("selectedEntityPosition", posTable);
+
+        // Convert quaternion to Euler angles for display
+        glm::vec3 euler = glm::eulerAngles(transform.Rotation) * glm::degrees(1.0f);
+        sol::table rotTable = lua.create_table();
+        rotTable["x"] = euler.x;
+        rotTable["y"] = euler.y;
+        rotTable["z"] = euler.z;
+        luaState->SetValue("selectedEntityRotation", rotTable);
+
+        // Set scale
+        sol::table scaleTable = lua.create_table();
+        scaleTable["x"] = transform.Scale.x;
+        scaleTable["y"] = transform.Scale.y;
+        scaleTable["z"] = transform.Scale.z;
+        luaState->SetValue("selectedEntityScale", scaleTable);
+    }
+    else
+    {
+        // No Transform component - show defaults
+        sol::table posTable = lua.create_table();
+        posTable["x"] = 0;
+        posTable["y"] = 0;
+        posTable["z"] = 0;
+        luaState->SetValue("selectedEntityPosition", posTable);
+
+        sol::table rotTable = lua.create_table();
+        rotTable["x"] = 0;
+        rotTable["y"] = 0;
+        rotTable["z"] = 0;
+        luaState->SetValue("selectedEntityRotation", rotTable);
+
+        sol::table scaleTable = lua.create_table();
+        scaleTable["x"] = 1;
+        scaleTable["y"] = 1;
+        scaleTable["z"] = 1;
+        luaState->SetValue("selectedEntityScale", scaleTable);
+    }
+}
+
+bool Editor::HandleUIClick(float x, float y, int button)
+{
+    LOG_DEBUG("[Editor::HandleUIClick] Called with position ({}, {}), button={}", x, y, button);
+
+    if (!m_htmlRenderer)
+    {
+        LOG_WARNING("[Editor::HandleUIClick] HTMLRenderer not initialized");
+        return false;
+    }
+
+    LOG_DEBUG("[Editor::HandleUIClick] Calling HTMLRenderer::HandleClickEvent");
+    // Pass click to HTMLRenderer for hit-testing and event dispatch
+    // This will check if the click hit any UI elements and dispatch @click events
+    return m_htmlRenderer->HandleClickEvent(x, y, button);
 }

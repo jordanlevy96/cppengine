@@ -240,6 +240,31 @@ glm::vec2 WindowManager::GetSize()
     return glm::vec2(width, height);
 }
 
+size_t WindowManager::RegisterInputHandler(InputHandler handler)
+{
+    size_t id = m_nextHandlerId++;
+    m_inputHandlers.push_back({id, handler});
+    LOG_INFO("[WindowManager] Registered input handler ID {}", id);
+    return id;
+}
+
+void WindowManager::UnregisterInputHandler(size_t id)
+{
+    auto it = std::remove_if(m_inputHandlers.begin(), m_inputHandlers.end(),
+                             [id](const auto &pair)
+                             { return pair.first == id; });
+
+    if (it != m_inputHandlers.end())
+    {
+        m_inputHandlers.erase(it, m_inputHandlers.end());
+        LOG_INFO("[WindowManager] Unregistered input handler ID {}", id);
+    }
+    else
+    {
+        LOG_WARNING("[WindowManager] Attempted to unregister unknown handler ID {}", id);
+    }
+}
+
 // Input handling is done via Lua - converts to native Lua table for proper queue handling
 #define APPEND_EVENT(event) sm.AddInputEventToQueue(event);
 
@@ -247,7 +272,6 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
 {
     if (action == GLFW_PRESS || action == GLFW_REPEAT)
     {
-        ScriptManager &sm = ScriptManager::GetInstance();
         InputEvent event;
         event.type = InputTypes::Key;
         event.input = GLFW_KEY(key);
@@ -255,15 +279,42 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
 
         LOG_INFO("[WindowManager] Key event: key={}, action={}, mods={}", GLFW_KEY(key), action, mods);
 
+        // Try C++ handlers first
+        WindowManager &wm = GetInstance();
+        for (const auto &[id, handler] : wm.m_inputHandlers)
+        {
+            if (handler(event))
+            {
+                LOG_DEBUG("[WindowManager] Key input consumed by handler ID {}", id);
+                return; // Event consumed, don't send to Lua
+            }
+        }
+
+        // Fall through to Lua if no C++ handler consumed event
+        ScriptManager &sm = ScriptManager::GetInstance();
         APPEND_EVENT(event)
     }
 }
 
 void WindowManager::click_callback(GLFWwindow *window, int button, int action, int mods)
 {
-    // Only handle button press events (not release)
-    if (action != GLFW_PRESS)
+    // Log all click events for debugging
+    LOG_WARNING("[WindowManager] click_callback triggered: button={}, action={}, mods={}", button, action, mods);
+
+    // Handle button press events (action=GLFW_PRESS)
+    // In some cases, we might only receive release events, so we process those too
+    if (action != GLFW_PRESS && action != GLFW_RELEASE)
+    {
+        LOG_DEBUG("[WindowManager] Ignoring click event with action={} (not GLFW_PRESS or GLFW_RELEASE)", action);
         return;
+    }
+
+    // For now, process both press and release
+    // This makes click detection more reliable across platforms
+    if (action == GLFW_RELEASE)
+    {
+        LOG_DEBUG("[WindowManager] Processing mouse release event (some platforms only send release)");
+    }
 
     // Get cursor position at time of click
     double xpos, ypos;
@@ -271,22 +322,57 @@ void WindowManager::click_callback(GLFWwindow *window, int button, int action, i
 
     LOG_INFO("[WindowManager] Mouse click detected: button={}, pos=({}, {})", button, xpos, ypos);
 
-    ScriptManager &sm = ScriptManager::GetInstance();
     InputEvent event;
     event.type = InputTypes::Click;
     event.input = glm::vec3(xpos, ypos, button);
     event.mods = mods;
 
+    // Try C++ handlers first
+    WindowManager &wm = GetInstance();
+    LOG_INFO("[WindowManager] Trying {} C++ handlers for click event", wm.m_inputHandlers.size());
+    for (const auto &[id, handler] : wm.m_inputHandlers)
+    {
+        LOG_DEBUG("[WindowManager] Calling handler ID {}", id);
+        bool consumed = handler(event);
+        LOG_DEBUG("[WindowManager] Handler ID {} returned {}", id, consumed ? "true (consumed)" : "false (pass through)");
+        if (consumed)
+        {
+            LOG_DEBUG("[WindowManager] Click input consumed by handler ID {}", id);
+            return; // Event consumed, don't send to Lua
+        }
+    }
+
+    // Fall through to Lua if no C++ handler consumed event
+    LOG_DEBUG("[WindowManager] No handlers consumed click, adding to Lua queue");
+    ScriptManager &sm = ScriptManager::GetInstance();
     APPEND_EVENT(event)
 }
 
 void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double ypos)
 {
-    ScriptManager &sm = ScriptManager::GetInstance();
+    static int cursorMoveCount = 0;
+    if (cursorMoveCount++ % 10 == 0) // Log every 10th move to reduce spam
+    {
+        LOG_TRACE_L1("[WindowManager] Cursor moved to ({}, {})", xpos, ypos);
+    }
+
     InputEvent event;
     event.type = InputTypes::Cursor;
     event.input = glm::vec2(xpos, ypos);
 
+    // Try C++ handlers first
+    WindowManager &wm = GetInstance();
+    for (const auto &[id, handler] : wm.m_inputHandlers)
+    {
+        if (handler(event))
+        {
+            LOG_DEBUG("[WindowManager] Cursor input consumed by handler ID {}", id);
+            return; // Event consumed, don't send to Lua
+        }
+    }
+
+    // Fall through to Lua if no C++ handler consumed event
+    ScriptManager &sm = ScriptManager::GetInstance();
     APPEND_EVENT(event)
 }
 
@@ -322,10 +408,22 @@ void WindowManager::resize_callback(GLFWwindow *window, int fbWidth, int fbHeigh
 
 void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
-    ScriptManager &sm = ScriptManager::GetInstance();
     InputEvent event;
     event.type = InputTypes::Scroll;
     event.input = glm::vec2(xoffset, yoffset);
 
+    // Try C++ handlers first
+    WindowManager &wm = GetInstance();
+    for (const auto &[id, handler] : wm.m_inputHandlers)
+    {
+        if (handler(event))
+        {
+            LOG_DEBUG("[WindowManager] Scroll input consumed by handler ID {}", id);
+            return; // Event consumed, don't send to Lua
+        }
+    }
+
+    // Fall through to Lua if no C++ handler consumed event
+    ScriptManager &sm = ScriptManager::GetInstance();
     APPEND_EVENT(event)
 }

@@ -6,7 +6,9 @@
 #include "controllers/EngineCore.h"
 #include "util/Logger.h"
 #include "util/ConfigLoader.h"
+#include "util/Version.h"
 #include <GLFW/glfw3.h>
+#include <variant>
 
 EngineCore::EngineCore()
 {
@@ -16,6 +18,13 @@ EngineCore::EngineCore()
 
 EngineCore::~EngineCore()
 {
+    // Unregister UI click handler
+    if (m_uiClickHandlerId != 0 && m_windowManager)
+    {
+        m_windowManager->UnregisterInputHandler(m_uiClickHandlerId);
+        m_uiClickHandlerId = 0;
+    }
+
     if (m_camera)
     {
         delete m_camera;
@@ -64,7 +73,7 @@ bool EngineCore::Initialize(const std::string &configPath, Config &conf, Camera 
     }
 
     LOG_INFO("==================================");
-    LOG_INFO("   {} - Initialized", conf.AppName);
+    LOG_INFO("   Imhotep {} - Initialized", imhotep::Version::GetVersionString());
     LOG_INFO("==================================");
     LOG_INFO("[EngineCore] EngineCore initialized successfully");
     return true;
@@ -139,7 +148,7 @@ bool EngineCore::InitializeLogger(const std::string &logPath, const std::string 
     }
 
     LOG_INFO("==================================");
-    LOG_INFO("   {} - Starting", appName);
+    LOG_INFO("   {} {}", appName, imhotep::Version::GetVersionString());
     LOG_INFO("==================================");
 
     return true;
@@ -249,6 +258,17 @@ bool EngineCore::InitializeUI(const std::string &htmlPath,
     // Bind Lua state to ReactiveUI
     m_reactiveUI->BindLuaState(m_luaState);
 
+    // Create methods table in Lua state for event handlers
+    sol::table stateTable = m_luaState->GetStateTable();
+    sol::table methods = stateTable["methods"];
+    if (!methods.valid())
+    {
+        sol::state &lua = m_scriptManager->GetLuaState();
+        methods = lua.create_table();
+        stateTable["methods"] = methods;
+        LOG_INFO("Created methods table in Lua UI state for event handlers");
+    }
+
     // Load UI template from files
     std::string uiTemplate = ReactiveUI::LoadTemplateFromFiles(htmlPath, cssPath);
     if (uiTemplate.empty())
@@ -266,7 +286,27 @@ bool EngineCore::InitializeUI(const std::string &htmlPath,
 
     // Load HTML into renderer
     m_htmlRenderer->LoadHTML(m_reactiveUI->GetRenderedHTML());
-    LOG_INFO("INIT - ReactiveUI: SUCCESS");
+
+    // Register click handler to forward UI clicks to HTMLRenderer for hit-testing
+    m_uiClickHandlerId = m_windowManager->RegisterInputHandler([this](const InputEvent &event)
+                                                               {
+        if (event.type == InputTypes::Click)
+        {
+            // Extract click position from the event payload
+            if (std::holds_alternative<glm::vec3>(event.input))
+            {
+                auto clickData = std::get<glm::vec3>(event.input);
+                return m_htmlRenderer->HandleClickEvent(clickData.x, clickData.y, static_cast<int>(clickData.z));
+            }
+            else if (std::holds_alternative<glm::vec2>(event.input))
+            {
+                auto clickData = std::get<glm::vec2>(event.input);
+                return m_htmlRenderer->HandleClickEvent(clickData.x, clickData.y, 0);
+            }
+        }
+        return false; });
+
+    LOG_INFO("INIT - ReactiveUI: SUCCESS (click handler ID={})", m_uiClickHandlerId);
 
     return true;
 }

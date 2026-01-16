@@ -346,17 +346,17 @@ Event handlers are double-buffered like pixel data to prevent race conditions du
 
 ## Implementation Phases
 
-### Phase 1: Foundation ✅ COMPLETE
+### Phase 1: Foundation
 
 **Goal**: Basic reactive templating with change detection
 
 **Implemented**:
-- ✅ `ReactiveUI` - Template engine with change detection
-- ✅ `HTMLRendererMT` - Multi-threaded rendering + font caching
-- ✅ `TemplateParser` - Parses v-if, v-for, {{ }} directives
-- ✅ `LuaUIState` - Loads UI state from .lua files
-- ✅ External HTML/CSS files (res/ui/templates/, res/ui/styles/)
-- ✅ Tetris UI - Working example with all Phase 1 features
+- `ReactiveUI` - Template engine with change detection
+- `HTMLRendererMT` - Multi-threaded rendering + font caching
+- `TemplateParser` - Parses v-if, v-for, {{ }} directives
+- `LuaUIState` - Loads UI state from .lua files
+- External HTML/CSS files (res/ui/templates/, res/ui/styles/)
+- Tetris UI - Working example with all Phase 1 features
 
 **Example** (Working in Tetris UI):
 
@@ -381,13 +381,13 @@ return {
 </div>
 ```
 
-### Phase 2: Interactivity 🟡 IN PROGRESS
+### Phase 2: Interactivity
 
 **Goal**: User interaction and dynamic updates
 
 **Implemented Features**:
 
-1. **Event Handling** ✅
+1. **Event Handling**
    - `@click` - Click handlers with Lua event methods
    - `@mouseover` - Mouse hover support (infrastructure ready)
    - Event handler extraction and dispatching via TemplateParser
@@ -395,7 +395,7 @@ return {
    - Event objects with coordinates, button data, element ID
    - Auto-mark state dirty after event execution
 
-2. **Lua Event Methods** ✅
+2. **Lua Event Methods**
    - methods table in Lua state files
    - Event handler expressions: "method", "method(arg)", "method($event)"
    - Working example in Tetris UI (onStartGame, onRestart, onMainMenu)
@@ -423,7 +423,7 @@ return {
 <button @click="onRestart">RESTART</button>
 ```
 
-**In Progress / Planned**:
+**Additional Features**:
 
 1. **Advanced Event Handling**
    - Event propagation and bubbling
@@ -438,11 +438,11 @@ return {
    - `v-tooltip` - Rich nested tooltips (critical for PDX games)
    - Lazy evaluation (only compute when shown)
 
-### Phase 3: Performance & Scale 📋 PLANNED
+### Phase 3: Performance & Scale
 
 **Goal**: Handle complex UIs with thousands of elements
 
-**Planned Features**:
+**Features**:
 - Virtual DOM / diffing algorithm
 - List virtualization (render only visible items)
 - Lazy rendering for off-screen content
@@ -450,11 +450,11 @@ return {
 
 **Target**: 10,000+ UI elements at 60 FPS
 
-### Phase 4: Modding & Polish 📋 PLANNED
+### Phase 4: Modding & Polish
 
 **Goal**: Production-ready for game release
 
-**Planned Features**:
+**Features**:
 - Component system (reusable UI widgets)
 - Modding support (hot reload, template overrides)
 - Developer tools (UI inspector, state debugger)
@@ -829,16 +829,16 @@ imhotep/
 │   └── HTMLRendererMT.cpp
 ├── res/ui/
 │   ├── templates/            # HTML templates
-│   │   └── tetris.html       # Tetris UI (working example)
+│   │   └── tetris.html       # Tetris UI
 │   ├── styles/               # CSS stylesheets
-│   │   └── tetris.css        # Tetris styles (working example)
-│   ├── components/           # Reusable UI components (planned)
+│   │   └── tetris.css        # Tetris styles
+│   ├── components/           # Reusable UI components
 │   │   ├── button.html
 │   │   └── tooltip.html
 │   └── state/                # Lua state files
-│       ├── fps.lua           # Tetris UI state (working example)
-│       ├── main_menu.lua     # (planned)
-│       └── character_screen.lua  # (planned)
+│       ├── fps.lua           # Tetris UI state
+│       ├── main_menu.lua
+│       └── character_screen.lua
 └── docs/
     └── architecture/
         └── UI_SYSTEM.md      # This file
@@ -893,42 +893,4 @@ imhotep/
 
 ---
 
-## Summary of Recent Changes (Jan 2026)
-
-### ✅ Completed: EngineCore/Game Architecture Refactoring
-- **Date**: January 2026 (commit 5405263)
-- **Change**: Split monolithic `App` class into `EngineCore` (common init) + `Game` (game loop)
-- **Benefit**: Shared initialization between Game and Editor, reduced code duplication
-- **Files**: `include/controllers/EngineCore.h`, `src/controllers/EngineCore.cpp`, `include/controllers/Game.h`, `src/controllers/Game.cpp`
-
-### ✅ Fixed: Window Not Appearing (macOS)
-- **Date**: January 8, 2026
-- **Issue**: Application ran but window never appeared on macOS
-- **Root cause**: Missing `glfwPollEvents()` in main loop
-- **Fix**: Added `glfwPollEvents()` to `Game::RunFixedLoop()` line 92
-- **Impact**: Window now appears correctly on macOS (and likely fixes issues on other platforms)
-
-### ✅ Fixed: Excessive RenderSystem Logging
-- **Date**: January 8, 2026
-- **Issue**: ~30,000+ logs/second from per-frame, per-entity rendering
-- **Fix**: Removed per-frame logging from `RenderSystem::Update()` and `RenderSystem::RenderEntity<RenderComponent>()`
-- **Impact**: Reduced to ~10 initialization logs, terminal output now readable
-
-### ✅ Fixed: UI Event Coordinate Scaling (Retina/HiDPI Displays)
-- **Date**: January 8, 2026
-- **Issue**: Button clicks not working on Retina displays
-- **Root cause**: Click coordinates in window space (1400x840) but button bounds in framebuffer space (2800x1680)
-  - On Retina/HiDPI displays, framebuffer is 2x window size
-  - `HandleClickEvent()` received window coordinates but compared against framebuffer coordinates
-  - Click at (695, 439) window space needs scaling to (1390, 878) framebuffer space
-- **Fix**: Added coordinate scaling in `HandleClickEvent()` and `UpdateHoverState()`
-  - Calculate scale factor: `scaleX = framebufferWidth / windowWidth`
-  - Transform click coordinates before hit-testing: `framebufferX = x * scaleX`
-  - Both click events and hover events now correctly scaled
-- **Result**: Buttons and interactive elements work correctly on all display types ✅
-- **Files modified**: `src/systems/HTMLRendererMT.cpp:1182-1265`
-
----
-
-_Last Updated: January 8, 2026_
-_Last Verified: January 8, 2026_
+_Last Updated: January 13, 2026_
