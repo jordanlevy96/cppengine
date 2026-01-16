@@ -384,6 +384,10 @@ public:
             }
 
             // Decode PNG using stb_image
+            // Temporarily disable vertical flip - PNG images are already top-down,
+            // and the viewport PNG was pre-flipped in GetTextureAsDataURI()
+            stbi_set_flip_vertically_on_load(false);
+
             int width, height, channels;
             unsigned char *pixels = stbi_load_from_memory(
                 pngData.data(),
@@ -393,6 +397,9 @@ public:
                 &channels,
                 4 // Force RGBA
             );
+
+            // Restore flip setting for other texture loads (e.g., 3D textures)
+            stbi_set_flip_vertically_on_load(true);
 
             if (!pixels)
             {
