@@ -1,4 +1,8 @@
-# Viewport Texture Integration — Design & Implementation Plan
+# Editor Viewport — Architecture & Implementation
+
+> Last Updated: January 16, 2026
+
+This document covers the editor viewport system including texture rendering optimization and event handling.
 
 ## Goal
 
@@ -264,3 +268,51 @@ Keep minimal for MVP; add if needed based on field experience.
 
 5. Phase 5: PBO fallback path for Windows/Linux.
 6. Future: Partial updates, quality hints, diagnostics, cooperative rendering.
+
+---
+
+## Completed: Click Event Handling Fix
+
+**Status**: Complete (January 2026)
+
+Fixed missing click feedback for viewport UI elements. Root cause was in handler expression evaluation during v-for template rendering.
+
+### Problem
+
+When template rendering processes v-for loops like:
+
+```html
+<div v-for="entity in entities" @click="selectEntity(entity.id)"></div>
+```
+
+The handler expression `selectEntity(entity.id)` was stored as-is without substituting the actual loop variable value. When the click was dispatched, ReactiveUI tried to evaluate `entity.id` but `entity` didn't exist in Lua global scope.
+
+Error: `[ReactiveUI] Lua handler 'selectEntity' failed: stack index 1, expected number, received table`
+
+### Solution
+
+Modified `TemplateParser.cpp` `SerializeElementForIteration` to call `ProcessIterationInterpolations()` on event handler expressions. Handlers are now stored with concrete values (e.g., `selectEntity(1)` instead of `selectEntity(entity.id)`).
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/systems/TemplateParser.cpp` | Process handler expressions during v-for iteration |
+| `src/systems/HTMLRendererMT.cpp` | Enhanced click/hover logging |
+| `src/systems/ReactiveUI.cpp` | Improved error messages with event/element context |
+
+### Event Flow (After Fix)
+
+1. GLFW receives click → WindowManager callback
+2. Input event pushed to Lua EventQueue
+3. Input handler calls `htmlRenderer:HandleClickEvent(x, y, button)`
+4. HTMLRendererMT hit-tests elements (HiDPI-aware coordinates)
+5. ReactiveUI receives pre-evaluated handler (e.g., `selectEntity(1)`)
+6. Lua executes handler with concrete argument values
+
+---
+
+## See Also
+
+- [EDITOR_ARCHITECTURE.md](EDITOR_ARCHITECTURE.md) - Editor design (viewport is Phase 2)
+- [UI_SYSTEM.md](UI_SYSTEM.md) - HTMLRendererMT multi-threading model

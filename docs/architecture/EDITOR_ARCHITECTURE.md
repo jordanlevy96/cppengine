@@ -1,6 +1,19 @@
 # Imhotep Editor - Full Architecture Plan
 
-**Last Updated**: January 3, 2026
+**Last Updated**: January 16, 2026
+
+## Implementation Status
+
+| Phase | Name | Status |
+|-------|------|--------|
+| 1 | Foundation | Complete |
+| 2 | Scene Viewport | Planned |
+| 3 | Inspector & Editing | Planned |
+| 4 | Hot Reload | Planned |
+| 5 | UI Editor | Planned |
+| 6 | Advanced Features | Planned |
+
+See `EDITOR_PHASE1_NOTES.md` for Phase 1 implementation details.
 
 ## Overview
 
@@ -359,25 +372,26 @@ imhotep/
 
 ## Implementation Phases
 
-### Phase 1: Foundation
+### Phase 1: Foundation (Complete)
+
+**Status**: Complete (January 3, 2026)
 
 **Goal**: Get basic editor window running with UI panels
 
-1. **Refactor build system**
+**Tasks**:
 
+1. **Refactor build system**
    - Make `libcore` a true shared library
    - Ensure all engine code is in `libcore`
    - Create new `imhotep-editor` CMake target
 
 2. **Create Editor application skeleton**
-
    - `src/editor/main.cpp` - Entry point
    - `src/editor/Editor.cpp` - Main loop
    - Initialize window with HTMLRendererMT
    - Load basic editor UI template
 
 3. **Build basic UI layout**
-
    - Top menu bar (File, Edit, View)
    - Panel system with resizable splits
    - Empty panels for: Scene Tree, Viewport, Inspector, UI Editor
@@ -387,7 +401,46 @@ imhotep/
    - Bind to ReactiveUI
    - Test reactive updates
 
-**Deliverable**: Editor window opens, shows panel layout, no functionality yet
+**Deliverable**: Editor window opens, shows panel layout, ESC to quit
+
+#### Phase 1 Implementation Notes
+
+**What was implemented**:
+- Standalone `imhotep-editor` executable
+- Basic HTML/CSS UI using HTMLRendererMT
+- Three-panel layout (Scene Hierarchy, Viewport, Inspector)
+- ESC key to quit editor
+- Dark theme UI (VS Code-inspired)
+- Proper HiDPI/Retina display support
+
+**Critical fixes applied during implementation**:
+
+1. **Logger Initialization (Segfault Fix)**: `LOG_*` macros crashed before `Logger::Initialize()` was called. Solution: Initialize logger in `main.cpp` before `Editor::GetInstance()`.
+
+2. **Input Key Case Sensitivity**: WindowManager's `keyMap` uses UPPERCASE strings ("ESCAPE" not "escape"). Input handlers must compare against uppercase.
+
+3. **HiDPI/Retina Rendering**: Must use `glfwGetFramebufferSize()` not `glfwGetWindowSize()` when initializing HTMLRendererMT and setting glViewport.
+
+4. **CSS Color Contrast**: Changed text from `#888888` to `#d4d4d4` for readability on dark background.
+
+**Build configuration**:
+```cmake
+add_executable(imhotep-editor
+    src/editor/main.cpp
+    src/editor/Editor.cpp
+)
+target_link_libraries(imhotep-editor PRIVATE core)
+```
+
+**Binary output**: `build/imhotep-editor`, logs to `build/logs/editor.log`
+
+**Known Phase 1 limitations** (addressed in later phases):
+- No scene loading (placeholder UI only)
+- No entity selection
+- No inspector functionality
+- No viewport rendering (welcome message only)
+- No hot reload
+- Menu items non-interactive
 
 ### Phase 2: Scene Viewport
 
@@ -912,9 +965,15 @@ m_shortcuts.Register(GLFW_KEY_DELETE, 0, [this]() {
 
 ## Success Criteria
 
-**Phase 1-2 (Foundation)**:
+**Phase 1 (Foundation)** - Complete:
 
-- [ ] Editor launches successfully with panel layout
+- [x] Editor launches successfully with panel layout
+- [x] Window displays at correct resolution with HiDPI support
+- [x] UI renders with readable text and proper contrast
+- [x] ESC key closes editor cleanly
+
+**Phase 2 (Scene Viewport)** - Planned:
+
 - [ ] Can see game scene in viewport with editor camera
 - [ ] Can orbit/pan/zoom viewport camera
 - [ ] Scene tree displays all entities
@@ -1758,4 +1817,4 @@ Add C++ input interceptors to `WindowManager` (see "Input Routing Architecture" 
 
 ---
 
-_Last Updated: January 13, 2026_
+_Last Updated: January 16, 2026_
