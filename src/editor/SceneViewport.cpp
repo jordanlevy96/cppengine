@@ -153,6 +153,42 @@ void SceneViewport::Render()
     // Render scene using RenderSystem
     RenderSystem::Update(m_camera, 0.0f);
 
+    // Render selection highlight (if entity is selected)
+    if (m_selectedEntityId != ENTITY_NULL)
+    {
+        // Check if entity has required components for rendering
+        if (m_registry->HasComponent<Transform>(m_selectedEntityId) &&
+            m_registry->HasComponent<RenderComponent>(m_selectedEntityId))
+        {
+            Transform &transform = m_registry->GetComponent<Transform>(m_selectedEntityId);
+            RenderComponent &rc = m_registry->GetComponent<RenderComponent>(m_selectedEntityId);
+
+            // Save original color
+            glm::vec3 originalColor = transform.Color;
+
+            // Set bright highlight color (yellow/orange)
+            transform.Color = glm::vec3(1.0f, 0.8f, 0.0f);
+
+            // Enable wireframe mode for outline effect
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glLineWidth(3.0f);
+
+            // Disable depth test so outline draws on top
+            glDisable(GL_DEPTH_TEST);
+
+            // Render entity again as wireframe
+            RenderSystem::RenderEntity<RenderComponent>(m_selectedEntityId, m_camera);
+
+            // Restore OpenGL state
+            glEnable(GL_DEPTH_TEST);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            glLineWidth(1.0f);
+
+            // Restore original color
+            transform.Color = originalColor;
+        }
+    }
+
     // Check for OpenGL errors
     GLenum error = glGetError();
     if (error != GL_NO_ERROR)

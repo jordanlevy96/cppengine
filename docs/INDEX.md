@@ -25,6 +25,14 @@
 
 ---
 
+## Handoff Documents
+
+| Document | Date | Purpose |
+|----------|------|---------|
+| [handoff.20260116.md](handoff.20260116.md) | 2026-01-16 | Phase 1 completion - click-to-select, inspector, viewport highlighting |
+
+---
+
 ## Status Legend
 
 - **Stable**: Documentation is current and accurate
@@ -45,17 +53,18 @@ Canonical reference for the reactive UI system: template directives (v-if, v-for
 
 ### EDITOR_ARCHITECTURE.md
 Full editor design and implementation roadmap:
-- **Phase 1** (Complete): Foundation - window, panels, basic UI
-- **Phase 2** (Planned): Scene viewport with camera controls
-- **Phase 3** (Planned): Inspector and component editing
+- **Phase 1** (✅ Complete): Foundation & Selection - window, panels, click-to-select, inspector, viewport highlighting
+- **Phase 2** (Planned): Camera controls and viewport picking
+- **Phase 3** (Planned): Transform editing and persistence (save/load)
 - **Phase 4** (Planned): Hot reload
 - **Phase 5** (Planned): UI template editor
-- **Phase 6** (Planned): Advanced features (undo/redo, save/load)
+- **Phase 6** (Planned): Advanced features (undo/redo, gizmos)
 
 ### EDITOR_VIEWPORT.md
 Editor viewport system:
-- **Texture Transfer** (Planned): Optimize PNG+base64 pipeline to direct texture sharing
-- **Click Handling** (Complete): v-for handler expression substitution fix
+- **Texture Transfer** (Partial): Using PNG+base64 pipeline (acceptable performance)
+- **Click Handling** (✅ Complete): v-for handler expression substitution working
+- **Selection Highlight** (✅ Complete): Wireframe overlay on selected entity
 
 ### TRANSFORM_PIPELINE.md
 Transform system refactor for proper hierarchy support:

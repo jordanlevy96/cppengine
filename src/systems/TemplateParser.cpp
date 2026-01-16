@@ -354,7 +354,7 @@ std::string TemplateParser::ProcessIterationInterpolations(const std::string &te
 {
     std::string result = text;
 
-    // Find {{itemVar.property}} patterns
+    // PASS 1: Find {{itemVar.property}} patterns (mustache syntax)
     std::regex itemRefRegex(R"(\{\{\s*)" + itemVar + R"(\.(\w+)\s*\}\})");
     std::smatch match;
     std::string searchStr = result;
@@ -392,7 +392,52 @@ std::string TemplateParser::ProcessIterationInterpolations(const std::string &te
     }
 
     output << searchStr;
-    return output.str();
+    result = output.str();
+
+    // PASS 2: Find bare itemVar.property patterns (for event handler arguments)
+    // This handles cases like @click="selectEntity(entity.id)"
+    std::regex bareRefRegex(itemVar + R"(\.(\w+))");
+    std::smatch bareMatch;
+    std::string searchStr2 = result;
+    std::ostringstream output2;
+
+    while (std::regex_search(searchStr2, bareMatch, bareRefRegex))
+    {
+        output2 << searchStr2.substr(0, bareMatch.position());
+
+        std::string property = bareMatch[1].str();
+
+        // Get value from item (same logic as mustache case)
+        std::string valueStr = "";
+        if (item.is<sol::table>())
+        {
+            sol::table itemTable = item.as<sol::table>();
+            sol::object value = itemTable[property];
+
+            if (value.is<std::string>())
+            {
+                valueStr = value.as<std::string>();
+            }
+            else if (value.is<int>())
+            {
+                valueStr = std::to_string(value.as<int>());
+            }
+            else if (value.is<uint32_t>())
+            {
+                valueStr = std::to_string(value.as<uint32_t>());
+            }
+            else if (value.is<double>())
+            {
+                valueStr = std::to_string(value.as<double>());
+            }
+        }
+
+        output2 << valueStr;
+        searchStr2 = bareMatch.suffix();
+    }
+
+    output2 << searchStr2;
+    return output2.str();
 }
 
 std::string TemplateParser::ProcessInterpolations(const std::string &text, LuaUIState &state)
