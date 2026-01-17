@@ -1,6 +1,6 @@
 # Imhotep Documentation Index
 
-> Last Updated: January 16, 2026
+> Last Updated: January 17, 2026
 
 ## Quick Reference
 
@@ -22,6 +22,14 @@
 | [EDITOR_VIEWPORT.md](architecture/EDITOR_VIEWPORT.md) | Viewport rendering, texture transfer, click handling | Partial |
 | [TRANSFORM_PIPELINE.md](architecture/TRANSFORM_PIPELINE.md) | Hierarchical transform refactor plan | Planned |
 | [VULKAN_MIGRATION.md](architecture/VULKAN_MIGRATION.md) | OpenGL to Vulkan migration analysis | Research |
+
+---
+
+## Feature Documentation
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [line-clearing-effect.md](features/line-clearing-effect.md) | Tetris line clear visual effect (color pulse) | Complete |
 
 ---
 
@@ -72,6 +80,13 @@ Transform system refactor for proper hierarchy support:
 
 ### VULKAN_MIGRATION.md
 Future graphics API migration research: current OpenGL analysis, Vulkan requirements, migration strategy.
+
+### line-clearing-effect.md
+Tetris line clearing visual effect implementation:
+- **Color pulse effect** (✅ Complete): Green → yellow → white transition over 400ms before grid collapse
+- State machine approach blocks new piece spawns during effect
+- Architecture supports future particle system integration (10-15 hour estimate)
+- All implementation in Lua (no C++ changes needed)
 
 ---
 
