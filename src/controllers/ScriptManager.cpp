@@ -235,6 +235,7 @@ namespace LuaBindings
         // Hierarchy Operations
         lua.set_function("AddChild", &AddChild);
         lua.set_function("GetParent", &GetParent);
+        lua.set_function("RemoveChild", &RemoveChild);
 
         // Component Access
         lua.set_function("GetTransform", [](EntityID id) -> Transform &

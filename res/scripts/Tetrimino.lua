@@ -39,10 +39,22 @@ function Tetrimino.new(shapeKey, renderComponent, lightID)
         end
     end
 
+    -- Create shape (2D Lua table, 0-indexed)
+    local shape = {}
+    for i = 1, 4 do
+        shape[i] = {0, 0, 0, 0}
+    end
+
+    for i = 1, #tetriminoData.shape do
+        for j = 1, 4 do
+            shape[i][j] = tetriminoData.shape[i][j]
+        end
+    end
+
     -- Create child cube entities where shape has blocks
     for i = 0, 3 do
         for j = 0, 3 do
-            if tetriminoData.shape[i + 1][j + 1] == 1 then  -- Lua arrays are 1-indexed
+            if shape[i + 1][j + 1] == 1 then  -- Lua arrays are 1-indexed
                 -- Create cube entity
                 local cubeID = RegisterEntity()
                 self.childMap[i][j] = cubeID
@@ -134,7 +146,7 @@ function Tetrimino:move(direction)
     TranslateEntity(self.entityID, vec3(direction.x, direction.y, 0))
 
     -- Update all child positions to match parent's new position
-    -- self:updateChildPositions()
+    self:updateChildPositions()
 end
 
 -- Move tetrimino with animation
@@ -183,7 +195,7 @@ function Tetrimino:turnMatrixCW()
 
     for i = 0, 3 do
         for j = 0, 3 do
-            rotated[j][3 - i] = self.childMap[i][j]
+            rotated[3 - j][i] = self.childMap[i][j]
         end
     end
 
@@ -203,7 +215,7 @@ function Tetrimino:turnMatrixCCW()
 
     for i = 0, 3 do
         for j = 0, 3 do
-            rotated[3 - j][i] = self.childMap[i][j]
+            rotated[j][3 - i] = self.childMap[i][j]
         end
     end
 
@@ -229,7 +241,7 @@ function Tetrimino:rotate(rotation)
     self.childMap = newChildMap
 
     -- Update child positions to match new rotation
-    -- self:updateChildPositions()
+    self:updateChildPositions()
 end
 
 -- ============================================================================

@@ -44,3 +44,18 @@ void AddChild(EntityID parent, EntityID child);
  * @note No validation - caller must ensure child has HierarchyComponent
  */
 EntityID GetParent(EntityID child);
+
+/**
+ * @brief Remove parent-child relationship between entities
+ *
+ * Modifies HierarchyComponent for both parent and child:
+ * - Removes child from parent's Children vector
+ * - Sets child's Parent to -1 (no parent)
+ * - Converts child's transform from relative to absolute world coordinates
+ *
+ * @param parent Entity ID of the parent
+ * @param child Entity ID of the child to detach
+ * @note Both entities must have HierarchyComponent
+ * @note If child is not actually a child of parent, this is a no-op
+ */
+void RemoveChild(EntityID parent, EntityID child);

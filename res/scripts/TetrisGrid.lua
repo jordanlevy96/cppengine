@@ -126,6 +126,8 @@ TetrisGrid = {
             self.activeTetrimino:tweenMove(vec3(0, -1, 0), C.MOVE_SPEED_MS)
         else
             self:placeTetrimino()
+            -- Destroy only the parent entity to orphan the children
+            DestroyEntity(self.activeTetrimino:getEntityID())
             self.activeTetrimino = nil
         end
     end,
@@ -171,7 +173,9 @@ TetrisGrid = {
 
         local gridPos = self.activeTetrimino:getGridPosition()
         local rotationMap = self.activeTetrimino:getChildMap()
+        local parentID = self.activeTetrimino:getEntityID()
 
+        -- Detach all child blocks from parent and place them in grid
         for i = 0, C.ROTATION_MATRIX_SIZE - 1 do
             for j = 0, C.ROTATION_MATRIX_SIZE - 1 do
                 local block = rotationMap[i][j]
@@ -180,6 +184,10 @@ TetrisGrid = {
                     local gridY = gridPos.y + i
 
                     if gridX >= 0 and gridX < C.GRID_WIDTH and gridY >= 0 and gridY < C.GRID_HEIGHT then
+                        -- Detach child from parent (converts to absolute positioning)
+                        RemoveChild(parentID, block)
+
+                        -- Store in grid
                         self.grid[gridX][gridY] = block
                     end
                 end
@@ -187,21 +195,20 @@ TetrisGrid = {
         end
 
         -- Check for completed lines after placing
-        -- self:clearLines()  -- TODO: Implement properly (currently buggy, disabled for UI work)
+        local linesToClear = self:checkLines()
+        self:clearLines(linesToClear)
     end,
 
     -- ========================================================================
     -- LINE CLEARING
     -- ========================================================================
 
-    clearLines = function(self)
-        local linesCleared = 0
-        local y = 0
+    checkLines = function(self)
+        local linesToClear = {}
 
-        while y < C.GRID_HEIGHT do
+        for y = 0, C.GRID_HEIGHT - 1 do
             local lineComplete = true
 
-            -- Check if this line is complete
             for x = 0, C.GRID_WIDTH - 1 do
                 if self.grid[x][y] == C.GRID_EMPTY_CELL then
                     lineComplete = false
@@ -210,65 +217,79 @@ TetrisGrid = {
             end
 
             if lineComplete then
-                linesCleared = linesCleared + 1
+                table.insert(linesToClear, y)
+            end
+        end
 
-                -- Remove cubes in this line
+        return linesToClear
+    end,
+
+    clearLines = function(self, linesToClear)
+        if #linesToClear == 0 then return end
+
+        -- First pass: destroy all entities in lines to clear
+        for _, lineY in ipairs(linesToClear) do
+            for x = 0, C.GRID_WIDTH - 1 do
+                if self.grid[x][lineY] ~= C.GRID_EMPTY_CELL then
+                    DestroyEntity(self.grid[x][lineY])
+                    self.grid[x][lineY] = C.GRID_EMPTY_CELL
+                end
+            end
+        end
+
+        -- Second pass: move rows down to fill gaps
+        -- Iterate from bottom to top
+        for y = 0, C.GRID_HEIGHT - 1 do
+            -- Count how many cleared lines are below this row
+            local linesBelow = 0
+            for _, clearedY in ipairs(linesToClear) do
+                if clearedY < y then
+                    linesBelow = linesBelow + 1
+                end
+            end
+
+            -- If there are cleared lines below, move this row down
+            if linesBelow > 0 then
+                local newY = y - linesBelow
                 for x = 0, C.GRID_WIDTH - 1 do
-                    local entityID = self.grid[x][y]
-                    if entityID ~= C.GRID_EMPTY_CELL then
-                        DestroyEntity(entityID)
-                        self.grid[x][y] = C.GRID_EMPTY_CELL
+                    -- Move grid cell
+                    self.grid[x][newY] = self.grid[x][y]
+                    self.grid[x][y] = C.GRID_EMPTY_CELL
+
+                    -- Update entity position if exists
+                    local entity = self.grid[x][newY]
+                    if entity ~= C.GRID_EMPTY_CELL then
+                        local transform = GetTransform(entity)
+                        transform.Pos.y = newY * C.CUBE_SIZE
                     end
                 end
-
-                -- Shift all lines above down
-                for shiftY = y, C.GRID_HEIGHT - 2 do
-                    for x = 0, C.GRID_WIDTH - 1 do
-                        self.grid[x][shiftY] = self.grid[x][shiftY + 1]
-
-                        -- Move the entity down if it exists
-                        if self.grid[x][shiftY] ~= C.GRID_EMPTY_CELL then
-                            local transform = GetTransform(self.grid[x][shiftY])
-                            transform.Pos.y = transform.Pos.y - C.CUBE_SIZE
-                        end
-                    end
-                end
-
-                -- Clear the top line
-                for x = 0, C.GRID_WIDTH - 1 do
-                    self.grid[x][C.GRID_HEIGHT - 1] = C.GRID_EMPTY_CELL
-                end
-
-                -- Don't increment y, check this line again
-            else
-                y = y + 1
             end
         end
 
         -- Update score and stats
-        if linesCleared > 0 then
-            self.lines = self.lines + linesCleared
+        local cleared = #linesToClear
+        self.lines = self.lines + cleared
 
-            -- Tetris scoring system (original NES)
-            local points = 0
-            if linesCleared == 1 then
-                points = 40 * self.level
-            elseif linesCleared == 2 then
-                points = 100 * self.level
-            elseif linesCleared == 3 then
-                points = 300 * self.level
-            elseif linesCleared >= 4 then
-                points = 1200 * self.level  -- TETRIS!
-            end
-
-            self.score = self.score + points
-
-            -- Level up every 10 lines
-            self.level = math.floor(self.lines / 10) + 1
-
-            -- Update UI after scoring
-            UpdateGameUI(self.score, self.lines, self.level, self.nextPieceType)
+        -- Tetris scoring system (original NES)
+        -- TODO: move magic numbers
+        local points = 0
+        if cleared == 1 then
+            points = 40 * self.level
+        elseif cleared == 2 then
+            points = 100 * self.level
+        elseif cleared == 3 then
+            points = 300 * self.level
+        elseif cleared >= 4 then
+            points = 1200 * self.level  -- TETRIS!
         end
+
+        self.score = self.score + points
+
+        -- Level up every 10 lines
+        self.level = math.floor(self.lines / 10) + 1
+
+        -- Update UI after scoring
+        UpdateGameUI(self.score, self.lines, self.level, self.nextPieceType)
     end,
 
     -- ========================================================================
