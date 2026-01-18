@@ -182,6 +182,16 @@ private:
                                                 const std::string& itemVar,
                                                 sol::object& item);
 
+    /**
+     * @brief Process :class / v-bind:class directive
+     * @param expr Class binding expression (object syntax or Lua expression)
+     * @param state Lua state for evaluation
+     * @return Space-separated class names to apply
+     * @note Supports object syntax: {active: condition, disabled: !enabled}
+     * @note Supports Lua expressions: 'base' .. (cond and ' active' or '')
+     */
+    std::string ProcessBindClass(const std::string& expr, LuaUIState& state);
+
     // === Deprecated regex-based methods (kept for fallback) ===
 
     /**

@@ -116,9 +116,13 @@ std::string TemplateParser::SerializeElement(GumboNode *node, LuaUIState &state)
     // Opening tag
     oss << "<" << gumbo_normalized_tagname(element.tag);
 
-    // First pass: detect @event directives
+    // First pass: detect @event directives and collect special attributes
     std::string elemId;
     std::map<std::string, std::string> eventHandlers;
+    std::string vModelExpr;
+    std::string vBindClassExpr;
+    std::string existingClass;
+
     for (unsigned int i = 0; i < element.attributes.length; i++)
     {
         GumboAttribute *attr = static_cast<GumboAttribute *>(element.attributes.data[i]);
@@ -139,6 +143,21 @@ std::string TemplateParser::SerializeElement(GumboNode *node, LuaUIState &state)
             eventHandlers[eventType] = handlerExpr;
             LOG_TRACE_L1("[TemplateParser] Found @{} directive: {} -> {}", eventType, elemId, handlerExpr);
         }
+        // Check for v-model
+        else if (attrName == "v-model")
+        {
+            vModelExpr = attr->value;
+        }
+        // Check for :class or v-bind:class
+        else if (attrName == ":class" || attrName == "v-bind:class")
+        {
+            vBindClassExpr = attr->value;
+        }
+        // Collect existing class attribute
+        else if (attrName == "class")
+        {
+            existingClass = attr->value;
+        }
     }
 
     // If element has event handlers, add data-event-id and store handlers
@@ -148,14 +167,33 @@ std::string TemplateParser::SerializeElement(GumboNode *node, LuaUIState &state)
         m_eventHandlers[elemId] = eventHandlers;
     }
 
-    // Second pass: serialize regular attributes (skip v-if, v-for, @event)
+    // Process :class / v-bind:class directive
+    std::string finalClass = existingClass;
+    if (!vBindClassExpr.empty())
+    {
+        std::string dynamicClasses = ProcessBindClass(vBindClassExpr, state);
+        if (!dynamicClasses.empty())
+        {
+            if (!finalClass.empty())
+            {
+                finalClass += " ";
+            }
+            finalClass += dynamicClasses;
+        }
+    }
+
+    // Second pass: serialize regular attributes (skip directives)
+    bool classWritten = false;
     for (unsigned int i = 0; i < element.attributes.length; i++)
     {
         GumboAttribute *attr = static_cast<GumboAttribute *>(element.attributes.data[i]);
         std::string attrName(attr->name);
 
         // Skip directive attributes
-        if (attrName == "v-if" || attrName == "v-for")
+        if (attrName == "v-if" || attrName == "v-for" || attrName == "v-model" ||
+            attrName == ":class" || attrName == "v-bind:class" ||
+            attrName == ":value" || attrName == "v-bind:value" ||
+            attrName == "v-html")
         {
             continue;
         }
@@ -163,6 +201,14 @@ std::string TemplateParser::SerializeElement(GumboNode *node, LuaUIState &state)
         // Skip @event directives (already processed)
         if (attrName.length() > 1 && attrName[0] == '@')
         {
+            continue;
+        }
+
+        // Handle class attribute specially (merge with :class)
+        if (attrName == "class")
+        {
+            oss << " class=\"" << finalClass << "\"";
+            classWritten = true;
             continue;
         }
 
@@ -176,14 +222,42 @@ std::string TemplateParser::SerializeElement(GumboNode *node, LuaUIState &state)
         }
     }
 
+    // Write class if it wasn't in original attributes but we have dynamic classes
+    if (!classWritten && !finalClass.empty())
+    {
+        oss << " class=\"" << finalClass << "\"";
+    }
+
+    // Handle v-model for input elements - add value attribute
+    if (!vModelExpr.empty() && element.tag == GUMBO_TAG_INPUT)
+    {
+        std::string value = state.EvaluateAsString(vModelExpr);
+        oss << " value=\"" << value << "\"";
+    }
+
     oss << ">";
 
-    // Children
-    GumboVector *children = &element.children;
-    for (unsigned int i = 0; i < children->length; i++)
+    // Handle v-model for textarea - inject content
+    if (!vModelExpr.empty() && element.tag == GUMBO_TAG_TEXTAREA)
     {
-        GumboNode *child = static_cast<GumboNode *>(children->data[i]);
-        oss << ProcessNode(child, state);
+        std::string content = state.EvaluateAsString(vModelExpr);
+        oss << content;
+    }
+    // Handle v-html directive
+    else if (GumboAttribute *vhtml = gumbo_get_attribute(&element.attributes, "v-html"))
+    {
+        std::string htmlContent = state.EvaluateAsString(vhtml->value);
+        oss << htmlContent;
+    }
+    else
+    {
+        // Regular children processing
+        GumboVector *children = &element.children;
+        for (unsigned int i = 0; i < children->length; i++)
+        {
+            GumboNode *child = static_cast<GumboNode *>(children->data[i]);
+            oss << ProcessNode(child, state);
+        }
     }
 
     // Closing tag (only for non-void elements)
@@ -250,9 +324,12 @@ std::string TemplateParser::SerializeElementForIteration(GumboNode *node, LuaUIS
     // Opening tag
     oss << "<" << gumbo_normalized_tagname(element.tag);
 
-    // First pass: detect @event directives
+    // First pass: detect @event directives and collect special attributes
     std::string elemId;
     std::map<std::string, std::string> eventHandlers;
+    std::string vBindClassExpr;
+    std::string existingClass;
+
     for (unsigned int i = 0; i < element.attributes.length; i++)
     {
         GumboAttribute *attr = static_cast<GumboAttribute *>(element.attributes.data[i]);
@@ -278,6 +355,16 @@ std::string TemplateParser::SerializeElementForIteration(GumboNode *node, LuaUIS
             LOG_TRACE_L1("[TemplateParser] Found @{} directive in v-for: {} -> {} (original: {})",
                          eventType, elemId, processedHandlerExpr, handlerExpr);
         }
+        // Check for :class or v-bind:class
+        else if (attrName == ":class" || attrName == "v-bind:class")
+        {
+            vBindClassExpr = attr->value;
+        }
+        // Collect existing class attribute
+        else if (attrName == "class")
+        {
+            existingClass = attr->value;
+        }
     }
 
     // If element has event handlers, add data-event-id and store handlers
@@ -287,14 +374,32 @@ std::string TemplateParser::SerializeElementForIteration(GumboNode *node, LuaUIS
         m_eventHandlers[elemId] = eventHandlers;
     }
 
-    // Second pass: serialize regular attributes (skip v-for and @event)
+    // Process :class / v-bind:class directive with iteration context
+    std::string finalClass = existingClass;
+    if (!vBindClassExpr.empty())
+    {
+        // First substitute iteration variables in the expression
+        std::string processedExpr = ProcessIterationInterpolations(vBindClassExpr, itemVar, item);
+        std::string dynamicClasses = ProcessBindClass(processedExpr, state);
+        if (!dynamicClasses.empty())
+        {
+            if (!finalClass.empty())
+            {
+                finalClass += " ";
+            }
+            finalClass += dynamicClasses;
+        }
+    }
+
+    // Second pass: serialize regular attributes (skip v-for, @event, and :class)
+    bool classWritten = false;
     for (unsigned int i = 0; i < element.attributes.length; i++)
     {
         GumboAttribute *attr = static_cast<GumboAttribute *>(element.attributes.data[i]);
         std::string attrName(attr->name);
 
         // Skip directive attributes
-        if (attrName == "v-for")
+        if (attrName == "v-for" || attrName == ":class" || attrName == "v-bind:class")
         {
             continue;
         }
@@ -302,6 +407,14 @@ std::string TemplateParser::SerializeElementForIteration(GumboNode *node, LuaUIS
         // Skip @event directives (already processed)
         if (attrName.length() > 1 && attrName[0] == '@')
         {
+            continue;
+        }
+
+        // Handle class attribute specially (merge with :class)
+        if (attrName == "class")
+        {
+            oss << " class=\"" << finalClass << "\"";
+            classWritten = true;
             continue;
         }
 
@@ -313,6 +426,12 @@ std::string TemplateParser::SerializeElementForIteration(GumboNode *node, LuaUIS
             std::string processedValue = ProcessIterationInterpolations(attrValue, itemVar, item);
             oss << "=\"" << processedValue << "\"";
         }
+    }
+
+    // Write class if it wasn't in original attributes but we have dynamic classes
+    if (!classWritten && !finalClass.empty())
+    {
+        oss << " class=\"" << finalClass << "\"";
     }
 
     oss << ">";
@@ -462,6 +581,61 @@ std::string TemplateParser::ProcessInterpolations(const std::string &text, LuaUI
     }
 
     result += searchStr;
+    return result;
+}
+
+std::string TemplateParser::ProcessBindClass(const std::string &expr, LuaUIState &state)
+{
+    std::string result;
+
+    // Handle object syntax: {active: condition, disabled: otherCondition}
+    if (!expr.empty() && expr[0] == '{')
+    {
+        // Parse object syntax: extract key-value pairs
+        // Format: {className: condition, className2: condition2}
+        std::regex pairRegex(R"((\w+)\s*:\s*([^,}]+))");
+        std::smatch match;
+        std::string searchStr = expr;
+
+        while (std::regex_search(searchStr, match, pairRegex))
+        {
+            std::string className = match[1].str();
+            std::string condition = match[2].str();
+
+            // Trim whitespace from condition
+            size_t start = condition.find_first_not_of(" \t");
+            size_t end = condition.find_last_not_of(" \t");
+            if (start != std::string::npos)
+            {
+                condition = condition.substr(start, end - start + 1);
+            }
+
+            // Evaluate condition
+            bool conditionResult = state.EvaluateCondition(condition);
+            if (conditionResult)
+            {
+                if (!result.empty())
+                {
+                    result += " ";
+                }
+                result += className;
+            }
+
+            searchStr = match.suffix();
+        }
+    }
+    // Handle string concatenation syntax (Lua): 'base-class' .. (condition and ' active' or '')
+    else if (expr.find("..") != std::string::npos)
+    {
+        // Evaluate as Lua expression
+        result = state.EvaluateAsString(expr);
+    }
+    // Handle simple expression
+    else
+    {
+        result = state.EvaluateAsString(expr);
+    }
+
     return result;
 }
 
