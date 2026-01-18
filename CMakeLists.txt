@@ -31,6 +31,7 @@ add_library(core SHARED
     "src/systems/SceneContext.cpp"
     "src/systems/SceneLoader.cpp"
     "src/util/ConfigLoader.cpp"
+    "src/util/FileIO.cpp"
     "src/util/FrameTiming.cpp"
     "src/util/Logger.cpp"
     "src/util/Mesh.cpp"
@@ -196,6 +197,7 @@ add_executable(imhotep-editor
     "src/editor/main.cpp"
     "src/editor/Editor.cpp"
     "src/editor/SceneViewport.cpp"
+    "src/editor/UITemplateManager.cpp"
 )
 target_link_libraries(imhotep-editor PRIVATE core)
 target_include_directories(imhotep-editor PRIVATE ${core_INCLUDE_DIRS})

@@ -141,8 +141,7 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
         return;
     }
 
-    LOG_DEBUG("[ReactiveUI] Dispatching {} event: handler='{}', elem='{}'",
-              eventType, handlerExpr, eventData.elemId);
+    // Log only errors, not every event dispatch
 
     // Parse handler expression: "methodName" or "methodName(args)" or "methodName($event)"
     std::string handlerName;
@@ -228,11 +227,10 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
             sol::object argValue;
             bool evaluatedSuccessfully = false;
 
-            // Try to evaluate as Lua expression (e.g., "entity.id") within the state table context
+            // Try to evaluate as Lua expression (e.g., "entity.id", "uiEditor.newTemplateName") within the state table context
             try
             {
-                // Use the state table as the context for evaluation
-                // This allows accessing properties like entity.id from the state
+                // First try to get it directly from state table (for simple keys)
                 sol::object result_obj = stateTable[args[0]];
                 if (result_obj.valid() && result_obj.get_type() != sol::type::nil)
                 {
@@ -242,7 +240,7 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
                 }
                 else
                 {
-                    // Not a direct property, try to evaluate as Lua expression
+                    // Not a direct property, try to evaluate as Lua expression with state table as environment
                     std::string luaCode = "return " + args[0];
                     sol::state &lua = ScriptManager::GetInstance().GetLuaState();
 
@@ -250,7 +248,12 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
                     sol::load_result loadResult = lua.load(luaCode);
                     if (loadResult.valid())
                     {
-                        sol::protected_function_result scriptResult = loadResult();
+                        sol::protected_function func = loadResult();
+                        // Set state table as environment so expressions like "uiEditor.newTemplateName" work
+                        sol::environment env(lua, sol::create, stateTable);
+                        sol::set_environment(env, func);
+                        
+                        sol::protected_function_result scriptResult = func();
                         if (scriptResult.valid())
                         {
                             argValue = scriptResult.get<sol::object>();
@@ -298,7 +301,7 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
             return;
         }
 
-        LOG_INFO("[ReactiveUI] Handler '{}' executed successfully", handlerName);
+        // Handler executed successfully
     }
     catch (const sol::error &e)
     {

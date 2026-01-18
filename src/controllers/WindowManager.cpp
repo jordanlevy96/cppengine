@@ -214,6 +214,7 @@ bool WindowManager::Initialize(int const width, int const height)
     glfwSetCursorPosCallback(window, cursorPos_callback);
     glfwSetFramebufferSizeCallback(window, resize_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetCharCallback(window, char_callback);
 
     return true;
 }
@@ -420,6 +421,56 @@ void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double y
         {
             LOG_DEBUG("[WindowManager] Scroll input consumed by handler ID {}", id);
             return; // Event consumed, don't send to Lua
+        }
+    }
+
+    // Fall through to Lua if no C++ handler consumed event
+    ScriptManager &sm = ScriptManager::GetInstance();
+    APPEND_EVENT(event)
+}
+
+void WindowManager::char_callback(GLFWwindow *window, unsigned int codepoint)
+{
+    InputEvent event;
+    event.type = InputTypes::Char;
+    // Convert codepoint to UTF-8 string
+    char utf8[5] = {0};
+    int len = 0;
+    if (codepoint < 0x80)
+    {
+        utf8[0] = static_cast<char>(codepoint);
+        len = 1;
+    }
+    else if (codepoint < 0x800)
+    {
+        utf8[0] = static_cast<char>(0xC0 | (codepoint >> 6));
+        utf8[1] = static_cast<char>(0x80 | (codepoint & 0x3F));
+        len = 2;
+    }
+    else if (codepoint < 0x10000)
+    {
+        utf8[0] = static_cast<char>(0xE0 | (codepoint >> 12));
+        utf8[1] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+        utf8[2] = static_cast<char>(0x80 | (codepoint & 0x3F));
+        len = 3;
+    }
+    else
+    {
+        utf8[0] = static_cast<char>(0xF0 | (codepoint >> 18));
+        utf8[1] = static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
+        utf8[2] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+        utf8[3] = static_cast<char>(0x80 | (codepoint & 0x3F));
+        len = 4;
+    }
+    event.input = std::string(utf8, len);
+
+    // Try C++ handlers first
+    WindowManager &wm = GetInstance();
+    for (const auto &[id, handler] : wm.m_inputHandlers)
+    {
+        if (handler(event))
+        {
+            return; // Event consumed
         }
     }
 

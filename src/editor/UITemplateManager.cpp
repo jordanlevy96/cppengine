@@ -1,0 +1,243 @@
+/**
+ * @file UITemplateManager.cpp
+ * @brief Template management system implementation
+ */
+
+#include "editor/UITemplateManager.h"
+#include "util/FileIO.h"
+#include "util/Logger.h"
+#include <filesystem>
+#include <algorithm>
+
+bool UITemplateManager::Initialize(const std::string &templatesDir, const std::string &stylesDir, const std::string &stateDir)
+{
+    m_templatesDir = templatesDir;
+    m_stylesDir = stylesDir;
+    m_stateDir = stateDir;
+    m_initialized = true;
+
+    LOG_INFO("[UITemplateManager] Initialized with directories:");
+    LOG_INFO("  Templates: {}", m_templatesDir);
+    LOG_INFO("  Styles: {}", m_stylesDir);
+    LOG_INFO("  State: {}", m_stateDir);
+
+    return true;
+}
+
+std::vector<TemplateInfo> UITemplateManager::ListTemplates()
+{
+    std::vector<TemplateInfo> templates;
+
+    if (!m_initialized)
+    {
+        LOG_WARNING("[UITemplateManager] Not initialized, cannot list templates");
+        return templates;
+    }
+
+    // Get all HTML files from templates directory
+    std::vector<std::string> htmlFiles = FileIO::ListFiles(m_templatesDir, ".html");
+
+    for (const auto &htmlFile : htmlFiles)
+    {
+        std::string name = FileIO::GetBaseName(htmlFile);
+
+        TemplateInfo info;
+        info.name = name;
+        info.htmlPath = FileIO::JoinPath(m_templatesDir, htmlFile);
+        info.cssPath = FileIO::JoinPath(m_stylesDir, name + ".css");
+        info.luaPath = FileIO::JoinPath(m_stateDir, name + ".lua");
+
+        info.hasHTML = FileIO::FileExists(info.htmlPath);
+        info.hasCSS = FileIO::FileExists(info.cssPath);
+        info.hasLua = FileIO::FileExists(info.luaPath);
+
+        templates.push_back(info);
+    }
+
+    LOG_INFO("[UITemplateManager] Found {} templates", templates.size());
+    return templates;
+}
+
+bool UITemplateManager::LoadTemplate(const std::string &name, std::string &html, std::string &css, std::string &lua)
+{
+    if (!m_initialized)
+    {
+        LOG_ERROR("[UITemplateManager] Not initialized, cannot load template");
+        return false;
+    }
+
+    std::string htmlPath = GetHTMLPath(name);
+    std::string cssPath = GetCSSPath(name);
+    std::string luaPath = GetLuaPath(name);
+
+    html = FileIO::ReadTextFile(htmlPath);
+    css = FileIO::ReadTextFile(cssPath);
+    lua = FileIO::ReadTextFile(luaPath);
+
+    bool success = !html.empty();
+
+    if (success)
+    {
+        LOG_INFO("[UITemplateManager] Loaded template '{}' (HTML: {} bytes, CSS: {} bytes, Lua: {} bytes)",
+                 name, html.size(), css.size(), lua.size());
+    }
+    else
+    {
+        LOG_ERROR("[UITemplateManager] Failed to load template '{}' - HTML file not found or empty", name);
+    }
+
+    return success;
+}
+
+bool UITemplateManager::SaveTemplate(const std::string &name, const std::string &html, const std::string &css, const std::string &lua)
+{
+    if (!m_initialized)
+    {
+        LOG_ERROR("[UITemplateManager] Not initialized, cannot save template");
+        return false;
+    }
+
+    std::string htmlPath = GetHTMLPath(name);
+    std::string cssPath = GetCSSPath(name);
+    std::string luaPath = GetLuaPath(name);
+
+    bool htmlOk = FileIO::WriteTextFile(htmlPath, html);
+    bool cssOk = FileIO::WriteTextFile(cssPath, css);
+    bool luaOk = FileIO::WriteTextFile(luaPath, lua);
+
+    if (htmlOk && cssOk && luaOk)
+    {
+        LOG_INFO("[UITemplateManager] Saved template '{}' (HTML: {} bytes, CSS: {} bytes, Lua: {} bytes)",
+                 name, html.size(), css.size(), lua.size());
+        return true;
+    }
+    else
+    {
+        LOG_ERROR("[UITemplateManager] Failed to save template '{}' (HTML: {}, CSS: {}, Lua: {})",
+                  name, htmlOk ? "OK" : "FAIL", cssOk ? "OK" : "FAIL", luaOk ? "OK" : "FAIL");
+        return false;
+    }
+}
+
+bool UITemplateManager::CreateTemplate(const std::string &name)
+{
+    if (!m_initialized)
+    {
+        LOG_ERROR("[UITemplateManager] Not initialized, cannot create template");
+        return false;
+    }
+
+    if (TemplateExists(name))
+    {
+        LOG_WARNING("[UITemplateManager] Template '{}' already exists", name);
+        return false;
+    }
+
+    // Default HTML template
+    std::string defaultHTML = R"(<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #cccccc;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <h1>New Template</h1>
+    <p>Edit this template in the UI Editor.</p>
+</body>
+</html>
+)";
+
+    // Default CSS (empty or minimal)
+    std::string defaultCSS = R"(/* CSS styles for )" + name + R"( */
+)";
+
+    // Default Lua state
+    std::string defaultLua = R"(-- UI state for )" + name + R"(
+return {
+    data = {
+        -- Add your data here
+    },
+    methods = {
+        -- Add your event handlers here
+    }
+}
+)";
+
+    return SaveTemplate(name, defaultHTML, defaultCSS, defaultLua);
+}
+
+bool UITemplateManager::DeleteTemplate(const std::string &name)
+{
+    if (!m_initialized)
+    {
+        LOG_ERROR("[UITemplateManager] Not initialized, cannot delete template");
+        return false;
+    }
+
+    std::string htmlPath = GetHTMLPath(name);
+    std::string cssPath = GetCSSPath(name);
+    std::string luaPath = GetLuaPath(name);
+
+    bool allDeleted = true;
+
+    try
+    {
+        if (FileIO::FileExists(htmlPath))
+        {
+            std::filesystem::remove(htmlPath);
+            LOG_INFO("[UITemplateManager] Deleted HTML file: {}", htmlPath);
+        }
+
+        if (FileIO::FileExists(cssPath))
+        {
+            std::filesystem::remove(cssPath);
+            LOG_INFO("[UITemplateManager] Deleted CSS file: {}", cssPath);
+        }
+
+        if (FileIO::FileExists(luaPath))
+        {
+            std::filesystem::remove(luaPath);
+            LOG_INFO("[UITemplateManager] Deleted Lua file: {}", luaPath);
+        }
+    }
+    catch (const std::exception &e)
+    {
+        LOG_ERROR("[UITemplateManager] Exception while deleting template '{}': {}", name, e.what());
+        allDeleted = false;
+    }
+
+    return allDeleted;
+}
+
+bool UITemplateManager::TemplateExists(const std::string &name)
+{
+    if (!m_initialized)
+    {
+        return false;
+    }
+
+    std::string htmlPath = GetHTMLPath(name);
+    return FileIO::FileExists(htmlPath);
+}
+
+std::string UITemplateManager::GetHTMLPath(const std::string &name) const
+{
+    return FileIO::JoinPath(m_templatesDir, name + ".html");
+}
+
+std::string UITemplateManager::GetCSSPath(const std::string &name) const
+{
+    return FileIO::JoinPath(m_stylesDir, name + ".css");
+}
+
+std::string UITemplateManager::GetLuaPath(const std::string &name) const
+{
+    return FileIO::JoinPath(m_stateDir, name + ".lua");
+}

@@ -29,7 +29,7 @@
 
         .viewport {
             float: left;
-            width: 1600px;
+            width: 800px;
             background: #2d2d30;
             padding: 10px;
         }
@@ -40,6 +40,109 @@
             background: #252526;
             padding: 10px;
             min-height: 600px;
+        }
+
+        .ui-editor {
+            float: left;
+            width: 500px;
+            background: #252526;
+            padding: 10px;
+            min-height: 600px;
+            overflow-y: auto;
+        }
+
+        .ui-editor-header {
+            margin-bottom: 10px;
+        }
+
+        .ui-editor-selector {
+            width: 100%;
+            padding: 4px;
+            background: #1e1e1e;
+            color: #cccccc;
+            border: 1px solid #3e3e3e;
+            margin-bottom: 10px;
+        }
+
+        .ui-editor-tabs {
+            display: flex;
+            margin-bottom: 5px;
+        }
+
+        .ui-editor-tab {
+            padding: 6px 12px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e3e;
+            cursor: pointer;
+            margin-right: 2px;
+        }
+
+        .ui-editor-tab.active {
+            background: #0e639c;
+            color: #ffffff;
+        }
+
+        .ui-editor-code {
+            width: 100%;
+            height: 300px;
+            padding: 8px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid #3e3e3e;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .ui-editor-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .ui-editor-button {
+            padding: 6px 12px;
+            background: #0e639c;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+        }
+
+        .ui-editor-button:hover {
+            background: #1177bb;
+        }
+
+        .ui-editor-preview {
+            margin-top: 10px;
+            padding: 10px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e3e;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .ui-editor-error {
+            color: #f48771;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        .ui-editor-new-template {
+            margin-top: 10px;
+            padding: 10px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e3e;
+        }
+
+        .ui-editor-new-template input {
+            width: 200px;
+            padding: 4px;
+            background: #252526;
+            color: #cccccc;
+            border: 1px solid #3e3e3e;
+            margin-right: 5px;
         }
 
         h3 {
@@ -107,6 +210,52 @@
             </div>
             <div v-else>
                 No selection
+            </div>
+        </div>
+
+        <div class="ui-editor">
+            <div class="ui-editor-header">
+                <h3>UI Editor</h3>
+                <select class="ui-editor-selector" v-model="uiEditor.currentTemplate" @change="loadTemplate(uiEditor.currentTemplate)">
+                    <option value="">-- Select Template --</option>
+                    <option v-for="tpl in uiEditor.templates" v-bind:value="tpl.name">{{ tpl.name }}</option>
+                </select>
+            </div>
+
+            <div v-if="uiEditor.currentTemplate">
+                <div class="ui-editor-tabs">
+                    <div class="ui-editor-tab" :class="{active: uiEditor.activeTab == 'html'}" @click="uiEditor.activeTab = 'html'">HTML</div>
+                    <div class="ui-editor-tab" :class="{active: uiEditor.activeTab == 'css'}" @click="uiEditor.activeTab = 'css'">CSS</div>
+                    <div class="ui-editor-tab" :class="{active: uiEditor.activeTab == 'lua'}" @click="uiEditor.activeTab = 'lua'">Lua</div>
+                </div>
+
+                <textarea v-if="uiEditor.activeTab == 'html'" class="ui-editor-code" v-model="uiEditor.htmlCode" @input="onCodeChange"></textarea>
+                <textarea v-if="uiEditor.activeTab == 'css'" class="ui-editor-code" v-model="uiEditor.cssCode" @input="onCodeChange"></textarea>
+                <textarea v-if="uiEditor.activeTab == 'lua'" class="ui-editor-code" v-model="uiEditor.luaCode" @input="onCodeChange"></textarea>
+
+                <div class="ui-editor-buttons">
+                    <button class="ui-editor-button" @click="saveTemplate">Save</button>
+                    <button class="ui-editor-button" @click="previewTemplate">Preview</button>
+                </div>
+
+                <div v-if="uiEditor.errorMessage" class="ui-editor-error">
+                    {{ uiEditor.errorMessage }}
+                </div>
+
+                <div class="ui-editor-preview">
+                    <h4>Live Preview</h4>
+                    <div v-html="uiEditor.previewHTML"></div>
+                </div>
+            </div>
+            <div v-else>
+                <p>Select a template from the dropdown above to edit, or create a new one below.</p>
+                
+                <div class="ui-editor-new-template">
+                    <h4>Create New Template</h4>
+                    <input type="text" v-model="uiEditor.newTemplateName" @click="focusInput('uiEditor.newTemplateName')" placeholder="Template name (e.g., 'my_ui')" />
+                    <button class="ui-editor-button" @click="createTemplate(uiEditor.newTemplateName)">Create</button>
+                    <p style="font-size: 11px; color: #888; margin-top: 5px;">Enter a name without extension (e.g., 'my_ui' creates my_ui.html, my_ui.css, my_ui.lua)</p>
+                </div>
             </div>
         </div>
     </div>

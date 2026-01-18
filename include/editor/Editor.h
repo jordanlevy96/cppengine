@@ -13,7 +13,9 @@
 #include "systems/HTMLRendererMT.h"
 #include "systems/ReactiveUI.h"
 #include "editor/SceneViewport.h"
+#include "editor/UITemplateManager.h"
 #include "util/Config.h"
+#include <chrono>
 
 /**
  * @brief Editor application singleton
@@ -91,6 +93,13 @@ private:
     bool HandleEditorInput(const InputEvent &event);
 
     /**
+     * @brief Handle text input (character input for text fields)
+     * @param event Input event with character data
+     * @return true if event was consumed
+     */
+    bool HandleTextInput(const InputEvent &event);
+
+    /**
      * @brief Handle UI click events from HTMLRenderer
      * @param x Click X coordinate
      * @param y Click Y coordinate
@@ -110,6 +119,41 @@ private:
      */
     void UpdateInspector();
 
+    /**
+     * @brief Initialize UI Editor system
+     * @note Called during Initialize() to set up template manager and populate template list
+     */
+    void InitializeUIEditor();
+
+    /**
+     * @brief Update UI Editor (handles debounced preview updates)
+     * @param deltaTime Time since last update in milliseconds
+     */
+    void UpdateUIEditor(double deltaTime);
+
+    /**
+     * @brief Load template into UI Editor
+     * @param templateName Name of template to load (without extension)
+     */
+    void LoadUITemplate(const std::string &templateName);
+
+    /**
+     * @brief Save current template from UI Editor to disk
+     */
+    void SaveUITemplate();
+
+    /**
+     * @brief Create new template
+     * @param templateName Name for new template
+     */
+    void CreateUITemplate(const std::string &templateName);
+
+    /**
+     * @brief Update preview with current HTML/CSS/Lua code
+     * @note Creates temporary ReactiveUI instance for preview rendering
+     */
+    void UpdatePreview();
+
     // Configuration
     Config conf;
 
@@ -125,6 +169,7 @@ private:
 
     // Editor-specific systems
     SceneViewport *m_viewport = nullptr;
+    UITemplateManager *m_templateManager = nullptr;
 
     // Editor state
     bool m_initialized = false;
@@ -137,4 +182,12 @@ private:
     // Input handler IDs
     size_t m_keyboardHandlerId = 0;
     size_t m_clickHandlerId = 0;
+
+    // UI Editor state
+    std::chrono::steady_clock::time_point m_lastCodeChange;
+    bool m_previewNeedsUpdate = false;
+    static constexpr double PREVIEW_DEBOUNCE_MS = 500.0; // 500ms debounce for preview updates
+    
+    // Text input state
+    std::string m_focusedInputField; // Lua path to focused input field (e.g., "uiEditor.newTemplateName")
 };
