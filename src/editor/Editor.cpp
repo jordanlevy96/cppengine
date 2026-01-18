@@ -19,17 +19,15 @@
 #include <sol/sol.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <fstream>
-#include <iostream>
-#include <variant>
 #include <filesystem>
 
 bool Editor::Initialize()
 {
-    std::cout << "[Editor] Starting initialization..." << std::endl;
+    LOG_INFO("[Editor] Starting initialization...");
 
     if (m_initialized)
     {
-        std::cerr << "[Editor] Already initialized" << std::endl;
+        LOG_WARNING("[Editor] Already initialized");
         return true;
     }
 
@@ -80,50 +78,47 @@ bool Editor::Initialize()
 
     // Register keyboard input handler for editor shortcuts and text input
     m_keyboardHandlerId = m_windowManager->RegisterInputHandler([this](const InputEvent &event)
-                                                                { 
-                                                                    if (event.type == InputTypes::Char)
-                                                                    {
-                                                                        return HandleTextInput(event);
-                                                                    }
-                                                                    return HandleEditorInput(event);
-                                                                });
+    {
+        if (event.type == InputTypes::Char)
+        {
+            return HandleTextInput(event);
+        }
+        return HandleEditorInput(event);
+    });
 
-    // TODO: clean up this lambda
     // Register click input handler for UI interactions
     m_clickHandlerId = m_windowManager->RegisterInputHandler([this](const InputEvent &event)
-                                                             {
-                                                                 if (event.type == InputTypes::Click)
-                                                                 {
-                                                                     // Safely extract click payload - some platforms store vec2, some vec3
-                                                                     try
-                                                                     {
-                                                                         if (std::holds_alternative<glm::vec3>(event.input))
-                                                                         {
-                                                                     auto clickData = std::get<glm::vec3>(event.input);
-                                                                     bool handled = HandleUIClick(clickData.x, clickData.y, static_cast<int>(clickData.z));
-                                                                     return handled;
-                                                                 }
-                                                                 else if (std::holds_alternative<glm::vec2>(event.input))
-                                                                 {
-                                                                     auto clickData2 = std::get<glm::vec2>(event.input);
-                                                                     // If button isn't encoded, assume left (0)
-                                                                     bool handled = HandleUIClick(clickData2.x, clickData2.y, 0);
-                                                                     return handled;
-                                                                         }
-                                                                         else
-                                                                         {
-                                                                             LOG_WARNING("[Editor] Click event payload has unexpected type");
-                                                                             return false;
-                                                                         }
-                                                                     }
-                                                                     catch (const std::bad_variant_access &)
-                                                                     {
-                                                                         LOG_WARNING("[Editor] Failed to read click event payload");
-                                                                         return false;
-                                                                     }
-                                                                 }
-                                                                 return false; // Not a click event
-                                                             });
+    {
+        if (event.type != InputTypes::Click)
+        {
+            return false;
+        }
+
+        // Extract click payload (platforms may use vec2 or vec3)
+        try
+        {
+            if (std::holds_alternative<glm::vec3>(event.input))
+            {
+                auto click = std::get<glm::vec3>(event.input);
+                return HandleUIClick(click.x, click.y, static_cast<int>(click.z));
+            }
+            else if (std::holds_alternative<glm::vec2>(event.input))
+            {
+                auto click = std::get<glm::vec2>(event.input);
+                return HandleUIClick(click.x, click.y, 0); // Default to left button
+            }
+            else
+            {
+                LOG_WARNING("[Editor] Click event has unexpected payload type");
+                return false;
+            }
+        }
+        catch (const std::bad_variant_access &)
+        {
+            LOG_WARNING("[Editor] Failed to read click event payload");
+            return false;
+        }
+    });
 
     // Register selectEntity function for Lua event binding in ReactiveUI's state
     std::shared_ptr<LuaUIState> luaUIState = m_reactiveUI->GetLuaState();
@@ -507,16 +502,8 @@ bool Editor::HandleEditorInput(const InputEvent &event)
 
 void Editor::SelectEntity(EntityID entityId)
 {
-    if (entityId == ENTITY_NULL)
-    {
-        m_selectedEntityId = ENTITY_NULL;
-    }
-    else
-    {
-        m_selectedEntityId = entityId;
-    }
+    m_selectedEntityId = entityId;
 
-    // Update viewport highlight
     if (m_viewport)
     {
         m_viewport->SetSelectedEntity(entityId);
@@ -524,7 +511,6 @@ void Editor::SelectEntity(EntityID entityId)
 
     UpdateInspector();
 
-    // Mark Lua state dirty to trigger UI re-render
     if (m_reactiveUI && m_reactiveUI->GetLuaState())
     {
         m_reactiveUI->GetLuaState()->MarkDirty();
@@ -884,28 +870,19 @@ void Editor::UpdatePreview()
                     sol::protected_function_result result = loadResult();
                     if (result.valid() && result.return_count() > 0 && result[0].is<sol::table>())
                     {
-                        // Create temporary LuaUIState and set its state table
-                        // We'll create a wrapper LuaUIState that loads from the state table
-                        // For now, write Lua to temp file and load it
-                        // TODO: Add SetStateTable method to LuaUIState for better preview support
-
-                        // Use TemplateParser to process directives
-                        TemplateParser parser;
-                        parser.Parse(htmlWithCSS);
-
-                        // Create temporary LuaUIState by loading from a string
-                        // Write to temp file first (workaround until SetStateTable is added)
+                        // TODO: Add SetStateTable to LuaUIState to avoid temp file workaround
                         std::string tempLuaFile = "../res/ui/state/.preview_temp.lua";
                         FileIO::WriteTextFile(tempLuaFile, lua);
+
+                        TemplateParser parser;
+                        parser.Parse(htmlWithCSS);
 
                         auto previewLuaState = std::make_shared<LuaUIState>();
                         if (previewLuaState->LoadStateFile(tempLuaFile))
                         {
-                            // Process template with directives
                             processedHTML = parser.Evaluate(*previewLuaState);
                         }
 
-                        // Clean up temp file
                         std::filesystem::remove(tempLuaFile);
                     }
                 }
