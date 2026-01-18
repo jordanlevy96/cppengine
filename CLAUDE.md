@@ -34,17 +34,17 @@ App (controllers/App.cpp)
 
 ### External Dependencies
 
-| Dependency            | Purpose         | Integration    | Install                         |
-| --------------------- | --------------- | -------------- | ------------------------------- |
-| **GLFW**              | Window/input    | FetchContent   | Auto-downloaded                 |
-| **GLAD**              | OpenGL loader   | FetchContent   | Auto-downloaded                 |
-| **FreeType**          | Font rendering  | System package | `brew install freetype` (macOS) |
-| **GLM**               | Math library    | Git submodule  | In `external/`                  |
-| **litehtml**          | HTML/CSS engine | Git submodule  | In `external/`                  |
-| **Lua + Sol2**        | Lua scripting   | Git submodule  | In `external/`                  |
-| **Python + pybind11** | Python bindings | Git submodule  | In `external/`                  |
-| **yaml-cpp**          | Config parsing  | Git submodule  | In `external/`                  |
-| **Dear ImGui**        | Debug UI (legacy) | Git submodule  | In `external/`                |
+| Dependency            | Purpose           | Integration    | Install                         |
+| --------------------- | ----------------- | -------------- | ------------------------------- |
+| **GLFW**              | Window/input      | FetchContent   | Auto-downloaded                 |
+| **GLAD**              | OpenGL loader     | FetchContent   | Auto-downloaded                 |
+| **FreeType**          | Font rendering    | System package | `brew install freetype` (macOS) |
+| **GLM**               | Math library      | Git submodule  | In `external/`                  |
+| **litehtml**          | HTML/CSS engine   | Git submodule  | In `external/`                  |
+| **Lua + Sol2**        | Lua scripting     | Git submodule  | In `external/`                  |
+| **Python + pybind11** | Python bindings   | Git submodule  | In `external/`                  |
+| **yaml-cpp**          | Config parsing    | Git submodule  | In `external/`                  |
+| **Dear ImGui**        | Debug UI (legacy) | Git submodule  | In `external/`                  |
 
 ### Platform-Specific Setup
 
@@ -372,17 +372,17 @@ luaState->LoadStateFile("../res/ui/state/fps.lua");
 
 ## Critical Documentation References
 
-See `docs/INDEX.md` for full documentation index with status tracking.
+See `docs/INDEX.md` for full documentation index with status tracking. Always save new plans with project documentation.
 
 **Read these FIRST for work in these areas**:
 
-| Area                 | Document                                | When to Read                                         |
-| -------------------- | --------------------------------------- | ---------------------------------------------------- |
-| **UI System**        | `docs/architecture/UI_SYSTEM.md`        | UI architecture, directives, templates, multi-threading, event handling |
-| **Editor**           | `docs/architecture/EDITOR_ARCHITECTURE.md` | Editor design, implementation phases |
-| **Transform System** | `docs/architecture/TRANSFORM_PIPELINE.md` | Hierarchy refactor, world transforms |
-| **Vulkan Migration** | `docs/architecture/VULKAN_MIGRATION.md` | Planning OpenGL → Vulkan migration (future research) |
-| **Project History**  | `CHANGELOG.md`                          | Understanding why architecture evolved               |
+| Area                 | Document                                   | When to Read                                                            |
+| -------------------- | ------------------------------------------ | ----------------------------------------------------------------------- |
+| **UI System**        | `docs/architecture/UI_SYSTEM.md`           | UI architecture, directives, templates, multi-threading, event handling |
+| **Editor**           | `docs/architecture/EDITOR_ARCHITECTURE.md` | Editor design, implementation phases                                    |
+| **Transform System** | `docs/architecture/TRANSFORM_PIPELINE.md`  | Hierarchy refactor, world transforms                                    |
+| **Vulkan Migration** | `docs/architecture/VULKAN_MIGRATION.md`    | Planning OpenGL → Vulkan migration (future research)                    |
+| **Project History**  | `CHANGELOG.md`                             | Understanding why architecture evolved                                  |
 
 ---
 
@@ -549,11 +549,13 @@ lldb ./imhotep  # or gdb on Linux
 This project uses [Semantic Versioning 2.0.0](https://semver.org/).
 
 **Version Format**: `MAJOR.MINOR.PATCH`
+
 - **MAJOR**: Incompatible API changes
 - **MINOR**: Backwards-compatible feature additions
 - **PATCH**: Backwards-compatible bug fixes
 
 **Version Source of Truth**: `CMakeLists.txt` line 3:
+
 ```cmake
 project(imhotep VERSION 0.1.0)
 ```
@@ -561,6 +563,7 @@ project(imhotep VERSION 0.1.0)
 **Version Header**: `include/util/Version.h` (auto-generated from `Version.h.in`)
 
 **Usage in Code**:
+
 ```cpp
 #include "util/Version.h"
 
@@ -573,6 +576,7 @@ if (imhotep::Version::IsAtLeast(1, 0)) {
 ```
 
 **Updating Version**:
+
 1. Update `project(imhotep VERSION X.Y.Z)` in `CMakeLists.txt`
 2. Run `cmake ..` to regenerate `Version.h`
 3. Add changelog entry to `CHANGELOG.md` under `[Unreleased]` or new version section
