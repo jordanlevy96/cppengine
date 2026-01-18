@@ -163,6 +163,18 @@ bool Registry::LoadScene(const std::string &src)
     {
         YAML::Node yaml = YAML::LoadFile(res + src);
 
+        // Load game scripts first (in order)
+        if (yaml["scripts"])
+        {
+            ScriptManager &sm = ScriptManager::GetInstance();
+            for (const auto &scriptPath : yaml["scripts"])
+            {
+                std::string fullPath = res + "scripts/" + scriptPath.as<std::string>();
+                LOG_INFO("Loading game script: {}", fullPath);
+                sm.Run(fullPath);
+            }
+        }
+
         const YAML::Node &objectsNode = yaml["scene"]["objects"];
         for (const auto &objectNode : objectsNode)
         {

@@ -289,7 +289,7 @@ TetrisGrid = {
         self.level = math.floor(self.lines / 10) + 1
 
         -- Update UI after scoring
-        UpdateGameUI(self.score, self.lines, self.level, self.nextPieceType)
+        TetrisGame:updateUI(self.score, self.lines, self.level, self.nextPieceType)
     end,
 
     -- ========================================================================
@@ -307,7 +307,7 @@ TetrisGrid = {
 
     process = function(self, delta)
         -- Wait for game to start before spawning tetriminos
-        if not GameStarted then
+        if not TetrisGame.isStarted then
             return
         end
 
@@ -323,7 +323,7 @@ TetrisGrid = {
             self.nextPieceType = selectRandomTetrimino()
 
             -- Update UI with new next piece
-            UpdateGameUI(self.score, self.lines, self.level, self.nextPieceType)
+            TetrisGame:updateUI(self.score, self.lines, self.level, self.nextPieceType)
 
             -- Move to spawn position
             self.activeTetrimino:move(vec2(C.SPAWN_COLUMN, C.SPAWN_ROW))
@@ -331,7 +331,7 @@ TetrisGrid = {
             -- Check if new piece immediately collides (game over)
             if self:isCollision(vec2(C.SPAWN_COLUMN, C.SPAWN_ROW), self.activeTetrimino:getChildMap()) then
                 self.gameOver = true
-                UpdateGameOver(self.score)
+                TetrisGame:gameOver(self.score)
                 return
             end
 
@@ -375,6 +375,6 @@ TetrisGrid = {
         self.nextPieceType = selectRandomTetrimino()
 
         -- Update UI
-        UpdateGameUI(self.score, self.lines, self.level, self.nextPieceType)
+        TetrisGame:updateUI(self.score, self.lines, self.level, self.nextPieceType)
     end
 }

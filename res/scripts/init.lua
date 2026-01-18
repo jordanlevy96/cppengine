@@ -1,22 +1,20 @@
+-- Engine-level initialization only - NO game-specific code
 GameManager = Game:GetInstance()
-RES_PATH = GameManager.conf.resPath;
-CameraRotateFlag = false
-GameStarted = false  -- Controls whether Tetris game has started
+RES_PATH = GameManager.conf.resPath
 
--- Rotations enum (moved from C++)
+-- Generic engine flags
+CameraRotateFlag = false
+
+-- Generic enum definitions
 Rotations = {
     CW = 0,
     CCW = 1
 }
 
--- TODO: Generalize import of game modules
--- Load Tetris modules (order matters: constants -> data -> classes)
-TetrisConstants = dofile(RES_PATH .. "scripts/TetrisConstants.lua")
-TetriminoData = dofile(RES_PATH .. "scripts/TetriminoData.lua")
-Tetrimino = dofile(RES_PATH .. "scripts/Tetrimino.lua")
-
-dofile(RES_PATH .. "scripts/input.lua")
-
+-- Initialize random seed
 math.randomseed(os.time())
 
-print("Loaded init.lua")
+-- NOTE: Game scripts are now loaded via scene YAML "scripts" section
+-- See Registry::LoadScene() for the loading mechanism
+
+print("Engine initialized (init.lua)")

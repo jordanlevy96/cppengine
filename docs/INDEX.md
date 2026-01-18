@@ -1,6 +1,6 @@
 # Imhotep Documentation Index
 
-> Last Updated: January 17, 2026
+> Last Updated: 2026-01-17
 
 ## Quick Reference
 
@@ -18,6 +18,7 @@
 | Document | Purpose | Status |
 |----------|---------|--------|
 | [UI_SYSTEM.md](architecture/UI_SYSTEM.md) | HTML/CSS/Lua reactive UI, threading, events | Stable |
+| [GAME_DECOUPLING.md](architecture/GAME_DECOUPLING.md) | Removing game logic from C++, pluggable games | Planned |
 | [EDITOR_ARCHITECTURE.md](architecture/EDITOR_ARCHITECTURE.md) | Editor design, all implementation phases | Phase 1 Complete |
 | [EDITOR_VIEWPORT.md](architecture/EDITOR_VIEWPORT.md) | Viewport rendering, texture transfer, click handling | Partial |
 | [TRANSFORM_PIPELINE.md](architecture/TRANSFORM_PIPELINE.md) | Hierarchical transform refactor plan | Planned |
@@ -58,6 +59,13 @@ Quick-reference for AI assistants and developers: project overview, build instru
 
 ### UI_SYSTEM.md
 Canonical reference for the reactive UI system: template directives (v-if, v-for), multi-threaded rendering, event handling, Lua state management, thread safety.
+
+### GAME_DECOUPLING.md
+Architecture for removing game-specific logic from C++ engine:
+- Generic UI API (`SetUIValue`, `RefreshUI`) replacing Tetris-specific bindings
+- Scene-driven game loading via `scripts:` section in YAML
+- Lua game controllers replacing C++ game lifecycle methods
+- File reorganization into `games/` folder structure
 
 ### EDITOR_ARCHITECTURE.md
 Full editor design and implementation roadmap:

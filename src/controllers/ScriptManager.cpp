@@ -162,10 +162,7 @@ namespace LuaBindings
                                "camera", &Game::cam,
                                "conf", &Game::conf,
                                "window", &Game::windowManager,
-                               "htmlRenderer", &Game::htmlRenderer,
-                               "StartGame", &Game::StartGame,
-                               "ResetGame", &Game::ResetGame,
-                               "ReturnToMainMenu", &Game::ReturnToMainMenu);
+                               "htmlRenderer", &Game::htmlRenderer);
 
         lua.new_usertype<HTMLRendererMT>("HTMLRendererMT",
                                          "HandleClickEvent", &HTMLRendererMT::HandleClickEvent,
@@ -199,28 +196,28 @@ namespace LuaBindings
         // GENERIC ENGINE BINDINGS - Entity & Component Management
         // ====================================================================
 
-        // UI State Update
-        lua.set_function("UpdateGameUI", [](int score, int lines, int level, const std::string &nextPiece)
+        // Generic UI State Management
+        lua.set_function("SetUIValue", [](const std::string& key, sol::object value)
                          {
             ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
             auto luaState = reactiveUI.GetLuaState();
             if (luaState) {
-                luaState->SetValue("data.score", score);
-                luaState->SetValue("data.lines", lines);
-                luaState->SetValue("data.level", level);
-                luaState->SetValue("data.nextPiece", nextPiece);
+                if (value.is<int>()) {
+                    luaState->SetValue(key, value.as<int>());
+                } else if (value.is<double>()) {
+                    luaState->SetValue(key, value.as<double>());
+                } else if (value.is<std::string>()) {
+                    luaState->SetValue(key, value.as<std::string>());
+                } else if (value.is<bool>()) {
+                    luaState->SetValue(key, value.as<bool>());
+                }
             } });
 
-        lua.set_function("UpdateGameOver", [](int finalScore)
+        lua.set_function("RefreshUI", []()
                          {
-            std::cout << "GAME OVER - Final Score: " << finalScore << std::endl;
             ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
-            auto luaState = reactiveUI.GetLuaState();
-
-            if (luaState) {
-                luaState->SetValue("data.gameOver", true);
-                luaState->SetValue("data.finalScore", finalScore);
-            } });
+            HTMLRendererMT& htmlRenderer = HTMLRendererMT::GetInstance();
+            htmlRenderer.UpdateHTML(reactiveUI.GetRenderedHTML()); });
 
         // Entity Management
         lua.set_function("RegisterEntity", sol::overload(

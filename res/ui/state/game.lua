@@ -61,28 +61,23 @@ return {
     methods = {
         onStartGame = function(self)
             print("START GAME clicked!")
-            -- Mirror ENTER key handler from input.lua
-            if not GameStarted then
-                GameStarted = true
-                TetrisGrid:reset()  -- Initialize game and spawn tetriminos
-                GameManager:StartGame()  -- Update C++ side and UI state
+            if TetrisGame and not TetrisGame.isStarted then
+                TetrisGame:start()
             end
         end,
 
         onRestart = function(self)
             print("RESTART clicked!")
-            -- Mirror R key handler from input.lua
-            TetrisGrid:reset()
-            GameStarted = true
-            GameManager:ResetGame()
+            if TetrisGame then
+                TetrisGame:reset()
+            end
         end,
 
         onMainMenu = function(self)
             print("MAIN MENU clicked!")
-            -- Mirror M key handler from input.lua
-            TetrisGrid:reset()
-            GameStarted = false
-            GameManager:ReturnToMainMenu()
+            if TetrisGame then
+                TetrisGame:returnToMenu()
+            end
         end
     }
 }

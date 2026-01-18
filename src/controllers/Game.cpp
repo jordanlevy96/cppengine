@@ -194,7 +194,6 @@ void Game::Render()
     htmlRenderer->Render();
 }
 
-// TODO: move into Lua -- game-specific logic should not (have to) exist in C++
 void Game::TrackFPS()
 {
     m_frameCount++;
@@ -269,74 +268,6 @@ void Game::TrackFPS()
 
         m_frameCount = 0;
         m_fpsUpdateTime = now;
-    }
-}
-
-void Game::StartGame()
-{
-    LOG_INFO("Game started");
-
-    // Get reactive UI and Lua state
-    ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
-    auto luaState = reactiveUI.GetLuaState();
-
-    if (luaState)
-    {
-        // Update game state flags in UI (use boolean values, not strings!)
-        luaState->SetValue("data.gameStarted", true);
-        luaState->SetValue("data.gameOver", false);
-
-        // Initialize game stats (will be updated by Lua when first piece spawns)
-        luaState->SetValue("data.score", 0);
-        luaState->SetValue("data.lines", 0);
-        luaState->SetValue("data.level", 1);
-
-        // Force re-render of UI to hide startup screen
-        htmlRenderer->UpdateHTML(reactiveUI.GetRenderedHTML());
-    }
-}
-
-void Game::ResetGame()
-{
-    LOG_INFO("Restarting game");
-
-    // Get reactive UI and Lua state
-    ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
-    auto luaState = reactiveUI.GetLuaState();
-
-    if (luaState)
-    {
-        // Reset UI state for restart (keep game started)
-        luaState->SetValue("data.gameOver", false);
-        luaState->SetValue("data.gameStarted", true);
-        luaState->SetValue("data.score", 0);
-        luaState->SetValue("data.lines", 0);
-        luaState->SetValue("data.level", 1);
-
-        // Force re-render of UI
-        htmlRenderer->UpdateHTML(reactiveUI.GetRenderedHTML());
-    }
-}
-
-void Game::ReturnToMainMenu()
-{
-    LOG_INFO("Returning to main menu");
-
-    // Get reactive UI and Lua state
-    ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
-    auto luaState = reactiveUI.GetLuaState();
-
-    if (luaState)
-    {
-        // Reset UI state back to startup screen
-        luaState->SetValue("data.gameOver", false);
-        luaState->SetValue("data.gameStarted", false);
-        luaState->SetValue("data.score", 0);
-        luaState->SetValue("data.lines", 0);
-        luaState->SetValue("data.level", 1);
-
-        // Force re-render of UI
-        htmlRenderer->UpdateHTML(reactiveUI.GetRenderedHTML());
     }
 }
 
