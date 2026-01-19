@@ -1157,9 +1157,9 @@ void HTMLRendererMT::RenderThreadLoop()
 
             renderer.RenderHTML(currentHTML);
 
-            // Extract interactive elements after rendering
-            // LOG_INFO("[RenderThread] Extracting interactive elements with {} handlers", m_eventHandlers.size());
-            renderer.ExtractInteractiveElements(m_eventHandlers);
+            // Extract interactive elements after rendering (thread-safe copy of handlers)
+            auto handlers = GetEventHandlers();
+            renderer.ExtractInteractiveElements(handlers);
             m_backInteractiveElements = renderer.GetInteractiveElements();
             // LOG_INFO("[RenderThread] Extracted {} interactive elements", m_backInteractiveElements.size());
 

@@ -123,10 +123,16 @@ void ReactiveUI::RenderWithLua()
     // Use TemplateParser to evaluate directives with current Lua state
     m_cachedHTML = m_parser->Evaluate(*m_luaState);
 
-    // Update HTML renderer with new event handlers after re-render
+    // Only update event handlers if they changed (avoids churn on data-only updates)
+    const auto &newHandlers = m_parser->GetEventHandlers();
     HTMLRendererMT &htmlRenderer = HTMLRendererMT::GetInstance();
-    htmlRenderer.SetEventHandlers(m_parser->GetEventHandlers());
-    LOG_DEBUG("[ReactiveUI] Updated {} event handlers after render", m_parser->GetEventHandlers().size());
+
+    if (newHandlers != m_lastEventHandlers)
+    {
+        htmlRenderer.SetEventHandlers(newHandlers);
+        m_lastEventHandlers = newHandlers;
+        LOG_DEBUG("[ReactiveUI] Updated {} event handlers after render", newHandlers.size());
+    }
 }
 
 // === Event Handling Implementation ===

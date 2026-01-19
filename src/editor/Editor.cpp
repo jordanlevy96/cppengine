@@ -269,12 +269,13 @@ void Editor::Render()
     {
         if (!viewportDataURI.empty())
         {
+            // Update viewport image - this will mark dirty but that's needed
+            // to re-render the viewport in the HTML
             m_reactiveUI->GetLuaState()->SetValue("viewportImage", viewportDataURI);
-            m_reactiveUI->GetLuaState()->MarkDirty(); // Trigger UI re-render
         }
     }
 
-    // Update HTML if Lua state changed (GetRenderedHTML re-renders if dirty)
+    // Update HTML (GetRenderedHTML re-renders if dirty)
     if (m_reactiveUI)
     {
         std::string renderedHTML = m_reactiveUI->GetRenderedHTML();

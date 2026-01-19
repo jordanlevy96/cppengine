@@ -202,6 +202,7 @@ private:
     std::shared_ptr<LuaUIState> m_luaState;   ///< Reactive Lua state (nullptr in legacy mode)
     std::unique_ptr<TemplateParser> m_parser; ///< Directive parser (nullptr in legacy mode)
     bool m_useLuaMode = false;                ///< true = Lua directives, false = legacy placeholders
+    std::map<std::string, std::map<std::string, std::string>> m_lastEventHandlers; ///< Cached event handlers to detect changes
 
     /**
      * @brief Render template with legacy placeholder substitution

@@ -123,6 +123,16 @@ public:
     void SetValue(const std::string &key, const T &value);
 
     /**
+     * @brief Set value without marking state as dirty
+     * @tparam T Value type (int, float, string, bool, sol::table, etc.)
+     * @param key Path to value (e.g., "viewportImage")
+     * @param value New value to set
+     * @note Does NOT trigger re-render - use for visual-only updates
+     */
+    template <typename T>
+    void SetValueNoMarkDirty(const std::string &key, const T &value);
+
+    /**
      * @brief Evaluate Lua expression as boolean condition
      * @param expression Lua expression (e.g., "data.showDebug" or "data.fps > 60")
      * @return true if expression evaluates to truthy value, false otherwise
@@ -257,4 +267,39 @@ void LuaUIState::SetValue(const std::string &key, const T &value)
     }
 
     LOG_TRACE_L1("Value set for key '{}'", key);
+}
+
+// Template implementation for SetValueNoMarkDirty
+template <typename T>
+void LuaUIState::SetValueNoMarkDirty(const std::string &key, const T &value)
+{
+    if (!m_isReady)
+    {
+        LOG_ERROR("LuaUIState::SetValueNoMarkDirty called before state is ready");
+        return;
+    }
+
+    // Parse the key path (e.g., "data.fps" -> navigate to data table, set fps)
+    size_t lastDot = key.rfind('.');
+
+    if (lastDot == std::string::npos)
+    {
+        // Simple key, set directly on state table
+        m_stateTable[key] = value;
+    }
+    else
+    {
+        // Nested key, navigate to parent table
+        std::string parentPath = key.substr(0, lastDot);
+        std::string finalKey = key.substr(lastDot + 1);
+
+        sol::object parent = NavigatePath(parentPath);
+        if (parent.is<sol::table>())
+        {
+            sol::table parentTable = parent.as<sol::table>();
+            parentTable[finalKey] = value;
+        }
+    }
+
+    // Note: NOT marking dirty - this is intentional for visual-only updates
 }
