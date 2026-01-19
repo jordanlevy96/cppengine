@@ -41,6 +41,15 @@ TetrisGrid = {
     lines = 0,
     level = 1,
 
+    -- Line clearing effect state
+    clearingState = {
+        isClearing = false,        -- Effect in progress?
+        clearedLines = {},         -- Line numbers being cleared
+        affectedBlocks = {},       -- {entityID = originalColor}
+        elapsedTime = 0,           -- Milliseconds since effect started
+        duration = 150             -- Total effect duration (ms)
+    },
+
     ready = function(self)
         -- Initialize grid
         for i = 0, C.GRID_WIDTH - 1 do
@@ -227,8 +236,69 @@ TetrisGrid = {
     clearLines = function(self, linesToClear)
         if #linesToClear == 0 then return end
 
-        -- First pass: destroy all entities in lines to clear
+        local state = self.clearingState
+
+        -- Store which lines are being cleared
+        state.clearedLines = linesToClear
+        state.isClearing = true
+        state.elapsedTime = 0
+        state.affectedBlocks = {}
+
+        -- Store affected blocks and apply first color (green)
         for _, lineY in ipairs(linesToClear) do
+            for x = 0, C.GRID_WIDTH - 1 do
+                local entity = self.grid[x][lineY]
+                if entity ~= C.GRID_EMPTY_CELL then
+                    -- Store original color
+                    local transform = GetTransform(entity)
+                    state.affectedBlocks[entity] = vec3(transform.Color.x, transform.Color.y, transform.Color.z)
+
+                    -- Apply first color (green)
+                    transform.Color = vec3(0, 0.8, 0)
+                end
+            end
+        end
+
+        -- Don't destroy/collapse yet - that happens in finishClearingLines()
+    end,
+
+    updateClearingEffect = function(self, delta)
+        local state = self.clearingState
+        state.elapsedTime = state.elapsedTime + delta  -- delta is in milliseconds
+
+        -- Stage 1: 0-50ms (Original → Green) - already set by clearLines
+
+        -- Stage 2: 50-100ms (Green → Yellow)
+        if state.elapsedTime >= 50 and state.elapsedTime < 100 then
+            for entityID, _ in pairs(state.affectedBlocks) do
+                local transform = GetTransform(entityID)
+                if transform then
+                    transform.Color = vec3(0.8, 0.8, 0)  -- Yellow
+                end
+            end
+        end
+
+        -- Stage 3: 100-150ms (Yellow → White)
+        if state.elapsedTime >= 100 and state.elapsedTime < 150 then
+            for entityID, _ in pairs(state.affectedBlocks) do
+                local transform = GetTransform(entityID)
+                if transform then
+                    transform.Color = vec3(1, 1, 1)  -- White flash
+                end
+            end
+        end
+
+        -- Stage 4: 150ms+ (Effect complete - destroy and collapse)
+        if state.elapsedTime >= state.duration then
+            self:finishClearingLines()
+        end
+    end,
+
+    finishClearingLines = function(self)
+        local state = self.clearingState
+
+        -- 1. Destroy all blocks in cleared lines
+        for _, lineY in ipairs(state.clearedLines) do
             for x = 0, C.GRID_WIDTH - 1 do
                 if self.grid[x][lineY] ~= C.GRID_EMPTY_CELL then
                     DestroyEntity(self.grid[x][lineY])
@@ -237,26 +307,21 @@ TetrisGrid = {
             end
         end
 
-        -- Second pass: move rows down to fill gaps
-        -- Iterate from bottom to top
+        -- 2. Collapse grid (move rows down to fill gaps)
         for y = 0, C.GRID_HEIGHT - 1 do
-            -- Count how many cleared lines are below this row
             local linesBelow = 0
-            for _, clearedY in ipairs(linesToClear) do
+            for _, clearedY in ipairs(state.clearedLines) do
                 if clearedY < y then
                     linesBelow = linesBelow + 1
                 end
             end
 
-            -- If there are cleared lines below, move this row down
             if linesBelow > 0 then
                 local newY = y - linesBelow
                 for x = 0, C.GRID_WIDTH - 1 do
-                    -- Move grid cell
                     self.grid[x][newY] = self.grid[x][y]
                     self.grid[x][y] = C.GRID_EMPTY_CELL
 
-                    -- Update entity position if exists
                     local entity = self.grid[x][newY]
                     if entity ~= C.GRID_EMPTY_CELL then
                         local transform = GetTransform(entity)
@@ -266,12 +331,10 @@ TetrisGrid = {
             end
         end
 
-        -- Update score and stats
-        local cleared = #linesToClear
+        -- 3. Calculate and update score
+        local cleared = #state.clearedLines
         self.lines = self.lines + cleared
 
-        -- Tetris scoring system (original NES)
-        -- TODO: move magic numbers
         local points = 0
         if cleared == 1 then
             points = 40 * self.level
@@ -284,12 +347,15 @@ TetrisGrid = {
         end
 
         self.score = self.score + points
-
-        -- Level up every 10 lines
         self.level = math.floor(self.lines / 10) + 1
 
-        -- Update UI after scoring
         TetrisGame:updateUI(self.score, self.lines, self.level, self.nextPieceType)
+
+        -- 4. Reset clearing state
+        state.isClearing = false
+        state.clearedLines = {}
+        state.affectedBlocks = {}
+        state.elapsedTime = 0
     end,
 
     -- ========================================================================
@@ -312,6 +378,12 @@ TetrisGrid = {
         end
 
         if self.gameOver then
+            return
+        end
+
+        -- Update clearing effect if active (blocks new piece spawn)
+        if self.clearingState.isClearing then
+            self:updateClearingEffect(delta)
             return
         end
 
@@ -370,6 +442,12 @@ TetrisGrid = {
         self.lines = 0
         self.level = 1
         self.gameOver = false
+
+        -- Reset clearing state
+        self.clearingState.isClearing = false
+        self.clearingState.clearedLines = {}
+        self.clearingState.affectedBlocks = {}
+        self.clearingState.elapsedTime = 0
 
         -- Generate new next piece
         self.nextPieceType = selectRandomTetrimino()
