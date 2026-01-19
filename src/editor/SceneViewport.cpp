@@ -164,10 +164,10 @@ void SceneViewport::Render()
             RenderComponent &rc = m_registry->GetComponent<RenderComponent>(m_selectedEntityId);
 
             // Save original color
-            glm::vec3 originalColor = transform.Color;
+            glm::vec4 originalColor = transform.Color;
 
-            // Set bright highlight color (yellow/orange)
-            transform.Color = glm::vec3(1.0f, 0.8f, 0.0f);
+            // Set bright highlight color (yellow/orange with full opacity)
+            transform.Color = glm::vec4(1.0f, 0.8f, 0.0f, 1.0f);
 
             // Enable wireframe mode for outline effect
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

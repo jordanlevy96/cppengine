@@ -209,6 +209,9 @@ bool Registry::LoadScene(const std::string &src)
                     transform.Color.r = objectNode["transform"]["color"]["r"].as<float>();
                     transform.Color.g = objectNode["transform"]["color"]["g"].as<float>();
                     transform.Color.b = objectNode["transform"]["color"]["b"].as<float>();
+                    // Load alpha if present, default to 1.0 (fully opaque)
+                    transform.Color.a = objectNode["transform"]["color"]["a"] ?
+                                        objectNode["transform"]["color"]["a"].as<float>() : 1.0f;
                 }
             }
 
@@ -330,7 +333,7 @@ void Registry::CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 p
     EntityID id = r->RegisterEntity();
     Transform &transform = r->GetComponent<Transform>(id);
     transform.Pos = pos;
-    transform.Color = color;
+    transform.Color = glm::vec4(color, 1.0f);  // Convert vec3 to vec4 with full opacity
 
     r->RegisterComponent<RenderComponent>(id, *cubeComp);
 

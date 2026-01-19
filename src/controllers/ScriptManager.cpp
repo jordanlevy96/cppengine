@@ -61,6 +61,13 @@ void ScriptManager::AddInputEventToQueue(const InputEvent &event)
             v["y"] = arg.y;
             v["z"] = arg.z;
             luaEvent["input"] = v;
+        } else if constexpr (std::is_same_v<T, glm::vec4>) {
+            sol::table v = lua.create_table();
+            v["x"] = arg.x;
+            v["y"] = arg.y;
+            v["z"] = arg.z;
+            v["w"] = arg.w;
+            luaEvent["input"] = v;
         } }, event.input);
 
     sol::table queue = lua["EventQueue"];
@@ -131,6 +138,13 @@ namespace LuaBindings
                                     "x", &glm::vec3::x,
                                     "y", &glm::vec3::y,
                                     "z", &glm::vec3::z);
+
+        lua.new_usertype<glm::vec4>("vec4",
+                                    sol::call_constructor, sol::constructors<glm::vec4(), glm::vec4(float), glm::vec4(float, float, float, float)>(),
+                                    "x", &glm::vec4::x,
+                                    "y", &glm::vec4::y,
+                                    "z", &glm::vec4::z,
+                                    "w", &glm::vec4::w);
 
         lua.new_usertype<Transform>("Transform",
                                     "Pos", &Transform::Pos,

@@ -298,10 +298,10 @@ TetrisGrid = {
                 if entity ~= C.GRID_EMPTY_CELL then
                     -- Store original color
                     local transform = GetTransform(entity)
-                    state.affectedBlocks[entity] = vec3(transform.Color.x, transform.Color.y, transform.Color.z)
+                    state.affectedBlocks[entity] = vec4(transform.Color.x, transform.Color.y, transform.Color.z, transform.Color.w)
 
-                    -- Apply first color (green)
-                    transform.Color = vec3(0, 0.8, 0)
+                    -- Apply first color (green with full opacity)
+                    transform.Color = vec4(0, 0.8, 0, 1.0)
                 end
             end
         end
@@ -320,7 +320,7 @@ TetrisGrid = {
             for entityID, _ in pairs(state.affectedBlocks) do
                 local transform = GetTransform(entityID)
                 if transform then
-                    transform.Color = vec3(0.8, 0.8, 0)  -- Yellow
+                    transform.Color = vec4(0.8, 0.8, 0, 1.0)  -- Yellow with full opacity
                 end
             end
         end
@@ -330,7 +330,7 @@ TetrisGrid = {
             for entityID, _ in pairs(state.affectedBlocks) do
                 local transform = GetTransform(entityID)
                 if transform then
-                    transform.Color = vec3(1, 1, 1)  -- White flash
+                    transform.Color = vec4(1, 1, 1, 1.0)  -- White flash with full opacity
                 end
             end
         end

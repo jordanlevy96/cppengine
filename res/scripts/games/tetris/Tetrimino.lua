@@ -64,7 +64,7 @@ function Tetrimino.new(shapeKey, renderComponent, lightID)
                 transform.Pos.x = j * TetrisConstants.TETRIMINO_SPACING
                 transform.Pos.y = i * TetrisConstants.TETRIMINO_SPACING
                 transform.Pos.z = 0
-                transform.Color = tetriminoData.color
+                transform.Color = vec4(tetriminoData.color.x, tetriminoData.color.y, tetriminoData.color.z, 1.0)
 
                 -- Add render component
                 RegisterRenderComponent(cubeID, renderComponent)
