@@ -50,6 +50,14 @@ TetrisGrid = {
         duration = 150             -- Total effect duration (ms)
     },
 
+    -- Ghost preview state
+    ghostPreview = {
+        isVisible = false,         -- Is ghost currently shown?
+        parentEntityID = nil,      -- Parent entity for ghost blocks
+        childBlocks = {},          -- Array of child entity IDs (up to 4 blocks)
+        dropDistance = 0           -- How far down from active piece
+    },
+
     ready = function(self)
         -- Initialize grid
         for i = 0, C.GRID_WIDTH - 1 do
@@ -133,8 +141,12 @@ TetrisGrid = {
 
         if not self:isCollision(newPos, self.activeTetrimino:getChildMap()) then
             self.activeTetrimino:tweenMove(vec3(0, -1, 0), C.MOVE_SPEED_MS)
+            -- Update ghost after downward movement
+            self:updateGhostPreview()
         else
             self:placeTetrimino()
+            -- Destroy ghost when placing
+            self:destroyGhostPreview()
             -- Destroy only the parent entity to orphan the children
             DestroyEntity(self.activeTetrimino:getEntityID())
             self.activeTetrimino = nil
@@ -151,6 +163,8 @@ TetrisGrid = {
 
         if not self:isCollision(newPos, self.activeTetrimino:getChildMap()) then
             self.activeTetrimino:move(direction)
+            -- Update ghost after lateral movement
+            self:updateGhostPreview()
         end
     end,
 
@@ -165,9 +179,13 @@ TetrisGrid = {
         if not self:isCollision(newPos, self.activeTetrimino:getChildMap()) then
             -- Move instantly (no tween) for responsive soft drop
             self.activeTetrimino:move(vec2(0, -1))
+            -- Update ghost after soft drop
+            self:updateGhostPreview()
         else
             -- Can't move down - place the piece
             self:placeTetrimino()
+            -- Destroy ghost when placing
+            self:destroyGhostPreview()
             DestroyEntity(self.activeTetrimino:getEntityID())
             self.activeTetrimino = nil
         end
@@ -197,8 +215,195 @@ TetrisGrid = {
 
         -- Place the piece immediately
         self:placeTetrimino()
+        -- Destroy ghost when placing
+        self:destroyGhostPreview()
         DestroyEntity(self.activeTetrimino:getEntityID())
         self.activeTetrimino = nil
+    end,
+
+    -- ========================================================================
+    -- GHOST PREVIEW
+    -- ========================================================================
+
+    -- Calculate where the active tetrimino would land if hard-dropped
+    calculateGhostDropDistance = function(self)
+        if self.activeTetrimino == nil then
+            return 0
+        end
+
+        local gridPos = self.activeTetrimino:getGridPosition()
+        local dropDistance = 0
+
+        -- Reuse hard drop logic
+        while true do
+            local testPos = vec2(gridPos.x, gridPos.y - dropDistance - 1)
+            if self:isCollision(testPos, self.activeTetrimino:getChildMap()) then
+                break
+            end
+            dropDistance = dropDistance + 1
+        end
+
+        return dropDistance
+    end,
+
+    -- Create ghost preview entities
+    createGhostPreview = function(self, shapeKey, ghostColor)
+        local ghost = self.ghostPreview
+
+        -- Create parent entity
+        ghost.parentEntityID = RegisterEntity()
+        ghost.childBlocks = {}
+
+        -- Get tetrimino data for shape
+        local tetriminoData = TetriminoData[shapeKey]
+        if not tetriminoData then
+            error("Unknown tetrimino shape: " .. shapeKey)
+        end
+
+        -- Create child blocks matching active tetrimino shape
+        for i = 0, 3 do
+            for j = 0, 3 do
+                -- Check if block exists at this position (convert to 1-indexed for Lua)
+                local row = tetriminoData.shape[i + 1]
+                if row and row[j + 1] == 1 then
+                    -- Create cube entity
+                    local cubeID = RegisterEntity()
+                    table.insert(ghost.childBlocks, cubeID)
+
+                    -- Set transform (position relative to parent)
+                    local transform = GetTransform(cubeID)
+                    transform.Pos.x = j * C.TETRIMINO_SPACING
+                    transform.Pos.y = i * C.TETRIMINO_SPACING
+                    transform.Pos.z = 0
+                    transform.Color = ghostColor  -- Semi-transparent color
+
+                    -- Add render component and lighting
+                    RegisterRenderComponent(cubeID, self.cube)
+                    local lightID = GetEntityByName("light")
+                    RegisterLighting(cubeID, lightID)
+
+                    -- Establish hierarchy
+                    AddChild(ghost.parentEntityID, cubeID)
+                end
+            end
+        end
+
+        ghost.isVisible = true
+    end,
+
+    -- Update ghost preview position based on active tetrimino
+    updateGhostPreview = function(self)
+        if self.activeTetrimino == nil then
+            self:destroyGhostPreview()
+            return
+        end
+
+        -- Calculate drop distance
+        local dropDistance = self:calculateGhostDropDistance()
+
+        -- If drop distance is 0, hide ghost (piece is already at bottom)
+        if dropDistance == 0 then
+            self:hideGhostPreview()
+            return
+        end
+
+        -- Destroy old ghost if it exists (to handle rotation changes)
+        self:destroyGhostPreview()
+
+        -- Create new ghost with semi-transparent color (alpha=0.4)
+        local tetriminoData = TetriminoData[self.activeTetrimino.shapeKey]
+        local ghostColor = vec4(
+            tetriminoData.color.x,
+            tetriminoData.color.y,
+            tetriminoData.color.z,
+            0.4  -- 40% opacity for transparency
+        )
+        self:createGhostPreview(self.activeTetrimino.shapeKey, ghostColor)
+
+        -- Sync ghost rotation to match active piece's current rotation
+        self:syncGhostRotation()
+
+        -- Get active tetrimino position
+        local activePos = self.activeTetrimino:getGridPosition()
+
+        -- Update ghost position (active position minus drop distance)
+        local ghost = self.ghostPreview
+        local ghostTransform = GetTransform(ghost.parentEntityID)
+        ghostTransform.Pos.x = activePos.x * C.CUBE_SIZE
+        ghostTransform.Pos.y = (activePos.y - dropDistance) * C.CUBE_SIZE
+        ghostTransform.Pos.z = 0
+
+        -- Store drop distance for future comparison
+        ghost.dropDistance = dropDistance
+    end,
+
+    -- Synchronize ghost rotation to match active tetrimino
+    syncGhostRotation = function(self)
+        if self.activeTetrimino == nil or not self.ghostPreview.isVisible then
+            return
+        end
+
+        local ghost = self.ghostPreview
+        local activeChildMap = self.activeTetrimino:getChildMap()
+
+        -- Update each ghost child position to match active rotation pattern
+        local blockIndex = 1
+        for i = 0, 3 do
+            for j = 0, 3 do
+                if activeChildMap[i][j] ~= C.GRID_EMPTY_CELL then
+                    local ghostBlockID = ghost.childBlocks[blockIndex]
+                    if ghostBlockID then
+                        local transform = GetTransform(ghostBlockID)
+                        transform.Pos.x = j * C.TETRIMINO_SPACING
+                        transform.Pos.y = i * C.TETRIMINO_SPACING
+                        transform.Pos.z = 0
+                        blockIndex = blockIndex + 1
+                    end
+                end
+            end
+        end
+    end,
+
+    -- Hide ghost preview (without destroying entities)
+    hideGhostPreview = function(self)
+        local ghost = self.ghostPreview
+
+        if not ghost.isVisible then
+            return
+        end
+
+        -- Move ghost off-screen (y = -100)
+        if ghost.parentEntityID then
+            local transform = GetTransform(ghost.parentEntityID)
+            transform.Pos.y = -100 * C.CUBE_SIZE
+        end
+
+        ghost.isVisible = false
+    end,
+
+    -- Destroy ghost preview entities
+    destroyGhostPreview = function(self)
+        local ghost = self.ghostPreview
+
+        if not ghost.parentEntityID then
+            return
+        end
+
+        -- Destroy all child blocks
+        for _, blockID in ipairs(ghost.childBlocks) do
+            DestroyEntity(blockID)
+        end
+
+        -- Destroy parent entity
+        if ghost.parentEntityID then
+            DestroyEntity(ghost.parentEntityID)
+        end
+
+        -- Reset ghost state
+        ghost.parentEntityID = nil
+        ghost.childBlocks = {}
+        ghost.isVisible = false
+        ghost.dropDistance = 0
     end,
 
     -- ========================================================================
@@ -215,6 +420,8 @@ TetrisGrid = {
 
         if not self:isCollision(gridPos, newRotationMap) then
             self.activeTetrimino:rotate(rotation)
+            -- Update ghost after rotation
+            self:updateGhostPreview()
         end
     end,
 
@@ -290,6 +497,9 @@ TetrisGrid = {
         state.isClearing = true
         state.elapsedTime = 0
         state.affectedBlocks = {}
+
+        -- Hide ghost during clearing effect
+        self:hideGhostPreview()
 
         -- Store affected blocks and apply first color (green)
         for _, lineY in ipairs(linesToClear) do
@@ -454,6 +664,9 @@ TetrisGrid = {
                 return
             end
 
+            -- Create ghost preview for new piece
+            self:updateGhostPreview()
+
             -- Start the piece falling immediately
             self:moveTetriminoDown()
         elseif self.activeTetrimino:isMovementFinished() then
@@ -483,6 +696,9 @@ TetrisGrid = {
             self.activeTetrimino:destroy()
             self.activeTetrimino = nil
         end
+
+        -- Destroy ghost preview
+        self:destroyGhostPreview()
 
         -- Reset game stats
         self.score = 0
