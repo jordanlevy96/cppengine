@@ -154,6 +154,53 @@ TetrisGrid = {
         end
     end,
 
+    softDrop = function(self)
+        if self.activeTetrimino == nil then
+            return
+        end
+
+        local gridPos = self.activeTetrimino:getGridPosition()
+        local newPos = vec2(gridPos.x, gridPos.y - 1)
+
+        if not self:isCollision(newPos, self.activeTetrimino:getChildMap()) then
+            -- Move instantly (no tween) for responsive soft drop
+            self.activeTetrimino:move(vec2(0, -1))
+        else
+            -- Can't move down - place the piece
+            self:placeTetrimino()
+            DestroyEntity(self.activeTetrimino:getEntityID())
+            self.activeTetrimino = nil
+        end
+    end,
+
+    hardDrop = function(self)
+        if self.activeTetrimino == nil then
+            return
+        end
+
+        -- Find the lowest position where the piece can be placed
+        local gridPos = self.activeTetrimino:getGridPosition()
+        local dropDistance = 0
+
+        while true do
+            local testPos = vec2(gridPos.x, gridPos.y - dropDistance - 1)
+            if self:isCollision(testPos, self.activeTetrimino:getChildMap()) then
+                break
+            end
+            dropDistance = dropDistance + 1
+        end
+
+        -- Move the piece instantly to the lowest position
+        if dropDistance > 0 then
+            self.activeTetrimino:move(vec2(0, -dropDistance))
+        end
+
+        -- Place the piece immediately
+        self:placeTetrimino()
+        DestroyEntity(self.activeTetrimino:getEntityID())
+        self.activeTetrimino = nil
+    end,
+
     -- ========================================================================
     -- TETRIMINO ROTATION
     -- ========================================================================

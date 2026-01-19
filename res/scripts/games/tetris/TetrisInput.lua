@@ -135,15 +135,11 @@ OnKeyPress = function(key)
             TetrisGame:start()
         end
     elseif key == "SPACE" then
-        CameraRotateFlag = not CameraRotateFlag
-    elseif key == "W" then
-        camera:Move(CameraDirections.FORWARD, GameManager.delta)
-    elseif key == "S" then
-        camera:Move(CameraDirections.BACK, GameManager.delta)
-    elseif key == "A" then
-        camera:Move(CameraDirections.LEFT, GameManager.delta)
-    elseif key == "D" then
-        camera:Move(CameraDirections.RIGHT, GameManager.delta)
+        -- Hard drop - instantly drop piece to bottom
+        TetrisGrid:hardDrop()
+    elseif key == "DOWN" then
+        -- Soft drop - move piece down one row immediately
+        TetrisGrid:softDrop()
     elseif key == "Z" then
         TetrisGrid:rotateTetrimino(Rotations.CCW)
     elseif key == "X" or key == "UP" then
