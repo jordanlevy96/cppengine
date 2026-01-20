@@ -93,7 +93,7 @@ Future graphics API migration research: current OpenGL analysis, Vulkan requirem
 Tetris line clearing visual effect implementation:
 - **Color pulse effect** (✅ Complete): Green → yellow → white transition over 400ms before grid collapse
 - State machine approach blocks new piece spawns during effect
-- Architecture supports future particle system integration (10-15 hour estimate)
+- Architecture supports future particle system integration
 - All implementation in Lua (no C++ changes needed)
 
 ---

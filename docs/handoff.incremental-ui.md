@@ -47,7 +47,6 @@ User considered migrating to Tauri for better UI performance, but wanted to main
 - Three-phase implementation plan created
 - litehtml limitations researched and documented
 - Fork strategy designed with specific API additions
-- Plan saved to `/Users/jordan/.claude/plans/robust-sauteeing-sphinx.md`
 - **ExpressionCache implementation** (Phase 1) with 99.8% hit rate
 - **Performance instrumentation** added to TemplateParser and ExpressionCache
 - **Baseline metrics established**: 3.2ms average render, 68% performance headroom
@@ -60,7 +59,7 @@ User considered migrating to Tauri for better UI performance, but wanted to main
 - Phase 3: litehtml fork with mutation API
 
 ### Known Issues
-- None (implementation not started)
+- None
 
 ---
 
@@ -431,9 +430,6 @@ make -j8
 
 # Full rebuild (if CMake changes)
 rm -rf * && cmake .. && make -j8
-
-# View plan
-cat /Users/jordan/.claude/plans/robust-sauteeing-sphinx.md
 ```
 
 ### Performance Monitoring
@@ -468,7 +464,6 @@ echo "Current:" && grep "Evaluate took" logs/imhotep.log | awk -F'took |μs' '{s
 
 ## References
 
-- **Full Plan**: `/Users/jordan/.claude/plans/robust-sauteeing-sphinx.md`
 - **UI System Docs**: `docs/architecture/UI_SYSTEM.md`
 - **litehtml Issue #69**: https://github.com/litehtml/litehtml/issues/69
 - **litehtml PR #267**: https://github.com/litehtml/litehtml/pull/267
