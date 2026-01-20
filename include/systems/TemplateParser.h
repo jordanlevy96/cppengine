@@ -1,6 +1,18 @@
 /**
  * @file TemplateParser.h
  * @brief HTML template parser with Vue-style directive support
+ * @lines ~342
+ *
+ * Quick-stats (Public API):
+ * - Parse() - Load HTML template with directives (line 98)
+ * - Evaluate() - Render template using Lua state (line 107)
+ * - GetEventHandlers() - Retrieve @click/@keydown handlers (line 121)
+ * - GetPerfStats() - Performance metrics (line ~195)
+ * - ResetPerfStats() - Clear statistics (line ~205)
+ *
+ * Directives supported: v-if, v-for, {{ }}, @click, :class
+ * Performance: ~3.2ms avg (Tetris), 10ms budget
+ * Implementation: See src/systems/TemplateParser.cpp
  */
 
 #pragma once

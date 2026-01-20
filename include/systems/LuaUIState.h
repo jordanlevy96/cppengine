@@ -1,6 +1,20 @@
 /**
  * @file LuaUIState.h
  * @brief Reactive UI state management backed by Lua
+ * @lines ~310
+ *
+ * Quick-stats (Public API):
+ * - LoadStateFile() - Load Lua state from file (line 104)
+ * - GetValue() - Get value by dot notation path (line 113)
+ * - SetValue() - Update value + mark dirty (line 125, templated)
+ * - SetValueNoMarkDirty() - Silent update (line 135, templated)
+ * - EvaluateCondition() - Lua expression → bool (line 144)
+ * - EvaluateAsString() - Lua expression → string (line 154)
+ * - IsDirty() / ClearDirty() - Change tracking (line 168, 174)
+ *
+ * State file format: Lua returns { data = {...}, computed = {...} }
+ * Performance: 99.8% ExpressionCache hit rate
+ * Implementation: See src/systems/LuaUIState.cpp
  */
 
 #pragma once

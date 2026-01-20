@@ -1,6 +1,18 @@
 /**
  * @file ReactiveUI.h
  * @brief Reactive UI system with template rendering and state management
+ * @lines ~245
+ *
+ * Quick-stats (Public API):
+ * - RegisterTemplate() - Load HTML template (line ~65)
+ * - BindLuaState() - Attach reactive Lua state (line ~75)
+ * - RenderWithLua() - Evaluate + render template (line ~85)
+ * - DispatchEvent() - Handle UI events (@click, etc.) (line ~95)
+ * - LoadTemplateFromFiles() - Load HTML + CSS + Lua (line ~110)
+ *
+ * Purpose: Glue layer connecting TemplateParser, LuaUIState, and HTMLRendererMT
+ * Coordinates rendering flow: dirty check → evaluate → render
+ * Implementation: See src/systems/ReactiveUI.cpp (390 lines)
  */
 
 #pragma once
