@@ -271,16 +271,15 @@ TetrisGrid = {
                     table.insert(ghost.childBlocks, cubeID)
 
                     -- Set transform (position relative to parent)
+                    -- Offset slightly forward in Z to prevent z-fighting with regular pieces
                     local transform = GetTransform(cubeID)
                     transform.Pos.x = j * C.TETRIMINO_SPACING
                     transform.Pos.y = i * C.TETRIMINO_SPACING
-                    transform.Pos.z = 0
+                    transform.Pos.z = 0.1  -- Slightly forward to avoid z-fighting
                     transform.Color = ghostColor  -- Semi-transparent color
 
-                    -- Add render component and lighting
+                    -- Add render component (no lighting for ghost - should be emissive/unlit)
                     RegisterRenderComponent(cubeID, self.cube)
-                    local lightID = GetEntityByName("light")
-                    RegisterLighting(cubeID, lightID)
 
                     -- Establish hierarchy
                     AddChild(ghost.parentEntityID, cubeID)
@@ -310,13 +309,12 @@ TetrisGrid = {
         -- Destroy old ghost if it exists (to handle rotation changes)
         self:destroyGhostPreview()
 
-        -- Create new ghost with semi-transparent color (alpha=0.4)
         local tetriminoData = TetriminoData[self.activeTetrimino.shapeKey]
         local ghostColor = vec4(
-            tetriminoData.color.x,
+            tetriminoData.color.x,  
             tetriminoData.color.y,
             tetriminoData.color.z,
-            0.4  -- 40% opacity for transparency
+            0.2
         )
         self:createGhostPreview(self.activeTetrimino.shapeKey, ghostColor)
 
@@ -356,7 +354,7 @@ TetrisGrid = {
                         local transform = GetTransform(ghostBlockID)
                         transform.Pos.x = j * C.TETRIMINO_SPACING
                         transform.Pos.y = i * C.TETRIMINO_SPACING
-                        transform.Pos.z = 0
+                        transform.Pos.z = 0.1  -- Maintain z-offset to prevent z-fighting
                         blockIndex = blockIndex + 1
                     end
                 end

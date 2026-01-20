@@ -15,5 +15,5 @@ scene:
       components:
         - type: "LuaScript"
           script: "TetrisGrid.lua"
-          shader: "Lighting.shader"
+          shader: "LightingOutline.shader"
           model: "cube.obj"
