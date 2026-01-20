@@ -1,3 +1,32 @@
+/**
+ * @file ReactiveUI.cpp
+ * @brief Reactive UI singleton managing HTML templates with Lua state bindings
+ * @lines ~390
+ *
+ * Purpose: Coordinates HTML template rendering with Lua state management.
+ * Acts as glue between TemplateParser (directives), LuaUIState (data), and HTMLRendererMT (display).
+ *
+ * Key functions:
+ * - RegisterTemplate() - Load HTML template (line 11, ~30 lines)
+ * - BindLuaState() - Attach Lua state for reactive updates (line 82, ~5 lines)
+ * - RenderWithLua() - Evaluate template + render via HTMLRendererMT (line 113, ~25 lines)
+ * - DispatchEvent() - Handle UI events (@click, etc.) (line 140, ~185 lines)
+ * - LoadTemplateFromFiles() - Load HTML + CSS + Lua state (line 338, ~50 lines)
+ *
+ * Rendering flow:
+ * 1. Check if LuaUIState is dirty (IsDirty())
+ * 2. If dirty: TemplateParser::Evaluate(state) → HTML string
+ * 3. Pass HTML to HTMLRendererMT for multi-threaded rendering
+ * 4. Clear dirty flag after render
+ *
+ * Event handling:
+ * - Parses @click, @keydown, etc. from HTML
+ * - Executes Lua functions in response to user input
+ * - Coordinates with WindowManager for mouse/keyboard state
+ *
+ * Integration: Central hub connecting UI components (Parser, State, Renderer)
+ */
+
 #include "systems/ReactiveUI.h"
 #include "controllers/ScriptManager.h"
 #include "systems/HTMLRendererMT.h"

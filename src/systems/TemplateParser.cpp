@@ -1,3 +1,33 @@
+/**
+ * @file TemplateParser.cpp
+ * @brief HTML template parser with Vue-like directives (v-if, v-for, {{ }}, @click)
+ * @lines ~825
+ *
+ * Main entry point:
+ * - Evaluate() - Full template evaluation with perf instrumentation (line 70, ~80 lines)
+ *
+ * Core parsing pipeline:
+ * - Parse() - Gumbo HTML parse with caching (line 37, ~30 lines)
+ * - ProcessNode() - Recursive DOM walker (line 152, ~55 lines)
+ * - SerializeElement() - HTML output builder with directive processing (line 210, ~165 lines)
+ *
+ * Directive handlers:
+ * - ProcessVForElement() - v-for list rendering (line 376, ~40 lines)
+ * - SerializeElementForIteration() - v-for item template (line 417, ~150 lines)
+ * - ProcessInterpolations() - {{ expression }} expansion (line 664, ~25 lines)
+ * - ProcessBindClass() - :class="expr" binding (line 692, ~55 lines)
+ *
+ * Dependencies:
+ * - Gumbo: HTML5 parsing (output cached after first parse)
+ * - LuaUIState: Expression evaluation (v-if conditions, {{ }} values)
+ * - ExpressionCache: Compiled Lua functions (via LuaUIState)
+ *
+ * Performance:
+ * - Baseline: ~3.2ms average (824 lines template)
+ * - Budget: 10ms (currently at 32% of budget)
+ * - Instrumented: min/max/avg tracking every 100 evaluations
+ */
+
 #include "systems/TemplateParser.h"
 #include "util/Logger.h"
 #include <gumbo.h>

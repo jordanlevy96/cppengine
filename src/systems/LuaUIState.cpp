@@ -1,3 +1,28 @@
+/**
+ * @file LuaUIState.cpp
+ * @brief Reactive UI state manager backed by Lua VM
+ * @lines ~275
+ *
+ * Purpose: Manages UI data loaded from Lua files with automatic change detection.
+ * Provides path-based access to nested tables and expression evaluation.
+ *
+ * Key functions:
+ * - LoadStateFile() - Load Lua state file, initialize ExpressionCache (line 18, ~50 lines)
+ * - GetValue() - Dot notation path access (line 71, ~10 lines)
+ * - SetValue() - Update state + mark dirty (templated in header)
+ * - EvaluateCondition() - Lua expression → bool via ExpressionCache (line 81, ~70 lines)
+ * - EvaluateAsString() - Lua expression → string via ExpressionCache (line 152, ~90 lines)
+ * - NavigatePath() - Traverse nested tables by dot path (line 241, ~35 lines)
+ *
+ * State file format: Lua file returns table with `data` and optional `computed` sections
+ * Example: return { data = { fps = 60 }, computed = { ... } }
+ *
+ * Integration:
+ * - ExpressionCache: All expression evaluation goes through cache (99.8% hit rate)
+ * - TemplateParser: Calls EvaluateCondition/AsString for v-if and {{ }} directives
+ * - ReactiveUI: Checks IsDirty() to skip unnecessary re-renders
+ */
+
 #include "systems/LuaUIState.h"
 #include "util/Logger.h"
 #include "controllers/ScriptManager.h"

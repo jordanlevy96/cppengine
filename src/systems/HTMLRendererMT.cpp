@@ -1,3 +1,33 @@
+/**
+ * @file HTMLRendererMT.cpp
+ * @brief Multi-threaded HTML/CSS renderer using litehtml + FreeType
+ * @lines ~1380
+ *
+ * CRITICAL: This system uses TWO threads:
+ * - **Main thread**: OpenGL operations, texture uploads, input handling
+ * - **Render thread**: litehtml rendering, FreeType text rasterization
+ *
+ * Key functions (Main Thread):
+ * - Initialize() - Setup GL, start render thread (line 858)
+ * - LoadHTML() / UpdateHTML() - Queue HTML for render thread (line 938, 955)
+ * - Render() - Upload texture to GPU (line 961)
+ * - UpdateTextureFromPixelBuffer() - Main→GPU texture transfer (line 1004)
+ * - HandleClickEvent() - Process UI clicks (line 1190)
+ * - Shutdown() - Stop render thread gracefully (line 1067)
+ *
+ * Key functions (Render Thread):
+ * - RenderThreadLoop() - Background rendering loop (line 1112)
+ * - SoftwareRenderer class - litehtml document_container impl (line 16-857)
+ *
+ * Thread Safety:
+ * - m_mutex protects: m_html, m_pendingHTML, m_renderRequested
+ * - m_bufferMutex protects: m_backBuffer ↔ m_frontBuffer swap
+ * - NEVER call OpenGL from render thread
+ * - NEVER call FreeType from main thread
+ *
+ * Performance: Render thread runs async (~5-15ms), main thread only pays texture upload (~1-2ms)
+ */
+
 #include <glad/glad.h>
 #include "systems/HTMLRendererMT.h"
 #include "systems/ReactiveUI.h"

@@ -1,3 +1,30 @@
+/**
+ * @file ScriptManager.cpp
+ * @brief Lua and Python VM singleton for game scripting
+ * @lines ~410
+ *
+ * Purpose: Provides scripting interface for game logic and UI state.
+ * Manages both Lua and Python virtual machines with C++ bindings.
+ *
+ * Key functions:
+ * - Initialize() - Setup Lua + Python VMs, register C++ bindings (line 312, ~65 lines)
+ * - Run() - Execute Lua script file (line 26, ~5 lines)
+ * - ProcessInput() - Queue input events for Lua scripts (line 83, ~230 lines)
+ * - Shutdown() - Clean up VMs (line 377, ~30 lines)
+ *
+ * Lua bindings:
+ * - Entity creation/destruction (Registry)
+ * - Input event handling (keyboard, mouse)
+ * - Game state management
+ * - UI state updates (via LuaUIState)
+ *
+ * Python bindings:
+ * - Data analysis and exports
+ * - External tool integration
+ *
+ * Integration: Used by LuaUIState (shared Lua VM), Game (Tetris logic), Editor
+ */
+
 #include "Camera.h"
 #include "controllers/Game.h"
 #include "controllers/Registry.h"
