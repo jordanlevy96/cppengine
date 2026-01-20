@@ -1,6 +1,6 @@
 # Imhotep Documentation Index
 
-> Last Updated: 2026-01-17
+> Last Updated: 2026-01-20
 
 ## Quick Reference
 
@@ -38,6 +38,7 @@
 
 | Document | Date | Purpose |
 |----------|------|---------|
+| [handoff.incremental-ui.md](handoff.incremental-ui.md) | 2026-01-19 | Incremental UI update architecture - Phase 1 instrumentation complete |
 | [handoff.20260116.md](handoff.20260116.md) | 2026-01-16 | Phase 1 completion - click-to-select, inspector, viewport highlighting |
 
 ---
@@ -95,6 +96,14 @@ Tetris line clearing visual effect implementation:
 - State machine approach blocks new piece spawns during effect
 - Architecture supports future particle system integration
 - All implementation in Lua (no C++ changes needed)
+
+### handoff.incremental-ui.md
+Incremental UI update optimization architecture:
+- **Phase 1 instrumentation** (✅ Complete): ExpressionCache + performance metrics
+- **Baseline established**: 3.2ms avg render (68% under 10ms budget), 99.8% cache hit rate
+- **Phase 2-3 planned**: Dependency tracking, litehtml fork with DOM mutation API
+- Includes validation results from live Tetris gameplay testing
+- Documents three-phase optimization strategy for sub-1ms UI updates
 
 ---
 

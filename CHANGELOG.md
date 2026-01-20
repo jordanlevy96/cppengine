@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Semantic versioning system with `Version.h` header
 - CMake-generated version constants (MAJOR, MINOR, PATCH)
 - Version logging on engine startup
+- **ExpressionCache**: Lua expression compilation cache (99.8% hit rate achieved)
+- **Performance instrumentation**: TemplateParser timing (~3.2ms avg, 10ms budget)
+- **Quick-stats headers**: Navigation headers for 19/79 C++ files (24% complete)
+  - Lists key functions with line numbers for efficient code navigation
+  - Includes thread safety notes, performance metrics, integration context
+  - Documented pattern in CLAUDE.md for Claude Code efficiency
+
+### Performance
+- **Baseline metrics established**: UI rendering at 3.2ms average (68% under 10ms budget)
+- **Cache statistics logging**: ExpressionCache logs hit/miss rates every 100 operations
+- **Regression detection**: Performance budget warnings trigger when renders exceed 10ms
+
+### Documentation
+- Added comprehensive handoff document for incremental UI update architecture
+- Removed obsolete plan files (superseded by implementation)
+- Cleaned time estimates from architecture docs per project philosophy
+- Updated CLAUDE.md with quick-stats pattern and usage examples
 
 ---
 
