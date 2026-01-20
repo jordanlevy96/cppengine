@@ -1,6 +1,29 @@
 /**
  * @file SceneLoader.cpp
- * @brief Implementation of scene loading with contract validation
+ * @brief Scene module loading with contract validation and dependency resolution
+ * @lines ~545
+ *
+ * Purpose: Loads scene configuration with modular Lua scripts using contract system.
+ * Validates role/capability requirements and resolves script dependencies via topological sort.
+ *
+ * Key functions:
+ * - LoadScripts() - Load scene modules from YAML (line 11, ~115 lines)
+ * - LoadAllScripts() - Execute Lua scripts in dependency order (line 127, ~25 lines)
+ * - ValidateRoles() - Check required roles provided (line 151, ~25 lines)
+ * - ValidateCapabilities() - Check required capabilities available (line 177, ~95 lines)
+ * - TopologicalSort() - Order modules by dependencies (line 275, ~90 lines)
+ * - DetectCycles() - Find circular dependencies (line 364, ~65 lines)
+ * - InitializeModules() - Call module init() functions (line 431, ~110 lines)
+ *
+ * Contract system:
+ * - Modules declare roles (what they implement)
+ * - Modules declare capabilities (what they provide)
+ * - Modules declare requires (what they need)
+ * - Loader validates all contracts before execution
+ *
+ * Scene file format: YAML with scripts list, each with path and metadata
+ *
+ * Integration: Used by Registry::LoadScene() for modular scene composition
  */
 
 #include "systems/SceneLoader.h"

@@ -1,6 +1,35 @@
 /**
  * @file Editor.cpp
- * @brief Editor implementation - Phase 2
+ * @brief Scene and UI template editor implementation
+ * @lines ~910
+ *
+ * Purpose: Interactive editor for scene manipulation and UI template creation.
+ * Combines 3D viewport with hierarchy panel, inspector, and UI template editor.
+ *
+ * Key functions:
+ * - Initialize() - Setup editor UI, viewport, input handlers (line 24, ~160 lines)
+ * - Run() - Main editor loop (line 185, ~40 lines)
+ * - Render() - Coordinate viewport + UI rendering (line 259, ~40 lines)
+ * - LoadEditorUI() - Load editor HTML templates (line 298, ~30 lines)
+ * - UpdateSceneTree() - Refresh hierarchy panel (line 329, ~50 lines)
+ * - SelectEntity() - Handle entity selection (line 504, ~15 lines)
+ * - UpdateInspector() - Refresh inspector panel with entity data (line 521, ~75 lines)
+ * - HandleEditorInput() - Keyboard/mouse input routing (line 449, ~55 lines)
+ *
+ * UI Template Editor:
+ * - InitializeUIEditor() - Setup template editing UI (line 607, ~40 lines)
+ * - LoadUITemplate() - Load template for editing (line 664, ~40 lines)
+ * - SaveUITemplate() - Write template changes to disk (line 704, ~60 lines)
+ * - CreateUITemplate() - New template wizard (line 763, ~50 lines)
+ * - UpdatePreview() - Live preview of template changes (line 811, ~100 lines)
+ *
+ * Architecture:
+ * - Uses EngineCore for shared initialization
+ * - SceneViewport for 3D rendering with selection
+ * - ReactiveUI for editor panels (HTML/CSS)
+ * - Input priority system (editor intercepts before game)
+ *
+ * Integration: Standalone editor mode, shares engine code with Game
  */
 
 #include "editor/Editor.h"
