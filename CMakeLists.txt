@@ -26,6 +26,7 @@ add_library(core SHARED
     "src/systems/HTMLRendererMT.cpp"
     "src/systems/ReactiveUI.cpp"
     "src/systems/LuaUIState.cpp"
+    "src/systems/ExpressionCache.cpp"
     "src/systems/TemplateParser.cpp"
     "src/systems/SceneModule.cpp"
     "src/systems/SceneContext.cpp"

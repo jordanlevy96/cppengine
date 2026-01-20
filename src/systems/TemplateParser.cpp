@@ -5,9 +5,33 @@
 #include <regex>
 #include <sstream>
 #include <map>
+#include <chrono>
 
 TemplateParser::TemplateParser()
 {
+}
+
+TemplateParser::~TemplateParser()
+{
+    FreeCachedGumbo();
+}
+
+void TemplateParser::FreeCachedGumbo()
+{
+    if (m_cachedGumboOutput && m_gumboOwned)
+    {
+        GumboOptions options = kGumboDefaultOptions;
+        gumbo_destroy_output(&options, m_cachedGumboOutput);
+        m_cachedGumboOutput = nullptr;
+        m_gumboOwned = false;
+    }
+}
+
+std::string TemplateParser::HashTemplate(const std::string& str)
+{
+    // Simple hash using std::hash - sufficient for change detection
+    std::hash<std::string> hasher;
+    return std::to_string(hasher(str));
 }
 
 void TemplateParser::Parse(const std::string &html)
@@ -15,13 +39,38 @@ void TemplateParser::Parse(const std::string &html)
     m_template = html;
     m_directives.clear();
 
+    // Compute hash for change detection
+    std::string newHash = HashTemplate(html);
+
+    // Check if template actually changed
+    if (newHash == m_cachedTemplateHash && m_cachedGumboOutput)
+    {
+        LOG_DEBUG("[TemplateParser] Template unchanged, reusing cached parse ({} bytes)", html.size());
+        return;
+    }
+
+    // Template changed - need to reparse
     LOG_DEBUG("[TemplateParser] Parsing template ({} bytes) with Gumbo", html.size());
 
-    // Template is stored as-is, parsing happens during evaluation
+    // Free old cached output
+    FreeCachedGumbo();
+
+    // Parse and cache the new output
+    GumboOptions options = kGumboDefaultOptions;
+    m_cachedGumboOutput = gumbo_parse_with_options(&options, m_template.data(), m_template.length());
+    m_gumboOwned = true;
+    m_cachedTemplateHash = newHash;
+
+    if (!m_cachedGumboOutput)
+    {
+        LOG_ERROR("[TemplateParser] Failed to parse HTML with Gumbo");
+    }
 }
 
 std::string TemplateParser::Evaluate(LuaUIState &state)
 {
+    auto startTime = std::chrono::high_resolution_clock::now();
+
     if (!state.IsReady())
     {
         LOG_ERROR("[TemplateParser] Lua state not ready");
@@ -31,21 +80,71 @@ std::string TemplateParser::Evaluate(LuaUIState &state)
     // Reset event handlers for fresh evaluation
     ResetEventHandlers();
 
-    // Parse HTML with Gumbo
-    GumboOptions options = kGumboDefaultOptions;
-    GumboOutput *output = gumbo_parse_with_options(&options, m_template.data(), m_template.length());
+    // Use cached Gumbo output if available (Phase 1 optimization)
+    GumboOutput *output = m_cachedGumboOutput;
+    bool usedCache = (output != nullptr);
 
+    // If not cached, parse now (shouldn't happen if Parse() was called first)
+    bool needsCleanup = false;
     if (!output)
     {
-        LOG_ERROR("[TemplateParser] Failed to parse HTML with Gumbo");
-        return "";
+        LOG_DEBUG("[TemplateParser] No cached Gumbo output, parsing now");
+        GumboOptions options = kGumboDefaultOptions;
+        output = gumbo_parse_with_options(&options, m_template.data(), m_template.length());
+        needsCleanup = true;  // We created this, so we need to clean it up
+
+        if (!output)
+        {
+            LOG_ERROR("[TemplateParser] Failed to parse HTML with Gumbo");
+            return "";
+        }
     }
 
     // Process the tree
     std::string result = ProcessNode(output->root, state);
 
-    // Cleanup
-    gumbo_destroy_output(&options, output);
+    // Only cleanup if we created a temporary output (not cached)
+    if (needsCleanup)
+    {
+        GumboOptions options = kGumboDefaultOptions;
+        gumbo_destroy_output(&options, output);
+    }
+
+    // Performance metrics
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto durationUs = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+
+    // Track statistics
+    m_totalEvaluations++;
+    m_totalEvaluationTimeUs += durationUs;
+    if (durationUs > m_maxEvaluationTimeUs)
+    {
+        m_maxEvaluationTimeUs = durationUs;
+    }
+    if (durationUs < m_minEvaluationTimeUs)
+    {
+        m_minEvaluationTimeUs = durationUs;
+    }
+
+    // Log timing (DEBUG level for regular, WARNING for slow renders)
+    constexpr int64_t PERF_BUDGET_US = 10000;  // 10ms budget
+    if (durationUs > PERF_BUDGET_US)
+    {
+        LOG_WARNING("[TemplateParser] PERF: Evaluate took {}μs (budget: {}μs, gumbo_cached: {})",
+                    durationUs, PERF_BUDGET_US, usedCache);
+    }
+    else
+    {
+        LOG_DEBUG("[TemplateParser] Evaluate took {}μs (gumbo_cached: {})", durationUs, usedCache);
+    }
+
+    // Log summary stats every 100 evaluations
+    if (m_totalEvaluations % 100 == 0)
+    {
+        int64_t avgUs = m_totalEvaluations > 0 ? m_totalEvaluationTimeUs / m_totalEvaluations : 0;
+        LOG_INFO("[TemplateParser] Stats after {} evals: avg={}μs, min={}μs, max={}μs",
+                 m_totalEvaluations, avgUs, m_minEvaluationTimeUs, m_maxEvaluationTimeUs);
+    }
 
     return result;
 }
@@ -92,14 +191,17 @@ std::string TemplateParser::ProcessNode(GumboNode *node, LuaUIState &state)
     if (node->type == GUMBO_NODE_DOCUMENT)
     {
         // For document node, just process children
-        std::ostringstream oss;
+        // Use string concatenation with reserve for better performance
+        std::string result;
+        result.reserve(m_template.size()); // Estimate output size from template size
+
         GumboVector *children = &node->v.document.children;
         for (unsigned int i = 0; i < children->length; i++)
         {
             GumboNode *child = static_cast<GumboNode *>(children->data[i]);
-            oss << ProcessNode(child, state);
+            result += ProcessNode(child, state);
         }
-        return oss.str();
+        return result;
     }
 
     return "";
@@ -561,8 +663,11 @@ std::string TemplateParser::ProcessIterationInterpolations(const std::string &te
 
 std::string TemplateParser::ProcessInterpolations(const std::string &text, LuaUIState &state)
 {
+    // Static regex - compiled once, reused for all calls (Phase 1 optimization)
+    static const std::regex interpolationRegex(R"(\{\{\s*(.+?)\s*\}\})");
+
     std::string result;
-    std::regex interpolationRegex(R"(\{\{\s*(.+?)\s*\}\})");
+    result.reserve(text.size()); // Reserve approximate size
 
     std::smatch match;
     std::string searchStr = text;

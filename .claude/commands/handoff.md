@@ -7,7 +7,7 @@ description: Generate a comprehensive handoff document for another developer
 
 Analyze the ENTIRE current conversation context and generate a comprehensive handoff document for another developer taking over this work. The handoff should enable them to continue seamlessly without needing to re-discover context.
 
-**Important**: Review the full conversation history to capture all context, decisions, and progress made.
+**Important**: Review the full conversation history and relevant codebase to capture all context, decisions, and progress made.
 
 ## Required Sections
 

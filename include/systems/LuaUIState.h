@@ -8,8 +8,10 @@
 #include <sol/sol.hpp>
 #include <string>
 #include <type_traits>
+#include <memory>
 
 #include "util/Logger.h"
+#include "systems/ExpressionCache.h"
 
 /**
  * @brief Reactive UI state manager backed by Lua VM
@@ -197,6 +199,8 @@ private:
     sol::table m_stateTable; ///< Root state table loaded from file
     bool m_isDirty;          ///< Change detection flag
     bool m_isReady;          ///< LoadStateFile() success flag
+
+    std::unique_ptr<ExpressionCache> m_exprCache; ///< Compiled expression cache (Phase 1)
 };
 
 // Template implementation for SetValue

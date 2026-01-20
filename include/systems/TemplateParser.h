@@ -10,10 +10,14 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <cstdint>
+#include <climits>
 
 // Forward declare gumbo types
 struct GumboInternalNode;
 typedef struct GumboInternalNode GumboNode;
+struct GumboInternalOutput;
+typedef struct GumboInternalOutput GumboOutput;
 
 /**
  * @brief HTML5 template parser with Vue.js-inspired directives
@@ -83,7 +87,7 @@ public:
     };
 
     TemplateParser();
-    ~TemplateParser() = default;
+    ~TemplateParser();
 
     /**
      * @brief Parse HTML template and build DOM tree
@@ -263,6 +267,25 @@ private:
     std::string m_template;                  ///< Original HTML template
     std::vector<DirectiveNode> m_directives; ///< Parsed directives (legacy, unused)
 
+    // === Template parse caching (Phase 1) ===
+
+    GumboOutput* m_cachedGumboOutput = nullptr;  ///< Cached parsed DOM tree
+    std::string m_cachedTemplateHash;            ///< Hash of template for change detection
+    std::string m_cachedHTML;                    ///< Last rendered HTML output
+    bool m_gumboOwned = false;                   ///< Whether we own m_cachedGumboOutput
+
+    /**
+     * @brief Simple hash function for template change detection
+     * @param str Template string
+     * @return Hash string
+     */
+    static std::string HashTemplate(const std::string& str);
+
+    /**
+     * @brief Free cached Gumbo output if owned
+     */
+    void FreeCachedGumbo();
+
     // === Event handling support ===
 
     /**
@@ -278,4 +301,42 @@ private:
      * @note Reset to 0 on ResetEventHandlers()
      */
     uint32_t m_nextEventId = 0;
+
+    // === Performance metrics ===
+
+    uint64_t m_totalEvaluations = 0;                        ///< Total number of Evaluate() calls
+    int64_t m_totalEvaluationTimeUs = 0;                    ///< Cumulative evaluation time in microseconds
+    int64_t m_maxEvaluationTimeUs = 0;                      ///< Slowest evaluation in microseconds
+    int64_t m_minEvaluationTimeUs = INT64_MAX;              ///< Fastest evaluation in microseconds
+
+public:
+    /**
+     * @brief Get performance statistics
+     * @return Struct with evaluation counts and timings
+     */
+    struct PerfStats {
+        uint64_t totalEvaluations;
+        int64_t avgTimeUs;
+        int64_t minTimeUs;
+        int64_t maxTimeUs;
+    };
+
+    PerfStats GetPerfStats() const {
+        return {
+            m_totalEvaluations,
+            m_totalEvaluations > 0 ? m_totalEvaluationTimeUs / static_cast<int64_t>(m_totalEvaluations) : 0,
+            m_minEvaluationTimeUs == INT64_MAX ? 0 : m_minEvaluationTimeUs,
+            m_maxEvaluationTimeUs
+        };
+    }
+
+    /**
+     * @brief Reset performance statistics
+     */
+    void ResetPerfStats() {
+        m_totalEvaluations = 0;
+        m_totalEvaluationTimeUs = 0;
+        m_maxEvaluationTimeUs = 0;
+        m_minEvaluationTimeUs = INT64_MAX;
+    }
 };
