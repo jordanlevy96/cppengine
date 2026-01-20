@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2026-01-16
+> Last Updated: 2026-01-20
 > Version: 0.1.0
 
 ## Project Overview
@@ -324,6 +324,76 @@ int m_width = 800;  ///< Short description after declaration
 - `include/util/Logger.h` - Comprehensive Doxygen docs
 - `include/Camera.h` - Class and method documentation
 - `include/systems/HTMLRendererMT.h` - Thread safety documentation
+
+### Quick-Stats Headers
+
+**All C++ files include quick-stats headers** for efficient navigation. Quick-stats are added to the `@file` documentation block at the top of each file.
+
+**Purpose**: Enable Claude Code (and developers) to quickly find key functions without reading entire files.
+
+**Format for .cpp files**:
+
+```cpp
+/**
+ * @file FileName.cpp
+ * @brief Brief description
+ * @lines ~XXX
+ *
+ * Purpose: What this file does
+ *
+ * Key functions:
+ * - FunctionName() - Description (line ~XX, ~YY lines)
+ * - AnotherFunction() - Description (line ~ZZ, ~AA lines)
+ *
+ * Optional context:
+ * - Thread safety notes (for multi-threaded code)
+ * - Performance characteristics
+ * - Integration notes
+ * - Dependencies
+ */
+```
+
+**Format for .h headers**:
+
+```cpp
+/**
+ * @file FileName.h
+ * @brief Brief description
+ * @lines ~XXX
+ *
+ * Quick-stats (Public API):
+ * - PublicMethod() - Description (line ~XX)
+ * - AnotherMethod() - Description (line ~YY)
+ *
+ * Optional notes:
+ * - Performance metrics
+ * - Usage patterns
+ * - Implementation reference: See src/path/FileName.cpp
+ */
+```
+
+**Examples**:
+
+- `src/systems/HTMLRendererMT.cpp` - Multi-threaded renderer with safety notes
+- `src/systems/TemplateParser.cpp` - Performance metrics and directive handlers
+- `include/systems/LuaUIState.h` - Public API quick reference
+- `include/systems/ExpressionCache.h` - Cache performance stats
+
+**Benefits**:
+
+- **Token savings**: Grep header to find function locations, then read specific lines (50-80% token reduction)
+- **Quick navigation**: `grep "@file HTMLRendererMT" → see "RenderThreadLoop() - line 1112" → Read offset=1112`
+- **Context preservation**: Thread safety, performance notes, integration details at a glance
+
+**Progress**: 19/79 files complete (24%) - ongoing effort to add to all files
+
+**When adding quick-stats**:
+
+- List key functions with line numbers (use `~` for approximate)
+- Note thread ownership for multi-threaded code
+- Include performance metrics for instrumented code
+- Reference implementation file from headers
+- Keep line counts approximate (will drift over time)
 
 ---
 
