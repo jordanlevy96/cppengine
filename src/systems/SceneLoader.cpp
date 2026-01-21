@@ -484,6 +484,17 @@ bool SceneLoader::InitializeModules(sol::state &lua)
 
     LOG_DEBUG("[SceneLoader] Context table built successfully");
 
+    // Expose role modules for non-contract scripts (e.g., entity scripts)
+    sol::table roleModules = lua.create_table();
+    for (auto &module : m_modules)
+    {
+        if (module.HasRole() && module.returnValue.valid())
+        {
+            roleModules[module.roleString] = module.returnValue;
+        }
+    }
+    lua["SceneModules"] = roleModules;
+
     int order = 0;
 
     // Initialize modules with dependencies first (in topological order)

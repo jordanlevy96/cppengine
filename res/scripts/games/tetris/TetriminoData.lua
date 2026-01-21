@@ -2,7 +2,10 @@
 -- Converted from res/conf/tetriminos.yaml for native Lua access
 -- This eliminates the need for C++ to load and manage tetrimino data
 
-TetriminoData = {
+local TetriminoData = {
+    _contract = {
+        role = "data"
+    },
     I = {
         color = vec3(0, 0.8, 0.8),  -- Cyan
         shape = {

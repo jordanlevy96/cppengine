@@ -45,6 +45,110 @@
 #include <fstream>
 #include <sstream>
 #include <variant>
+#include <algorithm>
+#include <cctype>
+
+namespace
+{
+    void GetLuaSourceLocation(sol::state_view lua, std::string &source, int &line)
+    {
+        source = "?";
+        line = 0;
+        sol::function getinfo = lua["debug"]["getinfo"];
+        if (getinfo.valid())
+        {
+            sol::table info = getinfo(2, "Sl"); // level 2 = caller, "Sl" = source + line
+            if (info.valid())
+            {
+                sol::optional<std::string> src = info["short_src"];
+                sol::optional<int> ln = info["currentline"];
+                if (src)
+                {
+                    source = *src;
+                }
+                if (ln)
+                {
+                    line = *ln;
+                }
+            }
+        }
+    }
+
+    std::string BuildLuaArgsString(sol::state_view lua, sol::variadic_args args, size_t skipCount)
+    {
+        std::string output;
+        bool first = true;
+        size_t index = 0;
+        sol::function tostring = lua["tostring"];
+        for (auto arg : args)
+        {
+            if (index++ < skipCount)
+            {
+                continue;
+            }
+            if (!first)
+            {
+                output += "\t";
+            }
+            first = false;
+            sol::object result = tostring(arg);
+            if (result.is<std::string>())
+            {
+                output += result.as<std::string>();
+            }
+            else
+            {
+                output += "<unprintable>";
+            }
+        }
+        return output;
+    }
+
+    std::string NormalizeLogLevel(std::string level)
+    {
+        std::transform(level.begin(), level.end(), level.begin(),
+                       [](unsigned char c)
+                       { return static_cast<char>(std::tolower(c)); });
+        return level;
+    }
+
+    void LogLuaWithLevel(const std::string &level, const std::string &source, int line, const std::string &message)
+    {
+        std::string normalized = NormalizeLogLevel(level);
+        if (normalized == "tracel3" || normalized == "trace3" || normalized == "trace_l3")
+        {
+            LOG_TRACE_L3("[Lua] {}:{} - {}", source, line, message);
+        }
+        else if (normalized == "tracel2" || normalized == "trace2" || normalized == "trace_l2")
+        {
+            LOG_TRACE_L2("[Lua] {}:{} - {}", source, line, message);
+        }
+        else if (normalized == "tracel1" || normalized == "trace1" || normalized == "trace_l1" || normalized == "trace")
+        {
+            LOG_TRACE_L1("[Lua] {}:{} - {}", source, line, message);
+        }
+        else if (normalized == "debug")
+        {
+            LOG_DEBUG("[Lua] {}:{} - {}", source, line, message);
+        }
+        else if (normalized == "warning" || normalized == "warn")
+        {
+            LOG_WARNING("[Lua] {}:{} - {}", source, line, message);
+        }
+        else if (normalized == "error")
+        {
+            LOG_ERROR("[Lua] {}:{} - {}", source, line, message);
+        }
+        else if (normalized == "critical")
+        {
+            LOG_CRITICAL("[Lua] {}:{} - {}", source, line, message);
+        }
+        else
+        {
+            LOG_INFO("[Lua] {}:{} - {}", source, line, message);
+        }
+    }
+} // namespace
 
 // ============================================================================
 // Lua Scripting
@@ -65,8 +169,8 @@ void ScriptManager::CreateList(const std::string &key)
 
 void ScriptManager::AddInputEventToQueue(const InputEvent &event)
 {
-    LOG_WARNING("Adding input event to Lua queue");
-    LOG_WARNING("Event type: {}", static_cast<int>(event.type));
+    LOG_TRACE_L3("Adding input event to Lua queue");
+    LOG_TRACE_L3("Event type: {}", static_cast<int>(event.type));
     sol::table luaEvent = lua.create_table();
     luaEvent["type"] = event.type;
     luaEvent["mods"] = event.mods;
@@ -113,7 +217,38 @@ void ScriptManager::ProcessInput()
     GLFWwindow *window = WindowManager::GetInstance().window;
 
     // Call Lua input handler for game-specific input
-    sol::function handleInputFunction = lua[HANDLE_INPUT_F];
+    sol::function handleInputFunction;
+    sol::table inputModule;
+    bool needsSelf = false;
+
+    sol::function globalHandleInput = lua[HANDLE_INPUT_F];
+    if (globalHandleInput.valid())
+    {
+        handleInputFunction = globalHandleInput;
+    }
+    else
+    {
+        sol::object modulesObj = lua["SceneModules"];
+        if (modulesObj.valid() && modulesObj.get_type() == sol::type::table)
+        {
+            sol::table modulesTable = modulesObj.as<sol::table>();
+            sol::object inputObj = modulesTable["input"];
+            if (inputObj.valid() && inputObj.get_type() == sol::type::table)
+            {
+                inputModule = inputObj.as<sol::table>();
+                sol::optional<sol::function> moduleHandle = inputModule["handleInput"];
+                if (!moduleHandle.has_value())
+                {
+                    moduleHandle = inputModule["HandleInput"];
+                }
+                if (moduleHandle.has_value())
+                {
+                    handleInputFunction = moduleHandle.value();
+                    needsSelf = true;
+                }
+            }
+        }
+    }
 
     if (!handleInputFunction.valid())
     {
@@ -123,7 +258,14 @@ void ScriptManager::ProcessInput()
 
     try
     {
-        handleInputFunction();
+        if (needsSelf)
+        {
+            handleInputFunction(inputModule);
+        }
+        else
+        {
+            handleInputFunction();
+        }
     }
     catch (const sol::error &e)
     {
@@ -238,7 +380,7 @@ namespace LuaBindings
         // ====================================================================
 
         // Generic UI State Management
-        lua.set_function("SetUIValue", [](const std::string& key, sol::object value)
+        lua.set_function("SetUIValue", [](const std::string &key, sol::object value)
                          {
             ReactiveUI& reactiveUI = ReactiveUI::GetInstance();
             auto luaState = reactiveUI.GetLuaState();
@@ -345,40 +487,97 @@ void ScriptManager::Initialize()
     LuaBindings::RegisterFunctions(lua);
     lua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::os, sol::lib::math, sol::lib::string, sol::lib::debug);
 
-    // Override Lua's print function to route through C++ logging with source location
+    // Override Lua's print and provide level-aware logging helpers
     lua.set_function("print", [](sol::variadic_args args, sol::this_state s)
                      {
         sol::state_view lua(s);
-
-        // Get caller's source location using debug.getinfo
-        std::string source = "?";
+        std::string source;
         int line = 0;
-        sol::function getinfo = lua["debug"]["getinfo"];
-        if (getinfo.valid()) {
-            sol::table info = getinfo(2, "Sl"); // level 2 = caller, "Sl" = source + line
-            if (info.valid()) {
-                sol::optional<std::string> src = info["short_src"];
-                sol::optional<int> ln = info["currentline"];
-                if (src) source = *src;
-                if (ln) line = *ln;
+        GetLuaSourceLocation(lua, source, line);
+        std::string output = BuildLuaArgsString(lua, args, 0);
+        LOG_DEBUG("[Lua] {}:{} - {}", source, line, output); });
+
+    lua.set_function("log", [](sol::variadic_args args, sol::this_state s)
+                     {
+        sol::state_view lua(s);
+        std::string source;
+        int line = 0;
+        GetLuaSourceLocation(lua, source, line);
+
+        if (args.size() == 0)
+        {
+            LOG_INFO("[Lua] {}:{} -", source, line);
+            return;
+        }
+
+        std::string level = "info";
+        auto it = args.begin();
+        if (it != args.end())
+        {
+            sol::function tostring = lua["tostring"];
+            sol::object levelObj = tostring(*it);
+            if (levelObj.is<std::string>())
+            {
+                level = levelObj.as<std::string>();
             }
         }
 
-        // Build output string
-        std::string output;
-        bool first = true;
-        for (auto arg : args) {
-            if (!first) output += "\t";
-            first = false;
-            sol::function tostring = lua["tostring"];
-            sol::object result = tostring(arg);
-            if (result.is<std::string>()) {
-                output += result.as<std::string>();
-            } else {
-                output += "<unprintable>";
-            }
-        }
+        std::string output = BuildLuaArgsString(lua, args, 1);
+        LogLuaWithLevel(level, source, line, output); });
+
+    lua.set_function("log_trace", [](sol::variadic_args args, sol::this_state s)
+                     {
+        sol::state_view lua(s);
+        std::string source;
+        int line = 0;
+        GetLuaSourceLocation(lua, source, line);
+        std::string output = BuildLuaArgsString(lua, args, 0);
+        LOG_TRACE_L1("[Lua] {}:{} - {}", source, line, output); });
+
+    lua.set_function("log_debug", [](sol::variadic_args args, sol::this_state s)
+                     {
+        sol::state_view lua(s);
+        std::string source;
+        int line = 0;
+        GetLuaSourceLocation(lua, source, line);
+        std::string output = BuildLuaArgsString(lua, args, 0);
+        LOG_DEBUG("[Lua] {}:{} - {}", source, line, output); });
+
+    lua.set_function("log_info", [](sol::variadic_args args, sol::this_state s)
+                     {
+        sol::state_view lua(s);
+        std::string source;
+        int line = 0;
+        GetLuaSourceLocation(lua, source, line);
+        std::string output = BuildLuaArgsString(lua, args, 0);
         LOG_INFO("[Lua] {}:{} - {}", source, line, output); });
+
+    lua.set_function("log_warning", [](sol::variadic_args args, sol::this_state s)
+                     {
+        sol::state_view lua(s);
+        std::string source;
+        int line = 0;
+        GetLuaSourceLocation(lua, source, line);
+        std::string output = BuildLuaArgsString(lua, args, 0);
+        LOG_WARNING("[Lua] {}:{} - {}", source, line, output); });
+
+    lua.set_function("log_error", [](sol::variadic_args args, sol::this_state s)
+                     {
+        sol::state_view lua(s);
+        std::string source;
+        int line = 0;
+        GetLuaSourceLocation(lua, source, line);
+        std::string output = BuildLuaArgsString(lua, args, 0);
+        LOG_ERROR("[Lua] {}:{} - {}", source, line, output); });
+
+    lua.set_function("log_critical", [](sol::variadic_args args, sol::this_state s)
+                     {
+        sol::state_view lua(s);
+        std::string source;
+        int line = 0;
+        GetLuaSourceLocation(lua, source, line);
+        std::string output = BuildLuaArgsString(lua, args, 0);
+        LOG_CRITICAL("[Lua] {}:{} - {}", source, line, output); });
 
     CreateList(EVENT_QUEUE);
 

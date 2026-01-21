@@ -2,7 +2,21 @@
 -- Main game controller - handles lifecycle and UI state updates
 -- Replaces C++ Game::StartGame(), ResetGame(), ReturnToMainMenu()
 
-TetrisGame = {
+local function ResolveGrid()
+    if SceneModules and SceneModules.grid then
+        return SceneModules.grid
+    end
+    if TetrisGrid then
+        return TetrisGrid
+    end
+    return nil
+end
+
+local TetrisGame = {
+    _contract = {
+        role = "game",
+        needs = {"ui"}
+    },
     -- Game state
     isStarted = false,
     isGameOver = false,
@@ -25,7 +39,10 @@ TetrisGame = {
         RefreshUI()
 
         -- Reset the grid
-        TetrisGrid:reset()
+        local grid = ResolveGrid()
+        if grid then
+            grid:reset()
+        end
     end,
 
     -- Reset game (keep playing, reset stats)
@@ -43,7 +60,10 @@ TetrisGame = {
         SetUIValue("data.level", 1)
         RefreshUI()
 
-        TetrisGrid:reset()
+        local grid = ResolveGrid()
+        if grid then
+            grid:reset()
+        end
     end,
 
     -- Return to main menu
@@ -61,7 +81,10 @@ TetrisGame = {
         SetUIValue("data.level", 1)
         RefreshUI()
 
-        TetrisGrid:reset()
+        local grid = ResolveGrid()
+        if grid then
+            grid:reset()
+        end
     end,
 
     -- Game over (show game over screen)
@@ -114,8 +137,5 @@ TetrisGame = {
         -- Note: No RefreshUI() here - let dirty flag handle batching
     end
 }
-
--- Global accessor for backward compatibility with TetrisGrid
-GameStarted = false  -- Will be synced with TetrisGame.isStarted
 
 return TetrisGame

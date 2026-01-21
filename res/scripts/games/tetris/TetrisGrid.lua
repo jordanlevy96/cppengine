@@ -2,9 +2,56 @@
 --
 -- Grid management and game logic for Tetris
 
--- TetrisConstants and Tetrimino are loaded globally by init.lua
--- Tetrimino will be loaded by dofile after this file
-local C = TetrisConstants  -- Shorthand alias
+local function ResolveModule(role, fallback)
+    if SceneModules and SceneModules[role] then
+        return SceneModules[role]
+    end
+    return fallback
+end
+
+local C = ResolveModule("constants", TetrisConstants)
+local TetriminoModule = ResolveModule("entity", Tetrimino)
+local TetriminoDataModule = ResolveModule("data", TetriminoData)
+local GameModule = ResolveModule("game", TetrisGame)
+
+local function InitModules(ctx)
+    if ctx then
+        C = ctx.constants or C
+        TetriminoModule = ctx.entity or TetriminoModule
+        TetriminoDataModule = ctx.data or TetriminoDataModule
+        GameModule = ctx.game or GameModule
+    end
+    if not C then
+        C = ResolveModule("constants", TetrisConstants)
+    end
+    if not TetriminoModule then
+        TetriminoModule = ResolveModule("entity", Tetrimino)
+    end
+    if not TetriminoDataModule then
+        TetriminoDataModule = ResolveModule("data", TetriminoData)
+    end
+    if not GameModule then
+        GameModule = ResolveModule("game", TetrisGame)
+    end
+end
+
+local function RequireModules()
+    if not C then
+        error("TetrisGrid missing constants module")
+    end
+    if not TetriminoModule then
+        error("TetrisGrid missing entity module")
+    end
+    if not TetriminoDataModule then
+        error("TetrisGrid missing data module")
+    end
+    if not GameModule then
+        error("TetrisGrid missing game module")
+    end
+end
+
+InitModules(nil)
+RequireModules()
 
 -- ============================================================================
 -- HELPER FUNCTIONS
@@ -21,6 +68,10 @@ end
 -- ============================================================================
 
 TetrisGrid = {
+    _contract = {
+        role = "grid",
+        requires = {"constants", "data", "entity", "game"}
+    },
     -- Read from YAML
     model = nil,
     shader = nil,
@@ -58,7 +109,14 @@ TetrisGrid = {
         dropDistance = 0           -- How far down from active piece
     },
 
+    init = function(self, ctx)
+        InitModules(ctx)
+        RequireModules()
+        self.borderColor = vec3(C.BORDER_COLOR_GRAY, C.BORDER_COLOR_GRAY, C.BORDER_COLOR_GRAY)
+    end,
+
     ready = function(self)
+        RequireModules()
         -- Initialize grid
         for i = 0, C.GRID_WIDTH - 1 do
             self.grid[i] = {}
@@ -255,7 +313,7 @@ TetrisGrid = {
         ghost.childBlocks = {}
 
         -- Get tetrimino data for shape
-        local tetriminoData = TetriminoData[shapeKey]
+        local tetriminoData = TetriminoDataModule and TetriminoDataModule[shapeKey] or nil
         if not tetriminoData then
             error("Unknown tetrimino shape: " .. shapeKey)
         end
@@ -309,7 +367,10 @@ TetrisGrid = {
         -- Destroy old ghost if it exists (to handle rotation changes)
         self:destroyGhostPreview()
 
-        local tetriminoData = TetriminoData[self.activeTetrimino.shapeKey]
+        local tetriminoData = TetriminoDataModule and TetriminoDataModule[self.activeTetrimino.shapeKey] or nil
+        if not tetriminoData then
+            return
+        end
         local ghostColor = vec4(
             tetriminoData.color.x,  
             tetriminoData.color.y,
@@ -604,7 +665,9 @@ TetrisGrid = {
         self.score = self.score + points
         self.level = math.floor(self.lines / 10) + 1
 
-        TetrisGame:updateUI(self.score, self.lines, self.level, self.nextPieceType)
+        if GameModule then
+            GameModule:updateUI(self.score, self.lines, self.level, self.nextPieceType)
+        end
 
         -- 4. Reset clearing state
         state.isClearing = false
@@ -619,7 +682,10 @@ TetrisGrid = {
 
     createTetrimino = function(self, shapeKey)
         local lightID = GetEntityByName("light")
-        return Tetrimino.new(shapeKey, self.cube, lightID)
+        if not TetriminoModule then
+            return nil
+        end
+        return TetriminoModule.new(shapeKey, self.cube, lightID)
     end,
 
     -- ========================================================================
@@ -628,11 +694,11 @@ TetrisGrid = {
 
     process = function(self, delta)
         -- Wait for game to start before spawning tetriminos
-        if not TetrisGame.isStarted then
+        if not GameModule or not GameModule.isStarted then
             return
         end
 
-        if TetrisGame.isPaused then
+        if GameModule.isPaused then
             return
         end
 
@@ -654,7 +720,9 @@ TetrisGrid = {
             self.nextPieceType = selectRandomTetrimino()
 
             -- Update UI with new next piece
-            TetrisGame:updateUI(self.score, self.lines, self.level, self.nextPieceType)
+            if GameModule then
+                GameModule:updateUI(self.score, self.lines, self.level, self.nextPieceType)
+            end
 
             -- Move to spawn position
             self.activeTetrimino:move(vec2(C.SPAWN_COLUMN, C.SPAWN_ROW))
@@ -662,7 +730,9 @@ TetrisGrid = {
             -- Check if new piece immediately collides (game over)
             if self:isCollision(vec2(C.SPAWN_COLUMN, C.SPAWN_ROW), self.activeTetrimino:getChildMap()) then
                 self.gameOver = true
-                TetrisGame:gameOver(self.score)
+                if GameModule then
+                    GameModule:gameOver(self.score)
+                end
                 return
             end
 
@@ -718,6 +788,10 @@ TetrisGrid = {
         self.nextPieceType = selectRandomTetrimino()
 
         -- Update UI
-        TetrisGame:updateUI(self.score, self.lines, self.level, self.nextPieceType)
+        if GameModule then
+            GameModule:updateUI(self.score, self.lines, self.level, self.nextPieceType)
+        end
     end
 }
+
+return TetrisGrid

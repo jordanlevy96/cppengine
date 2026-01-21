@@ -26,6 +26,12 @@
         <div class="instructions">Press R to restart | M for main menu or click above</div>
     </div>
 
+    <!-- Pause Screen -->
+    <div v-if="data.gamePaused and data.gameStarted and data.gameOver == false" class="pause-screen">
+        <div class="pause-title">PAUSED</div>
+        <div class="instructions">Press P to resume</div>
+    </div>
+
     <!-- Game UI -->
     <div v-if="data.gameStarted and data.gameOver == false" class="game-container">
         <!-- Left Panel: Game Stats -->
