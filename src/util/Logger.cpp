@@ -3,9 +3,68 @@
 #include "quill/Frontend.h"
 #include "quill/sinks/ConsoleSink.h"
 #include "quill/sinks/FileSink.h"
+#include <algorithm>
+#include <cctype>
 
 namespace imhotep
 {
+    namespace
+    {
+#ifndef IMHOTEP_LOG_LEVEL_STR
+#define IMHOTEP_LOG_LEVEL_STR "Info"
+#endif
+
+        quill::LogLevel ParseLogLevel(const char *levelStr)
+        {
+            if (levelStr == nullptr)
+            {
+                return quill::LogLevel::Info;
+            }
+
+            std::string level(levelStr);
+            std::transform(level.begin(), level.end(), level.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+            if (level == "tracel3" || level == "trace3" || level == "trace_l3")
+            {
+                return quill::LogLevel::TraceL3;
+            }
+            if (level == "tracel2" || level == "trace2" || level == "trace_l2")
+            {
+                return quill::LogLevel::TraceL2;
+            }
+            if (level == "tracel1" || level == "trace1" || level == "trace_l1")
+            {
+                return quill::LogLevel::TraceL1;
+            }
+            if (level == "debug")
+            {
+                return quill::LogLevel::Debug;
+            }
+            if (level == "info")
+            {
+                return quill::LogLevel::Info;
+            }
+            if (level == "warning" || level == "warn")
+            {
+                return quill::LogLevel::Warning;
+            }
+            if (level == "error")
+            {
+                return quill::LogLevel::Error;
+            }
+            if (level == "critical")
+            {
+                return quill::LogLevel::Critical;
+            }
+            if (level == "off" || level == "none")
+            {
+                return quill::LogLevel::None;
+            }
+
+            return quill::LogLevel::Info;
+        }
+    } // namespace
 
     Logger &Logger::GetInstance()
     {
@@ -46,8 +105,7 @@ namespace imhotep
             "root",
             {std::move(console_sink), std::move(file_sink)});
 
-        // TODO: Set log level from config
-        m_logger->set_log_level(quill::LogLevel::TraceL3);
+        m_logger->set_log_level(ParseLogLevel(IMHOTEP_LOG_LEVEL_STR));
 
         m_initialized = true;
         return true;

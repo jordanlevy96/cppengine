@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
 project(imhotep VERSION 0.1.0)
 
+# Log verbosity (TraceL3, TraceL2, TraceL1, Debug, Info, Warning, Error, Critical, Off)
+set(IMHOTEP_LOG_LEVEL "Info" CACHE STRING "Default log verbosity for Quill")
+
 # Generate version header from CMake version
 configure_file(
     "${CMAKE_SOURCE_DIR}/include/util/Version.h.in"
@@ -41,6 +44,8 @@ add_library(core SHARED
     "src/util/TransformUtils.cpp"
     "external/glad/src/glad.c"
 )
+
+target_compile_definitions(core PUBLIC IMHOTEP_LOG_LEVEL_STR="${IMHOTEP_LOG_LEVEL}")
 
 set(OpenGL_GL_PREFERENCE "GLVND")
 find_package(OpenGL REQUIRED)
