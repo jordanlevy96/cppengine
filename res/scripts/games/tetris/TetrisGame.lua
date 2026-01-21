@@ -6,16 +6,19 @@ TetrisGame = {
     -- Game state
     isStarted = false,
     isGameOver = false,
+    isPaused = false,
 
     -- Initialize game (called from input handlers or UI events)
     start = function(self)
         print("[TetrisGame] Starting game")
         self.isStarted = true
         self.isGameOver = false
+        self.isPaused = false
 
         -- Update UI state
         SetUIValue("data.gameStarted", true)
         SetUIValue("data.gameOver", false)
+        SetUIValue("data.gamePaused", false)
         SetUIValue("data.score", 0)
         SetUIValue("data.lines", 0)
         SetUIValue("data.level", 1)
@@ -30,9 +33,11 @@ TetrisGame = {
         print("[TetrisGame] Resetting game")
         self.isStarted = true
         self.isGameOver = false
+        self.isPaused = false
 
         SetUIValue("data.gameOver", false)
         SetUIValue("data.gameStarted", true)
+        SetUIValue("data.gamePaused", false)
         SetUIValue("data.score", 0)
         SetUIValue("data.lines", 0)
         SetUIValue("data.level", 1)
@@ -46,9 +51,11 @@ TetrisGame = {
         print("[TetrisGame] Returning to main menu")
         self.isStarted = false
         self.isGameOver = false
+        self.isPaused = false
 
         SetUIValue("data.gameOver", false)
         SetUIValue("data.gameStarted", false)
+        SetUIValue("data.gamePaused", false)
         SetUIValue("data.score", 0)
         SetUIValue("data.lines", 0)
         SetUIValue("data.level", 1)
@@ -61,10 +68,41 @@ TetrisGame = {
     gameOver = function(self, finalScore)
         print("[TetrisGame] Game Over - Score: " .. finalScore)
         self.isGameOver = true
+        self.isPaused = false
 
         SetUIValue("data.gameOver", true)
+        SetUIValue("data.gamePaused", false)
         SetUIValue("data.finalScore", finalScore)
         RefreshUI()
+    end,
+
+    pause = function(self)
+        if not self.isStarted or self.isGameOver then
+            return
+        end
+        if self.isPaused then
+            return
+        end
+        self.isPaused = true
+        SetUIValue("data.gamePaused", true)
+        RefreshUI()
+    end,
+
+    resume = function(self)
+        if not self.isPaused then
+            return
+        end
+        self.isPaused = false
+        SetUIValue("data.gamePaused", false)
+        RefreshUI()
+    end,
+
+    togglePause = function(self)
+        if self.isPaused then
+            self:resume()
+        else
+            self:pause()
+        end
     end,
 
     -- Update UI with game stats (called frequently, no RefreshUI to let dirty flag handle batching)

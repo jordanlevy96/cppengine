@@ -108,6 +108,10 @@ OnKeyPress = function(key)
         return
     end
 
+    if key == "P" then
+        TetrisGame:togglePause()
+        return
+    end
 
     local camera = GameManager.camera
 
@@ -121,6 +125,13 @@ OnKeyPress = function(key)
             TetrisGame:returnToMenu()
         elseif key == "ESCAPE" then
             -- Allow closing window from game over screen
+            GameManager.window:CloseWindow()
+        end
+        return
+    end
+
+    if TetrisGame.isPaused then
+        if key == "ESCAPE" then
             GameManager.window:CloseWindow()
         end
         return
@@ -148,8 +159,6 @@ OnKeyPress = function(key)
         TetrisGrid:moveTetriminoLateral(DIRECTION_LEFT)
     elseif key == "RIGHT" then
         TetrisGrid:moveTetriminoLateral(DIRECTION_RIGHT)
-    elseif key == "P" then
-        -- TODO: pause
     end
 end
 

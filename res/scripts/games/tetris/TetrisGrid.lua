@@ -632,6 +632,10 @@ TetrisGrid = {
             return
         end
 
+        if TetrisGame.isPaused then
+            return
+        end
+
         if self.gameOver then
             return
         end
