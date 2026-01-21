@@ -11,6 +11,57 @@
 
 ---
 
+## Repository Guidelines
+
+### Project Structure & Module Organization
+
+- `src/` holds engine source files; `include/` contains public headers. Keep new headers in `include/` and implementations in `src/`.
+- `res/` stores runtime assets (e.g., shaders, UI templates, scripts). Update paths in code or config when adding assets.
+- `docs/` contains design notes and project documentation.
+- `external/` contains third-party submodules; avoid editing unless you are updating a dependency.
+- `build/` is the local build output; do not commit its contents.
+
+### Build, Test, and Development Commands
+
+- Configure and build (macOS/Linux):
+  ```sh
+  mkdir -p build
+  cd build
+  cmake ..
+  make
+  ```
+- Run the engine from the build directory:
+  ```sh
+  ./imhotep
+  ```
+- Initialize submodules when setting up a fresh clone:
+  ```sh
+  cd external && git submodule update --init --recursive
+  ```
+
+### Coding Style & Naming Conventions
+
+- C++ style uses 4-space indentation and Allman braces.
+- Types and classes use `PascalCase`; methods follow `PascalCase`; local variables use `camelCase` (see `src/` for examples).
+- Keep headers lightweight; prefer forward declarations in headers and include heavy headers in `.cpp` files.
+
+### Testing Guidelines
+
+- There is no dedicated in-repo test harness at this time. Validate changes by building and running the engine.
+- Third-party submodules include their own tests under `external/`; do not run or modify them unless you are updating dependencies.
+
+### Commit & Pull Request Guidelines
+
+- Commit messages follow Conventional Commits (examples from history): `feat(tetris): ...`, `docs: ...`.
+- Keep commits focused and scoped to a single feature or fix.
+
+### Configuration Tips
+
+- Local build artifacts stay in `build/` and should remain untracked.
+- If you add new assets under `res/`, verify relative paths used in code or configuration are updated accordingly.
+
+---
+
 ## Architecture at a Glance
 
 ```
@@ -211,7 +262,6 @@ lua.set_function("CreateEntity", &Registry::CreateEntity);
 **CRITICAL**: When adding ANY new library or external dependency, update BOTH:
 
 1. **README.md** - External Dependencies section
-
    - Add to appropriate category (system dependency, FetchContent, or git submodule)
    - Include installation instructions if needed
 
@@ -669,5 +719,4 @@ if (imhotep::Version::IsAtLeast(1, 0)) {
 
 ---
 
-_Last Updated: January 16, 2026_
-_This file should be updated when project structure changes significantly._
+_Last Updated: January 20, 2026_
