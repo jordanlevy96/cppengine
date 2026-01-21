@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Build-time log verbosity flag: `IMHOTEP_LOG_LEVEL` (default `Info`)
+- Lua logging helpers with level routing (`log`, `log_debug`, `log_warning`, etc.)
+- Scene module contracts for Tetris scripts (roles, dependencies, capabilities)
+- Scene capability declarations for Tetris (`ui`, `input`)
 - Semantic versioning system with `Version.h` header
 - CMake-generated version constants (MAJOR, MINOR, PATCH)
 - Version logging on engine startup
@@ -30,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed obsolete plan files (superseded by implementation)
 - Cleaned time estimates from architecture docs per project philosophy
 - Updated CLAUDE.md with quick-stats pattern and usage examples
+
+### Changed
+- Reduced per-frame UI/renderer log spam by downgrading noisy logs
 
 ---
 

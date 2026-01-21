@@ -545,6 +545,14 @@ LOG_CRITICAL("OpenGL context creation failed");
 
 **Initialization**: Automatic via `Logger::GetInstance()` singleton - no manual setup needed
 
+**Build-time verbosity**:
+
+```bash
+cmake -DIMHOTEP_LOG_LEVEL=Info ..
+```
+
+Valid values: `TraceL3`, `TraceL2`, `TraceL1`, `Debug`, `Info`, `Warning`, `Error`, `Critical`, `Off`.
+
 ---
 
 ## Useful Commands Reference

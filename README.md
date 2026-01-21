@@ -22,6 +22,16 @@ make
 ./imhotep
 ```
 
+### Logging Verbosity
+
+Configure the default log level at build time:
+
+```sh
+cmake -DIMHOTEP_LOG_LEVEL=Warning ..
+```
+
+Valid values: `TraceL3`, `TraceL2`, `TraceL1`, `Debug`, `Info`, `Warning`, `Error`, `Critical`, `Off`.
+
 ### External Dependencies
 
 - C++ Compiler (G++)\*
