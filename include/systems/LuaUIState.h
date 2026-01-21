@@ -256,7 +256,6 @@ void LuaUIState::SetValue(const std::string &key, const T &value)
 
     if (!valueChanged)
     {
-        LOG_TRACE_L1("Value unchanged for key '{}'", key);
         return; // Early exit - no change needed
     }
     // Mark state as dirty otherwise
@@ -284,7 +283,6 @@ void LuaUIState::SetValue(const std::string &key, const T &value)
         }
     }
 
-    LOG_TRACE_L1("Value set for key '{}'", key);
 }
 
 // Template implementation for SetValueNoMarkDirty

@@ -102,17 +102,17 @@ public:
     {
         try
         {
-            LOG_DEBUG("[SoftwareRenderer] Creating document from HTML ({} bytes)", html.size());
+            LOG_TRACE_L2("[SoftwareRenderer] Creating document from HTML ({} bytes)", html.size());
 
             // Create document
             m_document = litehtml::document::createFromString(html.c_str(), this);
             if (m_document)
             {
-                LOG_DEBUG("[SoftwareRenderer] Rendering document");
+                LOG_TRACE_L2("[SoftwareRenderer] Rendering document");
                 m_document->render(m_buffer->width);
-                LOG_DEBUG("[SoftwareRenderer] Drawing to buffer");
+                LOG_TRACE_L2("[SoftwareRenderer] Drawing to buffer");
                 RenderToBuffer();
-                LOG_DEBUG("[SoftwareRenderer] Render complete");
+                LOG_TRACE_L2("[SoftwareRenderer] Render complete");
             }
             else
             {
@@ -648,14 +648,14 @@ public:
 
         if (!m_document)
         {
-            LOG_DEBUG("[SoftwareRenderer] No document to extract elements from");
+            LOG_TRACE_L2("[SoftwareRenderer] No document to extract elements from");
             return;
         }
 
         auto root = m_document->root();
         if (!root)
         {
-            LOG_DEBUG("[SoftwareRenderer] No document root");
+            LOG_TRACE_L2("[SoftwareRenderer] No document root");
             return;
         }
 
@@ -669,7 +669,7 @@ public:
                       return a.zIndex < b.zIndex;
                   });
 
-        LOG_DEBUG("[SoftwareRenderer] Extracted {} interactive elements", m_interactiveElements.size());
+        LOG_TRACE_L2("[SoftwareRenderer] Extracted {} interactive elements", m_interactiveElements.size());
     }
 
     /**
@@ -731,7 +731,7 @@ private:
 
                 m_interactiveElements.push_back(ie);
 
-                LOG_TRACE_L1("[SoftwareRenderer] Interactive element: id={}, bounds=({},{},{}x{}), z={}, handlers={}",
+                LOG_TRACE_L3("[SoftwareRenderer] Interactive element: id={}, bounds=({},{},{}x{}), z={}, handlers={}",
                              ie.id, ie.x, ie.y, ie.width, ie.height, ie.zIndex, ie.handlers.size());
             }
         }
@@ -968,7 +968,7 @@ void HTMLRendererMT::SetupGL()
 void HTMLRendererMT::LoadHTML(const std::string &html)
 {
     auto start = std::chrono::high_resolution_clock::now();
-    LOG_DEBUG("[HTMLRendererMT] Loading HTML ({} bytes)", html.size());
+    LOG_TRACE_L2("[HTMLRendererMT] Loading HTML ({} bytes)", html.size());
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -979,7 +979,7 @@ void HTMLRendererMT::LoadHTML(const std::string &html)
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    LOG_DEBUG("[HTMLRendererMT] LoadHTML took {}ms", duration);
+    LOG_TRACE_L2("[HTMLRendererMT] LoadHTML took {}ms", duration);
 }
 
 void HTMLRendererMT::UpdateHTML(const std::string &html)
@@ -998,7 +998,7 @@ void HTMLRendererMT::Render()
         std::lock_guard<std::mutex> lock(m_bufferMutex);
         if (m_frontBuffer.frameNumber != m_lastFrameNumber)
         {
-            LOG_DEBUG("[HTMLRendererMT] Uploading new frame {}", m_frontBuffer.frameNumber);
+            LOG_TRACE_L2("[HTMLRendererMT] Uploading new frame {}", m_frontBuffer.frameNumber);
             UpdateTextureFromPixelBuffer();
             m_lastFrameNumber = m_frontBuffer.frameNumber;
         }
@@ -1183,7 +1183,7 @@ void HTMLRendererMT::RenderThreadLoop()
         if (needsRender && !currentHTML.empty())
         {
             auto renderStart = std::chrono::high_resolution_clock::now();
-            LOG_DEBUG("[RenderThread] Rendering HTML");
+            LOG_TRACE_L2("[RenderThread] Rendering HTML");
 
             renderer.RenderHTML(currentHTML);
 
@@ -1210,7 +1210,7 @@ void HTMLRendererMT::RenderThreadLoop()
             needsRender = false;
             auto totalEnd = std::chrono::high_resolution_clock::now();
             auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(totalEnd - renderStart).count();
-            LOG_DEBUG("[RenderThread] Render complete (render: {}ms, total: {}ms)", renderDuration, totalDuration);
+            LOG_TRACE_L2("[RenderThread] Render complete (render: {}ms, total: {}ms)", renderDuration, totalDuration);
         }
     }
 

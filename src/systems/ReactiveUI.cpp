@@ -88,7 +88,7 @@ void ReactiveUI::ForceRender()
 
 void ReactiveUI::RenderTemplate()
 {
-    LOG_DEBUG("[ReactiveUI] Rendering template (legacy mode, dirty)");
+    LOG_TRACE_L2("[ReactiveUI] Rendering template (legacy mode, dirty)");
 
     m_cachedHTML = m_template;
 
@@ -147,7 +147,7 @@ void ReactiveUI::RenderWithLua()
         return;
     }
 
-    LOG_DEBUG("[ReactiveUI] Rendering template (Lua mode, dirty)");
+    LOG_TRACE_L2("[ReactiveUI] Rendering template (Lua mode, dirty)");
 
     // Use TemplateParser to evaluate directives with current Lua state
     m_cachedHTML = m_parser->Evaluate(*m_luaState);
@@ -160,7 +160,7 @@ void ReactiveUI::RenderWithLua()
     {
         htmlRenderer.SetEventHandlers(newHandlers);
         m_lastEventHandlers = newHandlers;
-        LOG_DEBUG("[ReactiveUI] Updated {} event handlers after render", newHandlers.size());
+        LOG_TRACE_L2("[ReactiveUI] Updated {} event handlers after render", newHandlers.size());
     }
 }
 
@@ -271,7 +271,7 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
                 {
                     argValue = result_obj;
                     evaluatedSuccessfully = true;
-                    LOG_DEBUG("[ReactiveUI] Got arg '{}' directly from state table", args[0]);
+                    LOG_TRACE_L3("[ReactiveUI] Got arg '{}' directly from state table", args[0]);
                 }
                 else
                 {
@@ -293,7 +293,7 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
                         {
                             argValue = scriptResult.get<sol::object>();
                             evaluatedSuccessfully = true;
-                            LOG_DEBUG("[ReactiveUI] Evaluated arg '{}' as Lua expression", args[0]);
+                            LOG_TRACE_L3("[ReactiveUI] Evaluated arg '{}' as Lua expression", args[0]);
                         }
                     }
                 }

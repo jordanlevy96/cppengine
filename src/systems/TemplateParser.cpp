@@ -75,12 +75,12 @@ void TemplateParser::Parse(const std::string &html)
     // Check if template actually changed
     if (newHash == m_cachedTemplateHash && m_cachedGumboOutput)
     {
-        LOG_DEBUG("[TemplateParser] Template unchanged, reusing cached parse ({} bytes)", html.size());
+        LOG_TRACE_L2("[TemplateParser] Template unchanged, reusing cached parse ({} bytes)", html.size());
         return;
     }
 
     // Template changed - need to reparse
-    LOG_DEBUG("[TemplateParser] Parsing template ({} bytes) with Gumbo", html.size());
+    LOG_TRACE_L2("[TemplateParser] Parsing template ({} bytes) with Gumbo", html.size());
 
     // Free old cached output
     FreeCachedGumbo();
@@ -118,7 +118,7 @@ std::string TemplateParser::Evaluate(LuaUIState &state)
     bool needsCleanup = false;
     if (!output)
     {
-        LOG_DEBUG("[TemplateParser] No cached Gumbo output, parsing now");
+        LOG_TRACE_L2("[TemplateParser] No cached Gumbo output, parsing now");
         GumboOptions options = kGumboDefaultOptions;
         output = gumbo_parse_with_options(&options, m_template.data(), m_template.length());
         needsCleanup = true;  // We created this, so we need to clean it up
@@ -165,7 +165,7 @@ std::string TemplateParser::Evaluate(LuaUIState &state)
     }
     else
     {
-        LOG_DEBUG("[TemplateParser] Evaluate took {}μs (gumbo_cached: {})", durationUs, usedCache);
+        LOG_TRACE_L2("[TemplateParser] Evaluate took {}μs (gumbo_cached: {})", durationUs, usedCache);
     }
 
     // Log summary stats every 100 evaluations
