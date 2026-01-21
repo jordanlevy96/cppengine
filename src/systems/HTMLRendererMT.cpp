@@ -1230,9 +1230,6 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
     float framebufferX = x * scaleX;
     float framebufferY = y * scaleY;
 
-    LOG_INFO("[HTMLRendererMT] HandleClickEvent: Window={}x{} (framebuffer={}x{}), Click=({}, {}) window -> ({}, {}) framebuffer, Button={}, Scale={}x{}",
-             windowWidth, windowHeight, m_width, m_height, x, y, framebufferX, framebufferY, button, scaleX, scaleY);
-
     // Use framebuffer coordinates for hit-testing
     x = framebufferX;
     y = framebufferY;
@@ -1244,32 +1241,21 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
         elements = m_frontInteractiveElements;
     }
 
-    LOG_INFO("[HTMLRendererMT] Have {} interactive elements to test", elements.size());
-
     // Screen coordinates now match litehtml coordinates (no flip needed)
-    LOG_INFO("[HTMLRendererMT] Click Y (framebuffer): {}", y);
 
     // Hit-test in reverse order (highest z-index first)
     for (auto it = elements.rbegin(); it != elements.rend(); ++it)
     {
         const auto &elem = *it;
-        LOG_INFO("[HTMLRendererMT] Testing element '{}': bounds=({},{},{}x{}), handlers={}",
-                 elem.id, elem.x, elem.y, elem.width, elem.height, elem.handlers.size());
 
         // Point-in-rectangle test
         if (x >= elem.x && x < elem.x + elem.width &&
             y >= elem.y && y < elem.y + elem.height)
         {
-            LOG_INFO("[HTMLRendererMT] HIT! Click is inside element bounds");
-
-            LOG_INFO("[HTMLRendererMT] Click hit element '{}' at ({}, {}), button={}", elem.id, x, y, button);
-
             // Check if element has a click handler
             auto clickIt = elem.handlers.find("click");
             if (clickIt != elem.handlers.end())
             {
-                LOG_INFO("[HTMLRendererMT] Element '{}' has click handler: '{}'", elem.id, clickIt->second);
-
                 // Dispatch to ReactiveUI
                 // Note: Pass framebuffer coordinates directly - they match the hit-test coordinates
                 ReactiveUI &ui = ReactiveUI::GetInstance();
@@ -1280,17 +1266,12 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
                 eventData.elemId = elem.id;
                 eventData.eventType = "click";
 
-                LOG_INFO("[HTMLRendererMT] Dispatching click event for element '{}' with coords ({}, {}), button={}",
-                         elem.id, x, y, button);
                 ui.DispatchEvent("click", clickIt->second, eventData);
-                LOG_INFO("[HTMLRendererMT] Click dispatch completed for element '{}'", elem.id);
-
                 return true; // Event handled
             }
         }
     }
 
-    LOG_TRACE_L1("[HTMLRendererMT] Click at ({}, {}) did not hit any interactive element", x, y);
     return false; // Event not handled
 }
 
@@ -1326,8 +1307,6 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
         if (x >= elem.x && x < elem.x + elem.width &&
             y >= elem.y && y < elem.y + elem.height)
         {
-            LOG_INFO("[HTMLRendererMT] HOVER HIT! Element '{}' at cursor ({}, {}), bounds=({},{},{}x{})",
-                     elem.id, x, y, elem.x, elem.y, elem.width, elem.height);
             newHoveredElement = elem.id;
             break; // Found topmost element
         }
@@ -1347,8 +1326,6 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                     auto mouseoutIt = elem.handlers.find("mouseout");
                     if (mouseoutIt != elem.handlers.end())
                     {
-                        LOG_INFO("[HTMLRendererMT] Element '{}' has mouseout handler: '{}'", elem.id, mouseoutIt->second);
-
                         // Dispatch to ReactiveUI
                         ReactiveUI &ui = ReactiveUI::GetInstance();
                         ReactiveUI::EventData eventData;
@@ -1358,10 +1335,7 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                         eventData.elemId = elem.id;
                         eventData.eventType = "mouseout";
 
-                        LOG_INFO("[HTMLRendererMT] Dispatching mouseout event for element '{}' with coords ({}, {})",
-                                 elem.id, x, y);
                         ui.DispatchEvent("mouseout", mouseoutIt->second, eventData);
-                        LOG_INFO("[HTMLRendererMT] Mouseout dispatch completed for element '{}'", elem.id);
                     }
                     break;
                 }
@@ -1379,8 +1353,6 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                     auto mouseoverIt = elem.handlers.find("mouseover");
                     if (mouseoverIt != elem.handlers.end())
                     {
-                        LOG_INFO("[HTMLRendererMT] Element '{}' has mouseover handler: '{}'", elem.id, mouseoverIt->second);
-
                         // Dispatch to ReactiveUI
                         ReactiveUI &ui = ReactiveUI::GetInstance();
                         ReactiveUI::EventData eventData;
@@ -1390,10 +1362,7 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                         eventData.elemId = elem.id;
                         eventData.eventType = "mouseover";
 
-                        LOG_INFO("[HTMLRendererMT] Dispatching mouseover event for element '{}' with coords ({}, {})",
-                                 elem.id, x, y);
                         ui.DispatchEvent("mouseover", mouseoverIt->second, eventData);
-                        LOG_INFO("[HTMLRendererMT] Mouseover dispatch completed for element '{}'", elem.id);
                     }
                     break;
                 }
