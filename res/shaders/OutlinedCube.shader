@@ -64,22 +64,25 @@ void main()
     float outlineIntensity = smoothstep(outlineThreshold, outlineThreshold + 0.1, edgeFactor);
 
     vec3 absNorm = abs(norm);
-    vec2 faceUV = vec2(LocalPos.x, LocalPos.y);
+    float maxAbsPos = max(max(abs(LocalPos.x), abs(LocalPos.y)), abs(LocalPos.z));
+    vec3 unitPos = LocalPos / maxAbsPos;
+    vec2 faceUV = vec2(unitPos.x, unitPos.y);
     if (absNorm.x > absNorm.y && absNorm.x > absNorm.z)
     {
-        faceUV = vec2(LocalPos.y, LocalPos.z);
+        faceUV = vec2(unitPos.y, unitPos.z);
     }
     else if (absNorm.y > absNorm.z)
     {
-        faceUV = vec2(LocalPos.x, LocalPos.z);
+        faceUV = vec2(unitPos.x, unitPos.z);
     }
 
     float edgeDist = min(1.0 - abs(faceUV.x), 1.0 - abs(faceUV.y));
-    float faceOutlineThickness = 0.2;  // In object-space units; lower = thinner outline
-    float faceOutlineIntensity = 1.0 - smoothstep(0.0, faceOutlineThickness, edgeDist);
+    float outlinePx = 2.0;
+    float edgeWidth = fwidth(edgeDist) * outlinePx;
+    float faceOutlineIntensity = smoothstep(0.0, edgeWidth, edgeDist);
 
     // Combine silhouette and face-edge outlines.
-    float combinedOutline = max(outlineIntensity, faceOutlineIntensity);
+    float combinedOutline = min(outlineIntensity, faceOutlineIntensity);
 
     // Mix outline color (dark) with lit color
     vec3 outlineColor = vec3(0.0, 0.0, 0.0);  // Black outline
