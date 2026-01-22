@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2026-01-20
+> Last Updated: 2026-01-21
 > Version: 0.1.0
 
 ## Project Overview
@@ -8,6 +8,17 @@
 **Imhotep** is an experimental C++ game engine using OpenGL, Lua, and more. Implements a fully functional Tetris game as proof-of-concept.
 
 **Key Innovation**: Declarative, reactive UI system using HTML/CSS templates with Lua state management (Vue.js-inspired), rendered via litehtml with multi-threaded rendering.
+
+---
+
+## Content Policy and AI Use
+
+**Repository content rules**:
+
+- Do not add AI-generated creative writing, narrative, or marketing copy.
+- Do not add AI-generated imagery or artwork.
+- Use placeholders only: Lorem Ipsum or CC0/public-domain text where filler is required.
+- Any new human-facing content should be authored by the maintainer or a contributor.
 
 ---
 
