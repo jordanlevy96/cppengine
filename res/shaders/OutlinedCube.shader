@@ -2,11 +2,10 @@
 #version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
-// layout (location = 2) in vec2 aTexCoord;
 
-// out vec2 TexCoord;
 out vec3 FragPos;
 out vec3 Normal;
+out vec3 LocalPos;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -15,9 +14,8 @@ uniform mat4 projection;
 void main()
 {
     FragPos = vec3(model * vec4(aPos, 1.0));
-    // Normal = mat3(transpose(inverse(model))) * aNormal; // this is an expensive call but will fix issues that arise from non-uniform scaling
     Normal = aNormal;
-    // TexCoord = aTexCoord;
+    LocalPos = aPos;
     gl_Position = projection * view * vec4(FragPos, 1.0f);
 }
 
@@ -25,25 +23,20 @@ void main()
 #version 330 core
 out vec4 FragColor;
 
-in vec2 TexCoord;
 in vec3 Normal;
 in vec3 FragPos;
+in vec3 LocalPos;
 
 uniform vec4 objectColor;
 uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 
-// uniform sampler2D texture_diffuse1;
-// uniform sampler2D texture2;
-
 float ambientStrength = 0.1;
 float specularStrength = 0.5;
 
 void main()
 {
-    // FragColor = texture(texture_diffuse1, TexCoord);
-
     // 3 Components of Light: Ambient,
     vec3 ambient = ambientStrength * lightColor;
 
@@ -61,7 +54,7 @@ void main()
 
     vec3 result = (ambient + diffuse + specular) * objectColor.rgb;
 
-    // Add edge outline (Tetris-style)
+    // Cube outline: silhouette + explicit face-border outlines in object space.
     vec3 normView = normalize(Normal);
     vec3 viewDirNorm = normalize(viewPos - FragPos);
     float edgeFactor = abs(dot(normView, viewDirNorm));
@@ -70,9 +63,27 @@ void main()
     float outlineThreshold = 0.3;  // Adjust this to control outline thickness (lower = thicker)
     float outlineIntensity = smoothstep(outlineThreshold, outlineThreshold + 0.1, edgeFactor);
 
+    vec3 absNorm = abs(norm);
+    vec2 faceUV = vec2(LocalPos.x, LocalPos.y);
+    if (absNorm.x > absNorm.y && absNorm.x > absNorm.z)
+    {
+        faceUV = vec2(LocalPos.y, LocalPos.z);
+    }
+    else if (absNorm.y > absNorm.z)
+    {
+        faceUV = vec2(LocalPos.x, LocalPos.z);
+    }
+
+    float edgeDist = min(1.0 - abs(faceUV.x), 1.0 - abs(faceUV.y));
+    float faceOutlineThickness = 0.2;  // In object-space units; lower = thinner outline
+    float faceOutlineIntensity = 1.0 - smoothstep(0.0, faceOutlineThickness, edgeDist);
+
+    // Combine silhouette and face-edge outlines.
+    float combinedOutline = max(outlineIntensity, faceOutlineIntensity);
+
     // Mix outline color (dark) with lit color
     vec3 outlineColor = vec3(0.0, 0.0, 0.0);  // Black outline
-    result = mix(outlineColor, result, outlineIntensity);
+    result = mix(outlineColor, result, combinedOutline);
 
     FragColor = vec4(result, objectColor.a);
 }
