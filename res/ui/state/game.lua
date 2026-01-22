@@ -17,6 +17,7 @@ return {
         -- Startup screen control
         gameStarted = false,      -- Controls game start state
         gameOver = false,         -- Controls game over screen
+        gamePaused = false,       -- Controls pause screen
 
         -- Tetris game stats
         score = 0,
@@ -61,28 +62,26 @@ return {
     methods = {
         onStartGame = function(self)
             print("START GAME clicked!")
-            -- Mirror ENTER key handler from input.lua
-            if not GameStarted then
-                GameStarted = true
-                TetrisGrid:reset()  -- Initialize game and spawn tetriminos
-                GameManager:StartGame()  -- Update C++ side and UI state
+            local game = SceneModules and SceneModules.game or TetrisGame
+            if game and not game.isStarted then
+                game:start()
             end
         end,
 
         onRestart = function(self)
             print("RESTART clicked!")
-            -- Mirror R key handler from input.lua
-            TetrisGrid:reset()
-            GameStarted = true
-            GameManager:ResetGame()
+            local game = SceneModules and SceneModules.game or TetrisGame
+            if game then
+                game:reset()
+            end
         end,
 
         onMainMenu = function(self)
             print("MAIN MENU clicked!")
-            -- Mirror M key handler from input.lua
-            TetrisGrid:reset()
-            GameStarted = false
-            GameManager:ReturnToMainMenu()
+            local game = SceneModules and SceneModules.game or TetrisGame
+            if game then
+                game:returnToMenu()
+            end
         end
     }
 }

@@ -1,6 +1,35 @@
+/**
+ * @file Registry.cpp
+ * @brief Entity-Component-System (ECS) registry using EnTT
+ * @lines ~345
+ *
+ * Purpose: Central entity database and scene management.
+ * Wraps EnTT registry with game-specific entity lifecycle and scene loading.
+ *
+ * Key functions:
+ * - RegisterEntity() - Create new entity with optional name/parent (line 16, 23)
+ * - DestroyEntity() - Remove entity and all children recursively (line 35, ~35 lines)
+ * - GetEntityByName() - Find entity by name string (line 71, ~20 lines)
+ * - LoadScene() - Load YAML scene definition (line 160, ~140 lines)
+ * - AttachScript() - Bind Lua/Python script to entity (line 302, 310)
+ *
+ * Entity management:
+ * - Hierarchical parent/child relationships via HierarchyComponent
+ * - Named entities for easy lookup (entityNames vector)
+ * - Script attachment for game logic
+ *
+ * Scene loading:
+ * - YAML format with entities, components, transforms
+ * - Recursive hierarchy building
+ * - Material and render component creation
+ *
+ * Integration: Core system used by all gameplay code, editor, and scene loader
+ */
+
 #include "controllers/Game.h"
 #include "controllers/Registry.h"
 #include "controllers/ScriptManager.h"
+#include "systems/SceneLoader.h"
 
 #include <iostream>
 
@@ -161,9 +190,29 @@ bool Registry::LoadScene(const std::string &src)
     const std::string &res = Game::GetInstance().conf.ResourcePath;
     try
     {
-        YAML::Node yaml = YAML::LoadFile(res + src);
+        // Use SceneLoader for script loading with contract validation
+        SceneLoader sceneLoader;
+        if (!sceneLoader.LoadScripts(src))
+        {
+            LOG_ERROR("Failed to load scene scripts: {}", src);
+            return false;
+        }
+
+        LOG_DEBUG("[Registry] SceneLoader finished, getting YAML for entities...");
+
+        // Get the parsed YAML from SceneLoader for entity creation
+        const YAML::Node &yaml = sceneLoader.GetSceneYAML();
+
+        LOG_DEBUG("[Registry] Checking for scene objects...");
+
+        if (!yaml["scene"] || !yaml["scene"]["objects"])
+        {
+            LOG_WARNING("[Registry] No scene objects found in YAML");
+            return true; // Not an error, just no entities to create
+        }
 
         const YAML::Node &objectsNode = yaml["scene"]["objects"];
+        LOG_DEBUG("[Registry] Found {} scene objects", objectsNode.size());
         for (const auto &objectNode : objectsNode)
         {
             const std::string &name = objectNode["name"].as<std::string>();
@@ -188,6 +237,9 @@ bool Registry::LoadScene(const std::string &src)
                     transform.Color.r = objectNode["transform"]["color"]["r"].as<float>();
                     transform.Color.g = objectNode["transform"]["color"]["g"].as<float>();
                     transform.Color.b = objectNode["transform"]["color"]["b"].as<float>();
+                    // Load alpha if present, default to 1.0 (fully opaque)
+                    transform.Color.a = objectNode["transform"]["color"]["a"] ?
+                                        objectNode["transform"]["color"]["a"].as<float>() : 1.0f;
                 }
             }
 
@@ -309,7 +361,7 @@ void Registry::CreateCube(std::shared_ptr<RenderComponent> cubeComp, glm::vec3 p
     EntityID id = r->RegisterEntity();
     Transform &transform = r->GetComponent<Transform>(id);
     transform.Pos = pos;
-    transform.Color = color;
+    transform.Color = glm::vec4(color, 1.0f);  // Convert vec3 to vec4 with full opacity
 
     r->RegisterComponent<RenderComponent>(id, *cubeComp);
 

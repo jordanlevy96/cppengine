@@ -18,7 +18,7 @@ void RenderSystem::RenderEntity<Lighting>(EntityID id, Camera *cam)
     // Extract world position from world matrix
     glm::vec3 worldLightPos = glm::vec3(lightWorld.matrix[3]);
 
-    rc.AddUniform("lightColor", lightTrans.Color, UniformTypeMap::vec3);
+    rc.AddUniform("lightColor", glm::vec3(lightTrans.Color), UniformTypeMap::vec3);
     rc.AddUniform("lightPos", worldLightPos, UniformTypeMap::vec3);
     rc.AddUniform("viewPos", cam->transform.Pos, UniformTypeMap::vec3);
 }
@@ -32,7 +32,7 @@ void RenderSystem::RenderEntity<RenderComponent>(EntityID id, Camera *cam)
     RenderComponent rc = registry->GetComponent<RenderComponent>(id);
 
     // Color is NOT affected by hierarchy (as per design doc)
-    rc.AddUniform("objectColor", t.Color, UniformTypeMap::vec3);
+    rc.AddUniform("objectColor", t.Color, UniformTypeMap::vec4);
     rc.shader->Use();
 
     glm::vec3 cameraPos = cam->transform.Pos;
@@ -63,6 +63,10 @@ void RenderSystem::Update(Camera *cam, float delta)
         logged = true;
     }
 
+    // Enable blending for transparency support
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     // Process lighting entities
     for (EntityID id : registry->GetComponentSet<Lighting>().GetEntities())
     {
@@ -75,4 +79,7 @@ void RenderSystem::Update(Camera *cam, float delta)
     {
         RenderEntity<RenderComponent>(id, cam);
     }
+
+    // Disable blending after rendering
+    glDisable(GL_BLEND);
 }

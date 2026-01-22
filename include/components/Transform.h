@@ -42,7 +42,7 @@ namespace EulerAngles
  * - Position: (0, 0, 0) - World origin
  * - Scale: (1, 1, 1) - Original size
  * - Rotation: Identity quaternion (no rotation)
- * - Color: (1, 1, 1) - White (RGB normalized 0-1)
+ * - Color: (1, 1, 1, 1) - White, fully opaque (RGBA normalized 0-1)
  *
  * **Usage:**
  * @code
@@ -50,7 +50,7 @@ namespace EulerAngles
  * t.Pos = glm::vec3(10.0f, 5.0f, 0.0f);
  * t.Scale = glm::vec3(2.0f);  // Uniform scale
  * t.Rotation = glm::angleAxis(glm::radians(90.0f), EulerAngles::Yaw);
- * t.Color = glm::vec3(1.0f, 0.0f, 0.0f);  // Red
+ * t.Color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);  // Red, fully opaque
  * @endcode
  *
  * @note All entities automatically receive a Transform on creation
@@ -61,5 +61,5 @@ struct Transform
     glm::vec3 Pos = glm::vec3(0.0f);                        ///< Local position relative to parent (x, y, z)
     glm::vec3 Scale = glm::vec3(1.0f);                      ///< Local scale (x, y, z) - 1.0 = original size
     glm::quat Rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); ///< Orientation quaternion (w, x, y, z) - identity = no rotation
-    glm::vec3 Color = glm::vec3(1.0f);                      ///< Base tint color (r, g, b) normalized [0-1] - white = no tint
+    glm::vec4 Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);    ///< Base tint color with alpha (r, g, b, a) normalized [0-1] - (1,1,1,1) = white, fully opaque
 };

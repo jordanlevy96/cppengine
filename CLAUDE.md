@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2026-01-16
+> Last Updated: 2026-01-21
 > Version: 0.1.0
 
 ## Project Overview
@@ -8,6 +8,68 @@
 **Imhotep** is an experimental C++ game engine using OpenGL, Lua, and more. Implements a fully functional Tetris game as proof-of-concept.
 
 **Key Innovation**: Declarative, reactive UI system using HTML/CSS templates with Lua state management (Vue.js-inspired), rendered via litehtml with multi-threaded rendering.
+
+---
+
+## Content Policy and AI Use
+
+**Repository content rules**:
+
+- Do not add AI-generated creative writing, narrative, or marketing copy.
+- Do not add AI-generated imagery or artwork.
+- Use placeholders only: Lorem Ipsum or CC0/public-domain text where filler is required.
+- Any new human-facing content should be authored by the maintainer or a contributor.
+
+---
+
+## Repository Guidelines
+
+### Project Structure & Module Organization
+
+- `src/` holds engine source files; `include/` contains public headers. Keep new headers in `include/` and implementations in `src/`.
+- `res/` stores runtime assets (e.g., shaders, UI templates, scripts). Update paths in code or config when adding assets.
+- `docs/` contains design notes and project documentation.
+- `external/` contains third-party submodules; avoid editing unless you are updating a dependency.
+- `build/` is the local build output; do not commit its contents.
+
+### Build, Test, and Development Commands
+
+- Configure and build (macOS/Linux):
+  ```sh
+  mkdir -p build
+  cd build
+  cmake ..
+  make
+  ```
+- Run the engine from the build directory:
+  ```sh
+  ./imhotep
+  ```
+- Initialize submodules when setting up a fresh clone:
+  ```sh
+  cd external && git submodule update --init --recursive
+  ```
+
+### Coding Style & Naming Conventions
+
+- C++ style uses 4-space indentation and Allman braces.
+- Types and classes use `PascalCase`; methods follow `PascalCase`; local variables use `camelCase` (see `src/` for examples).
+- Keep headers lightweight; prefer forward declarations in headers and include heavy headers in `.cpp` files.
+
+### Testing Guidelines
+
+- There is no dedicated in-repo test harness at this time. Validate changes by building and running the engine.
+- Third-party submodules include their own tests under `external/`; do not run or modify them unless you are updating dependencies.
+
+### Commit & Pull Request Guidelines
+
+- Commit messages follow Conventional Commits (examples from history): `feat(tetris): ...`, `docs: ...`.
+- Keep commits focused and scoped to a single feature or fix.
+
+### Configuration Tips
+
+- Local build artifacts stay in `build/` and should remain untracked.
+- If you add new assets under `res/`, verify relative paths used in code or configuration are updated accordingly.
 
 ---
 
@@ -34,17 +96,17 @@ App (controllers/App.cpp)
 
 ### External Dependencies
 
-| Dependency            | Purpose         | Integration    | Install                         |
-| --------------------- | --------------- | -------------- | ------------------------------- |
-| **GLFW**              | Window/input    | FetchContent   | Auto-downloaded                 |
-| **GLAD**              | OpenGL loader   | FetchContent   | Auto-downloaded                 |
-| **FreeType**          | Font rendering  | System package | `brew install freetype` (macOS) |
-| **GLM**               | Math library    | Git submodule  | In `external/`                  |
-| **litehtml**          | HTML/CSS engine | Git submodule  | In `external/`                  |
-| **Lua + Sol2**        | Lua scripting   | Git submodule  | In `external/`                  |
-| **Python + pybind11** | Python bindings | Git submodule  | In `external/`                  |
-| **yaml-cpp**          | Config parsing  | Git submodule  | In `external/`                  |
-| **Dear ImGui**        | Debug UI (legacy) | Git submodule  | In `external/`                |
+| Dependency            | Purpose           | Integration    | Install                         |
+| --------------------- | ----------------- | -------------- | ------------------------------- |
+| **GLFW**              | Window/input      | FetchContent   | Auto-downloaded                 |
+| **GLAD**              | OpenGL loader     | FetchContent   | Auto-downloaded                 |
+| **FreeType**          | Font rendering    | System package | `brew install freetype` (macOS) |
+| **GLM**               | Math library      | Git submodule  | In `external/`                  |
+| **litehtml**          | HTML/CSS engine   | Git submodule  | In `external/`                  |
+| **Lua + Sol2**        | Lua scripting     | Git submodule  | In `external/`                  |
+| **Python + pybind11** | Python bindings   | Git submodule  | In `external/`                  |
+| **yaml-cpp**          | Config parsing    | Git submodule  | In `external/`                  |
+| **Dear ImGui**        | Debug UI (legacy) | Git submodule  | In `external/`                  |
 
 ### Platform-Specific Setup
 
@@ -211,7 +273,6 @@ lua.set_function("CreateEntity", &Registry::CreateEntity);
 **CRITICAL**: When adding ANY new library or external dependency, update BOTH:
 
 1. **README.md** - External Dependencies section
-
    - Add to appropriate category (system dependency, FetchContent, or git submodule)
    - Include installation instructions if needed
 
@@ -325,6 +386,76 @@ int m_width = 800;  ///< Short description after declaration
 - `include/Camera.h` - Class and method documentation
 - `include/systems/HTMLRendererMT.h` - Thread safety documentation
 
+### Quick-Stats Headers
+
+**All C++ files include quick-stats headers** for efficient navigation. Quick-stats are added to the `@file` documentation block at the top of each file.
+
+**Purpose**: Enable Claude Code (and developers) to quickly find key functions without reading entire files.
+
+**Format for .cpp files**:
+
+```cpp
+/**
+ * @file FileName.cpp
+ * @brief Brief description
+ * @lines ~XXX
+ *
+ * Purpose: What this file does
+ *
+ * Key functions:
+ * - FunctionName() - Description (line ~XX, ~YY lines)
+ * - AnotherFunction() - Description (line ~ZZ, ~AA lines)
+ *
+ * Optional context:
+ * - Thread safety notes (for multi-threaded code)
+ * - Performance characteristics
+ * - Integration notes
+ * - Dependencies
+ */
+```
+
+**Format for .h headers**:
+
+```cpp
+/**
+ * @file FileName.h
+ * @brief Brief description
+ * @lines ~XXX
+ *
+ * Quick-stats (Public API):
+ * - PublicMethod() - Description (line ~XX)
+ * - AnotherMethod() - Description (line ~YY)
+ *
+ * Optional notes:
+ * - Performance metrics
+ * - Usage patterns
+ * - Implementation reference: See src/path/FileName.cpp
+ */
+```
+
+**Examples**:
+
+- `src/systems/HTMLRendererMT.cpp` - Multi-threaded renderer with safety notes
+- `src/systems/TemplateParser.cpp` - Performance metrics and directive handlers
+- `include/systems/LuaUIState.h` - Public API quick reference
+- `include/systems/ExpressionCache.h` - Cache performance stats
+
+**Benefits**:
+
+- **Token savings**: Grep header to find function locations, then read specific lines (50-80% token reduction)
+- **Quick navigation**: `grep "@file HTMLRendererMT" → see "RenderThreadLoop() - line 1112" → Read offset=1112`
+- **Context preservation**: Thread safety, performance notes, integration details at a glance
+
+**Progress**: 19/79 files complete (24%) - ongoing effort to add to all files
+
+**When adding quick-stats**:
+
+- List key functions with line numbers (use `~` for approximate)
+- Note thread ownership for multi-threaded code
+- Include performance metrics for instrumented code
+- Reference implementation file from headers
+- Keep line counts approximate (will drift over time)
+
 ---
 
 ## Key Insights for Claude Code
@@ -372,17 +503,17 @@ luaState->LoadStateFile("../res/ui/state/fps.lua");
 
 ## Critical Documentation References
 
-See `docs/INDEX.md` for full documentation index with status tracking.
+See `docs/INDEX.md` for full documentation index with status tracking. Always save new plans with project documentation.
 
 **Read these FIRST for work in these areas**:
 
-| Area                 | Document                                | When to Read                                         |
-| -------------------- | --------------------------------------- | ---------------------------------------------------- |
-| **UI System**        | `docs/architecture/UI_SYSTEM.md`        | UI architecture, directives, templates, multi-threading, event handling |
-| **Editor**           | `docs/architecture/EDITOR_ARCHITECTURE.md` | Editor design, implementation phases |
-| **Transform System** | `docs/architecture/TRANSFORM_PIPELINE.md` | Hierarchy refactor, world transforms |
-| **Vulkan Migration** | `docs/architecture/VULKAN_MIGRATION.md` | Planning OpenGL → Vulkan migration (future research) |
-| **Project History**  | `CHANGELOG.md`                          | Understanding why architecture evolved               |
+| Area                 | Document                                   | When to Read                                                            |
+| -------------------- | ------------------------------------------ | ----------------------------------------------------------------------- |
+| **UI System**        | `docs/architecture/UI_SYSTEM.md`           | UI architecture, directives, templates, multi-threading, event handling |
+| **Editor**           | `docs/architecture/EDITOR_ARCHITECTURE.md` | Editor design, implementation phases                                    |
+| **Transform System** | `docs/architecture/TRANSFORM_PIPELINE.md`  | Hierarchy refactor, world transforms                                    |
+| **Vulkan Migration** | `docs/architecture/VULKAN_MIGRATION.md`    | Planning OpenGL → Vulkan migration (future research)                    |
+| **Project History**  | `CHANGELOG.md`                             | Understanding why architecture evolved                                  |
 
 ---
 
@@ -424,6 +555,14 @@ LOG_CRITICAL("OpenGL context creation failed");
 **Output**: `logs/imhotep.log` (also echoed to console)
 
 **Initialization**: Automatic via `Logger::GetInstance()` singleton - no manual setup needed
+
+**Build-time verbosity**:
+
+```bash
+cmake -DIMHOTEP_LOG_LEVEL=Info ..
+```
+
+Valid values: `TraceL3`, `TraceL2`, `TraceL1`, `Debug`, `Info`, `Warning`, `Error`, `Critical`, `Off`.
 
 ---
 
@@ -549,11 +688,13 @@ lldb ./imhotep  # or gdb on Linux
 This project uses [Semantic Versioning 2.0.0](https://semver.org/).
 
 **Version Format**: `MAJOR.MINOR.PATCH`
+
 - **MAJOR**: Incompatible API changes
 - **MINOR**: Backwards-compatible feature additions
 - **PATCH**: Backwards-compatible bug fixes
 
 **Version Source of Truth**: `CMakeLists.txt` line 3:
+
 ```cmake
 project(imhotep VERSION 0.1.0)
 ```
@@ -561,6 +702,7 @@ project(imhotep VERSION 0.1.0)
 **Version Header**: `include/util/Version.h` (auto-generated from `Version.h.in`)
 
 **Usage in Code**:
+
 ```cpp
 #include "util/Version.h"
 
@@ -573,6 +715,7 @@ if (imhotep::Version::IsAtLeast(1, 0)) {
 ```
 
 **Updating Version**:
+
 1. Update `project(imhotep VERSION X.Y.Z)` in `CMakeLists.txt`
 2. Run `cmake ..` to regenerate `Version.h`
 3. Add changelog entry to `CHANGELOG.md` under `[Unreleased]` or new version section
@@ -595,5 +738,4 @@ if (imhotep::Version::IsAtLeast(1, 0)) {
 
 ---
 
-_Last Updated: January 16, 2026_
-_This file should be updated when project structure changes significantly._
+_Last Updated: January 20, 2026_

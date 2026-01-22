@@ -21,7 +21,7 @@ game:
   resourcePath: ../res/
   logPath: ../logs/tetris.log
   appName: Tetris
-  scenePath: scenes/MainScene.yaml
+  scenePath: scenes/TetrisScene.yaml
   debug: true
   htmlPath: ui/templates/game.html
   cssPath: ui/styles/game.css

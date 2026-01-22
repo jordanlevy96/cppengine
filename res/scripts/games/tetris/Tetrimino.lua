@@ -2,14 +2,43 @@
 --
 -- Object-oriented tetrimino class that encapsulates tetrimino state and behavior
 
--- TetriminoData and TetrisConstants are loaded globally by init.lua
+local Tetrimino = {
+    _contract = {
+        role = "entity",
+        requires = {"constants", "data"}
+    }
+}
+Tetrimino.__index = Tetrimino
+
+local C = nil
+local Data = nil
+
+local function ResolveDependencies()
+    if not C then
+        if SceneModules and SceneModules.constants then
+            C = SceneModules.constants
+        elseif TetrisConstants then
+            C = TetrisConstants
+        end
+    end
+    if not Data then
+        if SceneModules and SceneModules.data then
+            Data = SceneModules.data
+        elseif TetriminoData then
+            Data = TetriminoData
+        end
+    end
+end
 
 -- ============================================================================
 -- TETRIMINO CLASS
 -- ============================================================================
-
-Tetrimino = {}
-Tetrimino.__index = Tetrimino
+Tetrimino.init = function(self, ctx)
+    if ctx then
+        C = ctx.constants or C
+        Data = ctx.data or Data
+    end
+end
 
 -- Constructor: Creates a new tetrimino instance
 -- @param shapeKey: String key for the shape ('I', 'O', 'T', 'J', 'L', 'S', 'Z')
@@ -17,9 +46,14 @@ Tetrimino.__index = Tetrimino
 -- @param lightID: Entity ID of the light source
 -- @return: New Tetrimino instance
 function Tetrimino.new(shapeKey, renderComponent, lightID)
+    ResolveDependencies()
+    if not C or not Data then
+        error("Tetrimino dependencies missing (constants/data)")
+    end
+
     local self = setmetatable({}, Tetrimino)
 
-    local tetriminoData = TetriminoData[shapeKey]
+    local tetriminoData = Data and Data[shapeKey] or nil
     if not tetriminoData then
         error("Unknown tetrimino shape: " .. shapeKey)
     end
@@ -33,26 +67,38 @@ function Tetrimino.new(shapeKey, renderComponent, lightID)
     -- Initialize child map (2D Lua table, 0-indexed)
     self.childMap = {}
     for i = 0, 3 do
-        self.childMap[i] = {}
-        for j = 0, 3 do
-            self.childMap[i][j] = TetrisConstants.GRID_EMPTY_CELL
+            self.childMap[i] = {}
+            for j = 0, 3 do
+            self.childMap[i][j] = C.GRID_EMPTY_CELL
+            end
+        end
+
+    -- Create shape (2D Lua table, 0-indexed)
+    local shape = {}
+    for i = 1, 4 do
+        shape[i] = {0, 0, 0, 0}
+    end
+
+    for i = 1, #tetriminoData.shape do
+        for j = 1, 4 do
+            shape[i][j] = tetriminoData.shape[i][j]
         end
     end
 
     -- Create child cube entities where shape has blocks
     for i = 0, 3 do
         for j = 0, 3 do
-            if tetriminoData.shape[i + 1][j + 1] == 1 then  -- Lua arrays are 1-indexed
+            if shape[i + 1][j + 1] == 1 then  -- Lua arrays are 1-indexed
                 -- Create cube entity
                 local cubeID = RegisterEntity()
                 self.childMap[i][j] = cubeID
 
                 -- Set transform (position relative to parent, set color)
                 local transform = GetTransform(cubeID)
-                transform.Pos.x = j * TetrisConstants.TETRIMINO_SPACING
-                transform.Pos.y = i * TetrisConstants.TETRIMINO_SPACING
+                transform.Pos.x = j * C.TETRIMINO_SPACING
+                transform.Pos.y = i * C.TETRIMINO_SPACING
                 transform.Pos.z = 0
-                transform.Color = tetriminoData.color
+                transform.Color = vec4(tetriminoData.color.x, tetriminoData.color.y, tetriminoData.color.z, 1.0)
 
                 -- Add render component
                 RegisterRenderComponent(cubeID, renderComponent)
@@ -88,8 +134,8 @@ end
 function Tetrimino:getGridPosition()
     local pos = self:getPosition()
     return vec2(
-        math.floor(pos.x + TetrisConstants.GRID_POSITION_ROUNDING_OFFSET),
-        math.floor(pos.y + TetrisConstants.GRID_POSITION_ROUNDING_OFFSET)
+        math.floor(pos.x + C.GRID_POSITION_ROUNDING_OFFSET),
+        math.floor(pos.y + C.GRID_POSITION_ROUNDING_OFFSET)
     )
 end
 
@@ -100,19 +146,19 @@ function Tetrimino:updateChildPositions()
     local parentPos = parentTransform.Pos
 
     -- Snap parent to integer grid coordinates
-    local snappedX = math.floor(parentPos.x + TetrisConstants.GRID_POSITION_ROUNDING_OFFSET)
-    local snappedY = math.floor(parentPos.y + TetrisConstants.GRID_POSITION_ROUNDING_OFFSET)
+    local snappedX = math.floor(parentPos.x + C.GRID_POSITION_ROUNDING_OFFSET)
+    local snappedY = math.floor(parentPos.y + C.GRID_POSITION_ROUNDING_OFFSET)
     parentTransform.Pos.x = snappedX
     parentTransform.Pos.y = snappedY
 
     -- Update each child's position based on childMap using snapped parent position
-    for i = 0, TetrisConstants.ROTATION_MATRIX_SIZE - 1 do
-        for j = 0, TetrisConstants.ROTATION_MATRIX_SIZE - 1 do
+    for i = 0, C.ROTATION_MATRIX_SIZE - 1 do
+        for j = 0, C.ROTATION_MATRIX_SIZE - 1 do
             local childID = self.childMap[i][j]
-            if childID ~= TetrisConstants.GRID_EMPTY_CELL then
+            if childID ~= C.GRID_EMPTY_CELL then
                 local transform = GetTransform(childID)
-                transform.Pos.x = snappedX + (j * TetrisConstants.TETRIMINO_SPACING)
-                transform.Pos.y = snappedY + (i * TetrisConstants.TETRIMINO_SPACING)
+                transform.Pos.x = snappedX + (j * C.TETRIMINO_SPACING)
+                transform.Pos.y = snappedY + (i * C.TETRIMINO_SPACING)
                 transform.Pos.z = parentPos.z
             end
         end
@@ -134,7 +180,7 @@ function Tetrimino:move(direction)
     TranslateEntity(self.entityID, vec3(direction.x, direction.y, 0))
 
     -- Update all child positions to match parent's new position
-    -- self:updateChildPositions()
+    self:updateChildPositions()
 end
 
 -- Move tetrimino with animation
@@ -145,8 +191,8 @@ function Tetrimino:tweenMove(direction, duration)
     local tween = GetTween(self.entityID)
 
     -- Snap current position to grid to avoid accumulating floating-point errors
-    local startX = math.floor(transform.Pos.x + TetrisConstants.GRID_POSITION_ROUNDING_OFFSET)
-    local startY = math.floor(transform.Pos.y + TetrisConstants.GRID_POSITION_ROUNDING_OFFSET)
+    local startX = math.floor(transform.Pos.x + C.GRID_POSITION_ROUNDING_OFFSET)
+    local startY = math.floor(transform.Pos.y + C.GRID_POSITION_ROUNDING_OFFSET)
     transform.Pos.x = startX
     transform.Pos.y = startY
 
@@ -177,13 +223,13 @@ function Tetrimino:turnMatrixCW()
     for i = 0, 3 do
         rotated[i] = {}
         for j = 0, 3 do
-            rotated[i][j] = TetrisConstants.GRID_EMPTY_CELL
+            rotated[i][j] = C.GRID_EMPTY_CELL
         end
     end
 
     for i = 0, 3 do
         for j = 0, 3 do
-            rotated[j][3 - i] = self.childMap[i][j]
+            rotated[3 - j][i] = self.childMap[i][j]
         end
     end
 
@@ -197,13 +243,13 @@ function Tetrimino:turnMatrixCCW()
     for i = 0, 3 do
         rotated[i] = {}
         for j = 0, 3 do
-            rotated[i][j] = TetrisConstants.GRID_EMPTY_CELL
+            rotated[i][j] = C.GRID_EMPTY_CELL
         end
     end
 
     for i = 0, 3 do
         for j = 0, 3 do
-            rotated[3 - j][i] = self.childMap[i][j]
+            rotated[j][3 - i] = self.childMap[i][j]
         end
     end
 
@@ -229,7 +275,7 @@ function Tetrimino:rotate(rotation)
     self.childMap = newChildMap
 
     -- Update child positions to match new rotation
-    -- self:updateChildPositions()
+    self:updateChildPositions()
 end
 
 -- ============================================================================

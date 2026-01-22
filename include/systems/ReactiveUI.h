@@ -1,6 +1,18 @@
 /**
  * @file ReactiveUI.h
  * @brief Reactive UI system with template rendering and state management
+ * @lines ~245
+ *
+ * Quick-stats (Public API):
+ * - RegisterTemplate() - Load HTML template (line ~65)
+ * - BindLuaState() - Attach reactive Lua state (line ~75)
+ * - RenderWithLua() - Evaluate + render template (line ~85)
+ * - DispatchEvent() - Handle UI events (@click, etc.) (line ~95)
+ * - LoadTemplateFromFiles() - Load HTML + CSS + Lua (line ~110)
+ *
+ * Purpose: Glue layer connecting TemplateParser, LuaUIState, and HTMLRendererMT
+ * Coordinates rendering flow: dirty check → evaluate → render
+ * Implementation: See src/systems/ReactiveUI.cpp (390 lines)
  */
 
 #pragma once
@@ -202,6 +214,7 @@ private:
     std::shared_ptr<LuaUIState> m_luaState;   ///< Reactive Lua state (nullptr in legacy mode)
     std::unique_ptr<TemplateParser> m_parser; ///< Directive parser (nullptr in legacy mode)
     bool m_useLuaMode = false;                ///< true = Lua directives, false = legacy placeholders
+    std::map<std::string, std::map<std::string, std::string>> m_lastEventHandlers; ///< Cached event handlers to detect changes
 
     /**
      * @brief Render template with legacy placeholder substitution

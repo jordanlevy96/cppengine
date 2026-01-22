@@ -1,3 +1,32 @@
+/**
+ * @file ReactiveUI.cpp
+ * @brief Reactive UI singleton managing HTML templates with Lua state bindings
+ * @lines ~390
+ *
+ * Purpose: Coordinates HTML template rendering with Lua state management.
+ * Acts as glue between TemplateParser (directives), LuaUIState (data), and HTMLRendererMT (display).
+ *
+ * Key functions:
+ * - RegisterTemplate() - Load HTML template (line 11, ~30 lines)
+ * - BindLuaState() - Attach Lua state for reactive updates (line 82, ~5 lines)
+ * - RenderWithLua() - Evaluate template + render via HTMLRendererMT (line 113, ~25 lines)
+ * - DispatchEvent() - Handle UI events (@click, etc.) (line 140, ~185 lines)
+ * - LoadTemplateFromFiles() - Load HTML + CSS + Lua state (line 338, ~50 lines)
+ *
+ * Rendering flow:
+ * 1. Check if LuaUIState is dirty (IsDirty())
+ * 2. If dirty: TemplateParser::Evaluate(state) → HTML string
+ * 3. Pass HTML to HTMLRendererMT for multi-threaded rendering
+ * 4. Clear dirty flag after render
+ *
+ * Event handling:
+ * - Parses @click, @keydown, etc. from HTML
+ * - Executes Lua functions in response to user input
+ * - Coordinates with WindowManager for mouse/keyboard state
+ *
+ * Integration: Central hub connecting UI components (Parser, State, Renderer)
+ */
+
 #include "systems/ReactiveUI.h"
 #include "controllers/ScriptManager.h"
 #include "systems/HTMLRendererMT.h"
@@ -59,7 +88,7 @@ void ReactiveUI::ForceRender()
 
 void ReactiveUI::RenderTemplate()
 {
-    LOG_DEBUG("[ReactiveUI] Rendering template (legacy mode, dirty)");
+    LOG_TRACE_L2("[ReactiveUI] Rendering template (legacy mode, dirty)");
 
     m_cachedHTML = m_template;
 
@@ -118,15 +147,21 @@ void ReactiveUI::RenderWithLua()
         return;
     }
 
-    LOG_DEBUG("[ReactiveUI] Rendering template (Lua mode, dirty)");
+    LOG_TRACE_L2("[ReactiveUI] Rendering template (Lua mode, dirty)");
 
     // Use TemplateParser to evaluate directives with current Lua state
     m_cachedHTML = m_parser->Evaluate(*m_luaState);
 
-    // Update HTML renderer with new event handlers after re-render
+    // Only update event handlers if they changed (avoids churn on data-only updates)
+    const auto &newHandlers = m_parser->GetEventHandlers();
     HTMLRendererMT &htmlRenderer = HTMLRendererMT::GetInstance();
-    htmlRenderer.SetEventHandlers(m_parser->GetEventHandlers());
-    LOG_DEBUG("[ReactiveUI] Updated {} event handlers after render", m_parser->GetEventHandlers().size());
+
+    if (newHandlers != m_lastEventHandlers)
+    {
+        htmlRenderer.SetEventHandlers(newHandlers);
+        m_lastEventHandlers = newHandlers;
+        LOG_TRACE_L2("[ReactiveUI] Updated {} event handlers after render", newHandlers.size());
+    }
 }
 
 // === Event Handling Implementation ===
@@ -141,8 +176,7 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
         return;
     }
 
-    LOG_DEBUG("[ReactiveUI] Dispatching {} event: handler='{}', elem='{}'",
-              eventType, handlerExpr, eventData.elemId);
+    // Log only errors, not every event dispatch
 
     // Parse handler expression: "methodName" or "methodName(args)" or "methodName($event)"
     std::string handlerName;
@@ -228,21 +262,20 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
             sol::object argValue;
             bool evaluatedSuccessfully = false;
 
-            // Try to evaluate as Lua expression (e.g., "entity.id") within the state table context
+            // Try to evaluate as Lua expression (e.g., "entity.id", "uiEditor.newTemplateName") within the state table context
             try
             {
-                // Use the state table as the context for evaluation
-                // This allows accessing properties like entity.id from the state
+                // First try to get it directly from state table (for simple keys)
                 sol::object result_obj = stateTable[args[0]];
                 if (result_obj.valid() && result_obj.get_type() != sol::type::nil)
                 {
                     argValue = result_obj;
                     evaluatedSuccessfully = true;
-                    LOG_DEBUG("[ReactiveUI] Got arg '{}' directly from state table", args[0]);
+                    LOG_TRACE_L3("[ReactiveUI] Got arg '{}' directly from state table", args[0]);
                 }
                 else
                 {
-                    // Not a direct property, try to evaluate as Lua expression
+                    // Not a direct property, try to evaluate as Lua expression with state table as environment
                     std::string luaCode = "return " + args[0];
                     sol::state &lua = ScriptManager::GetInstance().GetLuaState();
 
@@ -250,12 +283,17 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
                     sol::load_result loadResult = lua.load(luaCode);
                     if (loadResult.valid())
                     {
-                        sol::protected_function_result scriptResult = loadResult();
+                        sol::protected_function func = loadResult();
+                        // Set state table as environment so expressions like "uiEditor.newTemplateName" work
+                        sol::environment env(lua, sol::create, stateTable);
+                        sol::set_environment(env, func);
+                        
+                        sol::protected_function_result scriptResult = func();
                         if (scriptResult.valid())
                         {
                             argValue = scriptResult.get<sol::object>();
                             evaluatedSuccessfully = true;
-                            LOG_DEBUG("[ReactiveUI] Evaluated arg '{}' as Lua expression", args[0]);
+                            LOG_TRACE_L3("[ReactiveUI] Evaluated arg '{}' as Lua expression", args[0]);
                         }
                     }
                 }
@@ -298,7 +336,7 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
             return;
         }
 
-        LOG_INFO("[ReactiveUI] Handler '{}' executed successfully", handlerName);
+        // Handler executed successfully
     }
     catch (const sol::error &e)
     {

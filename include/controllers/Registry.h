@@ -1,6 +1,18 @@
 /**
  * @file Registry.h
  * @brief Entity Component System (ECS) registry with SparseSet storage
+ * @lines ~345
+ *
+ * Quick-stats (Public API):
+ * - RegisterEntity() - Create new entity with name/parent (line ~65, 70)
+ * - DestroyEntity() - Remove entity + children recursively (line ~75)
+ * - GetEntityByName() - Find entity by name string (line ~85)
+ * - LoadScene() - Load YAML scene definition (line ~100)
+ * - AttachScript() - Bind Lua/Python script to entity (line ~115, 120)
+ *
+ * Based on EnTT library with hierarchical parent/child relationships
+ * Wraps entt::registry with game-specific lifecycle management
+ * Implementation: See src/controllers/Registry.cpp (345 lines)
  */
 
 #pragma once

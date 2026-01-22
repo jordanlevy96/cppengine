@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
 project(imhotep VERSION 0.1.0)
 
+# Log verbosity (TraceL3, TraceL2, TraceL1, Debug, Info, Warning, Error, Critical, Off)
+set(IMHOTEP_LOG_LEVEL "Info" CACHE STRING "Default log verbosity for Quill")
+
 # Generate version header from CMake version
 configure_file(
     "${CMAKE_SOURCE_DIR}/include/util/Version.h.in"
@@ -26,8 +29,13 @@ add_library(core SHARED
     "src/systems/HTMLRendererMT.cpp"
     "src/systems/ReactiveUI.cpp"
     "src/systems/LuaUIState.cpp"
+    "src/systems/ExpressionCache.cpp"
     "src/systems/TemplateParser.cpp"
+    "src/systems/SceneModule.cpp"
+    "src/systems/SceneContext.cpp"
+    "src/systems/SceneLoader.cpp"
     "src/util/ConfigLoader.cpp"
+    "src/util/FileIO.cpp"
     "src/util/FrameTiming.cpp"
     "src/util/Logger.cpp"
     "src/util/Mesh.cpp"
@@ -36,6 +44,8 @@ add_library(core SHARED
     "src/util/TransformUtils.cpp"
     "external/glad/src/glad.c"
 )
+
+target_compile_definitions(core PUBLIC IMHOTEP_LOG_LEVEL_STR="${IMHOTEP_LOG_LEVEL}")
 
 set(OpenGL_GL_PREFERENCE "GLVND")
 find_package(OpenGL REQUIRED)
@@ -193,6 +203,7 @@ add_executable(imhotep-editor
     "src/editor/main.cpp"
     "src/editor/Editor.cpp"
     "src/editor/SceneViewport.cpp"
+    "src/editor/UITemplateManager.cpp"
 )
 target_link_libraries(imhotep-editor PRIVATE core)
 target_include_directories(imhotep-editor PRIVATE ${core_INCLUDE_DIRS})

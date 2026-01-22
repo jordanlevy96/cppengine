@@ -21,7 +21,8 @@ enum InputTypes
     Click,  ///< Mouse button click
     Cursor, ///< Mouse cursor movement
     Resize, ///< Window resize event
-    Scroll  ///< Mouse scroll wheel
+    Scroll, ///< Mouse scroll wheel
+    Char    ///< Character input (for text fields)
 };
 
 /**
@@ -132,6 +133,9 @@ private:
 
     /// GLFW scroll wheel callback
     static void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
+
+    /// GLFW character input callback (for text fields)
+    static void char_callback(GLFWwindow *window, unsigned int codepoint);
 
     /// Input handler storage (handler ID, callback)
     std::vector<std::pair<size_t, InputHandler>> m_inputHandlers;

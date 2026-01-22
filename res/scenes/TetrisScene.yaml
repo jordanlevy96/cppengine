@@ -1,0 +1,32 @@
+name: "TetrisScene"
+
+# Engine capabilities required by scene modules
+capabilities:
+  ui: true
+  input: true
+
+# Game-specific scripts loaded before entities (in order)
+scripts:
+  - "games/tetris/TetrisConstants.lua"
+  - "games/tetris/TetriminoData.lua"
+  - "games/tetris/Tetrimino.lua"
+  - "games/tetris/TetrisGame.lua"
+  - "games/tetris/TetrisInput.lua"
+
+scene:
+  objects:
+    - name: "light"
+      transform:
+        pos: { x: 0, y: 38, z: 20 }
+        scale: { x: 0.5, y: 0.5, z: 0.5 }
+      components:
+        - type: "RenderComponent"
+          shader: "Basic.shader"
+          model: "cube.obj"
+
+    - name: "TetrisGrid"
+      components:
+        - type: "LuaScript"
+          script: "games/tetris/TetrisGrid.lua"
+          shader: "OutlinedCube.shader"
+          model: "cube.obj"

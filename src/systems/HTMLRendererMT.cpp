@@ -1,3 +1,33 @@
+/**
+ * @file HTMLRendererMT.cpp
+ * @brief Multi-threaded HTML/CSS renderer using litehtml + FreeType
+ * @lines ~1380
+ *
+ * CRITICAL: This system uses TWO threads:
+ * - **Main thread**: OpenGL operations, texture uploads, input handling
+ * - **Render thread**: litehtml rendering, FreeType text rasterization
+ *
+ * Key functions (Main Thread):
+ * - Initialize() - Setup GL, start render thread (line 858)
+ * - LoadHTML() / UpdateHTML() - Queue HTML for render thread (line 938, 955)
+ * - Render() - Upload texture to GPU (line 961)
+ * - UpdateTextureFromPixelBuffer() - Main→GPU texture transfer (line 1004)
+ * - HandleClickEvent() - Process UI clicks (line 1190)
+ * - Shutdown() - Stop render thread gracefully (line 1067)
+ *
+ * Key functions (Render Thread):
+ * - RenderThreadLoop() - Background rendering loop (line 1112)
+ * - SoftwareRenderer class - litehtml document_container impl (line 16-857)
+ *
+ * Thread Safety:
+ * - m_mutex protects: m_html, m_pendingHTML, m_renderRequested
+ * - m_bufferMutex protects: m_backBuffer ↔ m_frontBuffer swap
+ * - NEVER call OpenGL from render thread
+ * - NEVER call FreeType from main thread
+ *
+ * Performance: Render thread runs async (~5-15ms), main thread only pays texture upload (~1-2ms)
+ */
+
 #include <glad/glad.h>
 #include "systems/HTMLRendererMT.h"
 #include "systems/ReactiveUI.h"
@@ -72,17 +102,17 @@ public:
     {
         try
         {
-            LOG_DEBUG("[SoftwareRenderer] Creating document from HTML ({} bytes)", html.size());
+            LOG_TRACE_L2("[SoftwareRenderer] Creating document from HTML ({} bytes)", html.size());
 
             // Create document
             m_document = litehtml::document::createFromString(html.c_str(), this);
             if (m_document)
             {
-                LOG_DEBUG("[SoftwareRenderer] Rendering document");
+                LOG_TRACE_L2("[SoftwareRenderer] Rendering document");
                 m_document->render(m_buffer->width);
-                LOG_DEBUG("[SoftwareRenderer] Drawing to buffer");
+                LOG_TRACE_L2("[SoftwareRenderer] Drawing to buffer");
                 RenderToBuffer();
-                LOG_DEBUG("[SoftwareRenderer] Render complete");
+                LOG_TRACE_L2("[SoftwareRenderer] Render complete");
             }
             else
             {
@@ -618,14 +648,14 @@ public:
 
         if (!m_document)
         {
-            LOG_DEBUG("[SoftwareRenderer] No document to extract elements from");
+            LOG_TRACE_L2("[SoftwareRenderer] No document to extract elements from");
             return;
         }
 
         auto root = m_document->root();
         if (!root)
         {
-            LOG_DEBUG("[SoftwareRenderer] No document root");
+            LOG_TRACE_L2("[SoftwareRenderer] No document root");
             return;
         }
 
@@ -639,7 +669,7 @@ public:
                       return a.zIndex < b.zIndex;
                   });
 
-        LOG_DEBUG("[SoftwareRenderer] Extracted {} interactive elements", m_interactiveElements.size());
+        LOG_TRACE_L2("[SoftwareRenderer] Extracted {} interactive elements", m_interactiveElements.size());
     }
 
     /**
@@ -701,7 +731,7 @@ private:
 
                 m_interactiveElements.push_back(ie);
 
-                LOG_TRACE_L1("[SoftwareRenderer] Interactive element: id={}, bounds=({},{},{}x{}), z={}, handlers={}",
+                LOG_TRACE_L3("[SoftwareRenderer] Interactive element: id={}, bounds=({},{},{}x{}), z={}, handlers={}",
                              ie.id, ie.x, ie.y, ie.width, ie.height, ie.zIndex, ie.handlers.size());
             }
         }
@@ -938,7 +968,7 @@ void HTMLRendererMT::SetupGL()
 void HTMLRendererMT::LoadHTML(const std::string &html)
 {
     auto start = std::chrono::high_resolution_clock::now();
-    LOG_DEBUG("[HTMLRendererMT] Loading HTML ({} bytes)", html.size());
+    LOG_TRACE_L2("[HTMLRendererMT] Loading HTML ({} bytes)", html.size());
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -949,7 +979,7 @@ void HTMLRendererMT::LoadHTML(const std::string &html)
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    LOG_DEBUG("[HTMLRendererMT] LoadHTML took {}ms", duration);
+    LOG_TRACE_L2("[HTMLRendererMT] LoadHTML took {}ms", duration);
 }
 
 void HTMLRendererMT::UpdateHTML(const std::string &html)
@@ -968,7 +998,7 @@ void HTMLRendererMT::Render()
         std::lock_guard<std::mutex> lock(m_bufferMutex);
         if (m_frontBuffer.frameNumber != m_lastFrameNumber)
         {
-            LOG_DEBUG("[HTMLRendererMT] Uploading new frame {}", m_frontBuffer.frameNumber);
+            LOG_TRACE_L2("[HTMLRendererMT] Uploading new frame {}", m_frontBuffer.frameNumber);
             UpdateTextureFromPixelBuffer();
             m_lastFrameNumber = m_frontBuffer.frameNumber;
         }
@@ -1153,13 +1183,13 @@ void HTMLRendererMT::RenderThreadLoop()
         if (needsRender && !currentHTML.empty())
         {
             auto renderStart = std::chrono::high_resolution_clock::now();
-            LOG_DEBUG("[RenderThread] Rendering HTML");
+            LOG_TRACE_L2("[RenderThread] Rendering HTML");
 
             renderer.RenderHTML(currentHTML);
 
-            // Extract interactive elements after rendering
-            // LOG_INFO("[RenderThread] Extracting interactive elements with {} handlers", m_eventHandlers.size());
-            renderer.ExtractInteractiveElements(m_eventHandlers);
+            // Extract interactive elements after rendering (thread-safe copy of handlers)
+            auto handlers = GetEventHandlers();
+            renderer.ExtractInteractiveElements(handlers);
             m_backInteractiveElements = renderer.GetInteractiveElements();
             // LOG_INFO("[RenderThread] Extracted {} interactive elements", m_backInteractiveElements.size());
 
@@ -1180,7 +1210,7 @@ void HTMLRendererMT::RenderThreadLoop()
             needsRender = false;
             auto totalEnd = std::chrono::high_resolution_clock::now();
             auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(totalEnd - renderStart).count();
-            LOG_DEBUG("[RenderThread] Render complete (render: {}ms, total: {}ms)", renderDuration, totalDuration);
+            LOG_TRACE_L2("[RenderThread] Render complete (render: {}ms, total: {}ms)", renderDuration, totalDuration);
         }
     }
 
@@ -1200,9 +1230,6 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
     float framebufferX = x * scaleX;
     float framebufferY = y * scaleY;
 
-    LOG_INFO("[HTMLRendererMT] HandleClickEvent: Window={}x{} (framebuffer={}x{}), Click=({}, {}) window -> ({}, {}) framebuffer, Button={}, Scale={}x{}",
-             windowWidth, windowHeight, m_width, m_height, x, y, framebufferX, framebufferY, button, scaleX, scaleY);
-
     // Use framebuffer coordinates for hit-testing
     x = framebufferX;
     y = framebufferY;
@@ -1214,32 +1241,21 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
         elements = m_frontInteractiveElements;
     }
 
-    LOG_INFO("[HTMLRendererMT] Have {} interactive elements to test", elements.size());
-
     // Screen coordinates now match litehtml coordinates (no flip needed)
-    LOG_INFO("[HTMLRendererMT] Click Y (framebuffer): {}", y);
 
     // Hit-test in reverse order (highest z-index first)
     for (auto it = elements.rbegin(); it != elements.rend(); ++it)
     {
         const auto &elem = *it;
-        LOG_INFO("[HTMLRendererMT] Testing element '{}': bounds=({},{},{}x{}), handlers={}",
-                 elem.id, elem.x, elem.y, elem.width, elem.height, elem.handlers.size());
 
         // Point-in-rectangle test
         if (x >= elem.x && x < elem.x + elem.width &&
             y >= elem.y && y < elem.y + elem.height)
         {
-            LOG_INFO("[HTMLRendererMT] HIT! Click is inside element bounds");
-
-            LOG_INFO("[HTMLRendererMT] Click hit element '{}' at ({}, {}), button={}", elem.id, x, y, button);
-
             // Check if element has a click handler
             auto clickIt = elem.handlers.find("click");
             if (clickIt != elem.handlers.end())
             {
-                LOG_INFO("[HTMLRendererMT] Element '{}' has click handler: '{}'", elem.id, clickIt->second);
-
                 // Dispatch to ReactiveUI
                 // Note: Pass framebuffer coordinates directly - they match the hit-test coordinates
                 ReactiveUI &ui = ReactiveUI::GetInstance();
@@ -1250,17 +1266,12 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
                 eventData.elemId = elem.id;
                 eventData.eventType = "click";
 
-                LOG_INFO("[HTMLRendererMT] Dispatching click event for element '{}' with coords ({}, {}), button={}",
-                         elem.id, x, y, button);
                 ui.DispatchEvent("click", clickIt->second, eventData);
-                LOG_INFO("[HTMLRendererMT] Click dispatch completed for element '{}'", elem.id);
-
                 return true; // Event handled
             }
         }
     }
 
-    LOG_TRACE_L1("[HTMLRendererMT] Click at ({}, {}) did not hit any interactive element", x, y);
     return false; // Event not handled
 }
 
@@ -1296,8 +1307,6 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
         if (x >= elem.x && x < elem.x + elem.width &&
             y >= elem.y && y < elem.y + elem.height)
         {
-            LOG_INFO("[HTMLRendererMT] HOVER HIT! Element '{}' at cursor ({}, {}), bounds=({},{},{}x{})",
-                     elem.id, x, y, elem.x, elem.y, elem.width, elem.height);
             newHoveredElement = elem.id;
             break; // Found topmost element
         }
@@ -1317,8 +1326,6 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                     auto mouseoutIt = elem.handlers.find("mouseout");
                     if (mouseoutIt != elem.handlers.end())
                     {
-                        LOG_INFO("[HTMLRendererMT] Element '{}' has mouseout handler: '{}'", elem.id, mouseoutIt->second);
-
                         // Dispatch to ReactiveUI
                         ReactiveUI &ui = ReactiveUI::GetInstance();
                         ReactiveUI::EventData eventData;
@@ -1328,10 +1335,7 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                         eventData.elemId = elem.id;
                         eventData.eventType = "mouseout";
 
-                        LOG_INFO("[HTMLRendererMT] Dispatching mouseout event for element '{}' with coords ({}, {})",
-                                 elem.id, x, y);
                         ui.DispatchEvent("mouseout", mouseoutIt->second, eventData);
-                        LOG_INFO("[HTMLRendererMT] Mouseout dispatch completed for element '{}'", elem.id);
                     }
                     break;
                 }
@@ -1349,8 +1353,6 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                     auto mouseoverIt = elem.handlers.find("mouseover");
                     if (mouseoverIt != elem.handlers.end())
                     {
-                        LOG_INFO("[HTMLRendererMT] Element '{}' has mouseover handler: '{}'", elem.id, mouseoverIt->second);
-
                         // Dispatch to ReactiveUI
                         ReactiveUI &ui = ReactiveUI::GetInstance();
                         ReactiveUI::EventData eventData;
@@ -1360,10 +1362,7 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
                         eventData.elemId = elem.id;
                         eventData.eventType = "mouseover";
 
-                        LOG_INFO("[HTMLRendererMT] Dispatching mouseover event for element '{}' with coords ({}, {})",
-                                 elem.id, x, y);
                         ui.DispatchEvent("mouseover", mouseoverIt->second, eventData);
-                        LOG_INFO("[HTMLRendererMT] Mouseover dispatch completed for element '{}'", elem.id);
                     }
                     break;
                 }

@@ -1006,7 +1006,7 @@ endif()
 ### Learning Path
 
 **Prerequisites** (before writing Vulkan code):
-1. **Vulkan Tutorial** (vulkan-tutorial.com) - Complete all chapters (~40 hours)
+1. **Vulkan Tutorial** (vulkan-tutorial.com) - Complete all chapters
 2. **Vulkan Spec** - Read chapters: Fundamentals, Device, Memory, Pipelines, Synchronization
 3. **Sascha Willems Examples** (github.com/SaschaWillems/Vulkan) - Study basic examples
 4. **Validation Layers** - Practice reading and understanding error messages
@@ -1036,7 +1036,7 @@ endif()
 
 ### Learning Philosophy
 
-- **Expect Steep Curve**: First triangle takes days, not hours
+- **Expect Steep Curve**: First triangle is a significant milestone
 - **Validation Layers are Non-Negotiable**: Run with validation always in debug builds
 - **Incremental Progress**: Triangle → cube → mesh → texture → scene
 - **Reference Frequently**: Keep spec, tutorial, examples open while coding
@@ -1130,7 +1130,7 @@ Vulkan is a **long-term educational investment**. The current OpenGL renderer is
 - Simulation logic moves to GPU (compute shaders)
 - Platform requirements demand it (macOS OpenGL deprecation)
 
-Expect ~40 hours for fundamentals (Vulkan Tutorial), then ongoing learning as features are implemented. Validation layers and RenderDoc are essential tools.
+Working through the fundamentals (Vulkan Tutorial) and ongoing learning as features are implemented is recommended. Validation layers and RenderDoc are essential tools.
 
 ### When to Start
 

@@ -1,8 +1,23 @@
 /**
  * @file HTMLRendererMT.h
  * @brief Multi-threaded HTML/CSS renderer using litehtml and FreeType
+ * @lines ~225
+ *
+ * Quick-stats (Public API):
+ * - Initialize() - Setup GL, start render thread (line ~75)
+ * - LoadHTML() / UpdateHTML() - Queue HTML for render (line ~85, 90)
+ * - Render() - Upload texture to GPU (line ~95)
+ * - Resize() - Handle window resize (line ~100)
+ * - HandleClickEvent() - Process UI clicks (line ~110)
+ * - Shutdown() - Stop render thread gracefully (line ~115)
+ *
+ * CRITICAL: Multi-threaded architecture
+ * - Main thread: OpenGL, texture uploads, input
+ * - Render thread: litehtml, FreeType rasterization
+ * - Thread safety via m_mutex and m_bufferMutex
  *
  * Architecture: docs/architecture/UI_SYSTEM.md
+ * Implementation: See src/systems/HTMLRendererMT.cpp (1380 lines)
  */
 
 #pragma once
@@ -116,20 +131,22 @@ public:
     void UpdateHoverState(float x, float y);
 
     /**
-     * @brief Get event handlers map from template parser
+     * @brief Get event handlers map (thread-safe copy)
      * @return Map of element ID → {eventType → handlerExpression}
      * @note Set by ReactiveUI after template evaluation
      */
-    const std::map<std::string, std::map<std::string, std::string>>& GetEventHandlers() const {
+    std::map<std::string, std::map<std::string, std::string>> GetEventHandlers() const {
+        std::lock_guard<std::mutex> lock(m_eventHandlersMutex);
         return m_eventHandlers;
     }
 
     /**
-     * @brief Set event handlers from template parser
+     * @brief Set event handlers from template parser (thread-safe)
      * @param handlers Map of element ID → {eventType → handlerExpression}
      * @note Called by ReactiveUI after template evaluation
      */
     void SetEventHandlers(const std::map<std::string, std::map<std::string, std::string>>& handlers) {
+        std::lock_guard<std::mutex> lock(m_eventHandlersMutex);
         m_eventHandlers = handlers;
     }
 
@@ -206,6 +223,7 @@ private:
     std::vector<InteractiveElement> m_frontInteractiveElements;  ///< Read by main thread
     std::vector<InteractiveElement> m_backInteractiveElements;   ///< Written by render thread
     std::mutex m_interactiveElementsMutex;                       ///< Protects element swap
+    mutable std::mutex m_eventHandlersMutex;                     ///< Protects event handlers
     std::map<std::string, std::map<std::string, std::string>> m_eventHandlers; ///< From TemplateParser
     std::string m_lastHoveredElement;                            ///< Track hover state for mouseout events
 

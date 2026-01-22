@@ -1,3 +1,30 @@
+/**
+ * @file HTMLRenderer.cpp
+ * @brief LEGACY: Single-threaded HTML renderer (superseded by HTMLRendererMT)
+ * @lines ~835
+ *
+ * Purpose: Original litehtml+FreeType renderer running on main thread.
+ * Kept for reference but no longer used in production code.
+ *
+ * Key functions:
+ * - Initialize() - Setup GL resources (line 5, ~20 lines)
+ * - LoadHTML() - Parse and render HTML+CSS (line 113, ~20 lines)
+ * - Render() - Draw to screen (line 133, ~15 lines)
+ * - draw_text() - FreeType text rasterization (line 258, ~30 lines)
+ * - draw_solid_fill() - Fill rectangles (line 322, ~10 lines)
+ * - draw_borders() - Border rendering (line 440, ~100 lines)
+ *
+ * Limitations (why HTMLRendererMT replaced it):
+ * - Blocks main thread during render (~5-15ms)
+ * - No async rendering
+ * - FreeType calls on main thread (stutters)
+ *
+ * Migration status: Fully replaced by HTMLRendererMT in all modes (Game, Editor)
+ * Removal: TODO - can be deleted once HTMLRendererMT is proven stable
+ *
+ * @deprecated Use HTMLRendererMT instead
+ */
+
 #include <glad/glad.h>
 #include "systems/HTMLRenderer.h"
 #include <iostream>

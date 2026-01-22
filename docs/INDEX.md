@@ -1,6 +1,6 @@
 # Imhotep Documentation Index
 
-> Last Updated: January 16, 2026
+> Last Updated: 2026-01-21
 
 ## Quick Reference
 
@@ -18,6 +18,7 @@
 | Document | Purpose | Status |
 |----------|---------|--------|
 | [UI_SYSTEM.md](architecture/UI_SYSTEM.md) | HTML/CSS/Lua reactive UI, threading, events | Stable |
+| [GAME_DECOUPLING.md](architecture/GAME_DECOUPLING.md) | Removing game logic from C++, pluggable games | Planned |
 | [EDITOR_ARCHITECTURE.md](architecture/EDITOR_ARCHITECTURE.md) | Editor design, all implementation phases | Phase 1 Complete |
 | [EDITOR_VIEWPORT.md](architecture/EDITOR_VIEWPORT.md) | Viewport rendering, texture transfer, click handling | Partial |
 | [TRANSFORM_PIPELINE.md](architecture/TRANSFORM_PIPELINE.md) | Hierarchical transform refactor plan | Planned |
@@ -25,10 +26,19 @@
 
 ---
 
+## Feature Documentation
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [line-clearing-effect.md](features/line-clearing-effect.md) | Tetris line clear visual effect (color pulse) | Complete |
+
+---
+
 ## Handoff Documents
 
 | Document | Date | Purpose |
 |----------|------|---------|
+| [handoff.incremental-ui.md](handoff.incremental-ui.md) | 2026-01-19 | Incremental UI update architecture - Phase 1 instrumentation complete |
 | [handoff.20260116.md](handoff.20260116.md) | 2026-01-16 | Phase 1 completion - click-to-select, inspector, viewport highlighting |
 
 ---
@@ -51,6 +61,13 @@ Quick-reference for AI assistants and developers: project overview, build instru
 ### UI_SYSTEM.md
 Canonical reference for the reactive UI system: template directives (v-if, v-for), multi-threaded rendering, event handling, Lua state management, thread safety.
 
+### GAME_DECOUPLING.md
+Architecture for removing game-specific logic from C++ engine:
+- Generic UI API (`SetUIValue`, `RefreshUI`) replacing Tetris-specific bindings
+- Scene-driven game loading via `scripts:` section in YAML
+- Lua game controllers replacing C++ game lifecycle methods
+- File reorganization into `games/` folder structure
+
 ### EDITOR_ARCHITECTURE.md
 Full editor design and implementation roadmap:
 - **Phase 1** (✅ Complete): Foundation & Selection - window, panels, click-to-select, inspector, viewport highlighting
@@ -72,6 +89,21 @@ Transform system refactor for proper hierarchy support:
 
 ### VULKAN_MIGRATION.md
 Future graphics API migration research: current OpenGL analysis, Vulkan requirements, migration strategy.
+
+### line-clearing-effect.md
+Tetris line clearing visual effect implementation:
+- **Color pulse effect** (✅ Complete): Green → yellow → white transition over 400ms before grid collapse
+- State machine approach blocks new piece spawns during effect
+- Architecture supports future particle system integration
+- All implementation in Lua (no C++ changes needed)
+
+### handoff.incremental-ui.md
+Incremental UI update optimization architecture:
+- **Phase 1 instrumentation** (✅ Complete): ExpressionCache + performance metrics
+- **Baseline established**: 3.2ms avg render (68% under 10ms budget), 99.8% cache hit rate
+- **Phase 2-3 planned**: Dependency tracking, litehtml fork with DOM mutation API
+- Includes validation results from live Tetris gameplay testing
+- Documents three-phase optimization strategy for sub-1ms UI updates
 
 ---
 

@@ -1,3 +1,29 @@
+/**
+ * @file WindowManager.cpp
+ * @brief GLFW window and input management singleton
+ * @lines ~480
+ *
+ * Purpose: Manages application window, OpenGL context, and input routing.
+ * Centralizes all GLFW interactions for window lifecycle and event callbacks.
+ *
+ * Key functions:
+ * - Initialize() - Create GLFW window, setup OpenGL context (line 155, ~65 lines)
+ * - Shutdown() - Clean up GLFW resources (line 222, ~5 lines)
+ * - key_callback() - Route keyboard events to handlers (line 272, ~25 lines)
+ * - click_callback() - Route mouse button events (line 300, ~50 lines)
+ * - cursorPos_callback() - Route mouse movement events (line 352, ~25 lines)
+ * - scroll_callback() - Route scroll wheel events (line 410, ~20 lines)
+ * - char_callback() - Route text input events (line 432, ~15 lines)
+ * - resize_callback() - Handle window resize (line 380, ~30 lines)
+ *
+ * Input handler system:
+ * - RegisterInputHandler() adds listeners for keyboard/mouse events
+ * - Events routed to handlers in order (editor has priority via order)
+ * - Handlers return true to consume event, false to pass through
+ *
+ * Integration: Used by all systems needing window/input access (Game, Editor, ReactiveUI)
+ */
+
 #include "controllers/WindowManager.h"
 #include "controllers/Game.h"
 
@@ -214,6 +240,7 @@ bool WindowManager::Initialize(int const width, int const height)
     glfwSetCursorPosCallback(window, cursorPos_callback);
     glfwSetFramebufferSizeCallback(window, resize_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetCharCallback(window, char_callback);
 
     return true;
 }
@@ -420,6 +447,63 @@ void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double y
         {
             LOG_DEBUG("[WindowManager] Scroll input consumed by handler ID {}", id);
             return; // Event consumed, don't send to Lua
+        }
+    }
+
+    // Fall through to Lua if no C++ handler consumed event
+    ScriptManager &sm = ScriptManager::GetInstance();
+    APPEND_EVENT(event)
+}
+
+void WindowManager::char_callback(GLFWwindow *window, unsigned int codepoint)
+{
+    InputEvent event;
+    event.type = InputTypes::Char;
+    // Convert a Unicode codepoint to UTF-8.
+    // GLFW gives us a numeric codepoint (e.g. 'A' = 65). We need a UTF-8 byte sequence
+    // so InputEvent can store actual text in a std::string. The OS/UI will interpret
+    // those bytes as a readable character when rendering or processing the text.
+    char utf8[5] = {0};
+    int len = 0;
+    if (codepoint < 0x80)
+    {
+        // 1-byte UTF-8: 0xxxxxxx
+        utf8[0] = static_cast<char>(codepoint);
+        len = 1;
+    }
+    else if (codepoint < 0x800)
+    {
+        // 2-byte UTF-8: 110xxxxx 10xxxxxx
+        utf8[0] = static_cast<char>(0xC0 | (codepoint >> 6));
+        utf8[1] = static_cast<char>(0x80 | (codepoint & 0x3F));
+        len = 2;
+    }
+    else if (codepoint < 0x10000)
+    {
+        // 3-byte UTF-8: 1110xxxx 10xxxxxx 10xxxxxx
+        utf8[0] = static_cast<char>(0xE0 | (codepoint >> 12));
+        utf8[1] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+        utf8[2] = static_cast<char>(0x80 | (codepoint & 0x3F));
+        len = 3;
+    }
+    else
+    {
+        // 4-byte UTF-8: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+        utf8[0] = static_cast<char>(0xF0 | (codepoint >> 18));
+        utf8[1] = static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
+        utf8[2] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+        utf8[3] = static_cast<char>(0x80 | (codepoint & 0x3F));
+        len = 4;
+    }
+    event.input = std::string(utf8, len);
+
+    // Try C++ handlers first
+    WindowManager &wm = GetInstance();
+    for (const auto &[id, handler] : wm.m_inputHandlers)
+    {
+        if (handler(event))
+        {
+            return; // Event consumed
         }
     }
 

@@ -1,6 +1,28 @@
 /**
  * @file EngineCore.cpp
- * @brief Implementation of common engine initialization
+ * @brief Shared engine initialization for Game and Editor modes
+ * @lines ~360
+ *
+ * Purpose: Provides common initialization code to avoid duplication between Game and Editor.
+ * Handles window, renderer, scene, script manager, and UI setup.
+ *
+ * Key functions:
+ * - Initialize() overloads - Multiple initialization paths (line 35, 82, 94)
+ * - InitializeLogger() - Setup Quill logging (line 136, ~20 lines)
+ * - InitializeWindow() - Create GLFW window + GL context (line 157, ~20 lines)
+ * - InitializeHTMLRenderer() - Setup multi-threaded UI renderer (line 177, ~20 lines)
+ * - InitializeRegistry() - Setup ECS registry (line 198, ~5 lines)
+ * - LoadScene() - Load scene from YAML (line 205, ~25 lines)
+ * - InitializeScriptManager() - Setup Lua/Python VMs (line 229, ~5 lines)
+ * - InitializeUI() - Load UI templates and state (line 236, ~110 lines)
+ * - EndFrame() - Swap buffers, poll events (line 345, ~10 lines)
+ *
+ * Initialization patterns:
+ * - Config file based (YAML settings)
+ * - Programmatic (direct parameters)
+ * - Hybrid (config + overrides)
+ *
+ * Integration: Used by both Game::Initialize() and Editor::Initialize()
  */
 
 #include "controllers/EngineCore.h"

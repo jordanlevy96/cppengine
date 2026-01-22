@@ -6,6 +6,10 @@ An experimental C++ game engine exploring declarative UI systems for complex, da
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
+## Content Policy and AI Use
+
+I use AI tools like Codex and Claude Code to assist with technical design and development. I do not use AI generated content or assets; I try to attribute all assets and use permissive licenses like CC0.
+
 ## Development Setup
 
 On Windows, compile using CMake, then open the resulting .sln with Visual Studio.
@@ -21,6 +25,16 @@ cmake ..
 make
 ./imhotep
 ```
+
+### Logging Verbosity
+
+Configure the default log level at build time:
+
+```sh
+cmake -DIMHOTEP_LOG_LEVEL=Warning ..
+```
+
+Valid values: `TraceL3`, `TraceL2`, `TraceL1`, `Debug`, `Info`, `Warning`, `Error`, `Critical`, `Off`.
 
 ### External Dependencies
 

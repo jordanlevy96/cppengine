@@ -150,24 +150,6 @@ public:
      */
     GameMode GetGameMode() const { return m_gameMode; }
 
-    /**
-     * @brief Start new game session
-     * @note Triggers game-specific initialization (called from UI/scripts)
-     */
-    void StartGame();
-
-    /**
-     * @brief Reset game to initial state
-     * @note Reloads scene, resets entities
-     */
-    void ResetGame();
-
-    /**
-     * @brief Return to main menu screen
-     * @note Cleans up game entities, shows menu UI
-     */
-    void ReturnToMainMenu();
-
 private:
     Game() {};
 
