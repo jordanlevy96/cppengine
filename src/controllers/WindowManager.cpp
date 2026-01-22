@@ -459,22 +459,28 @@ void WindowManager::char_callback(GLFWwindow *window, unsigned int codepoint)
 {
     InputEvent event;
     event.type = InputTypes::Char;
-    // Convert codepoint to UTF-8 string
+    // Convert a Unicode codepoint to UTF-8.
+    // GLFW gives us a numeric codepoint (e.g. 'A' = 65). We need a UTF-8 byte sequence
+    // so InputEvent can store actual text in a std::string. The OS/UI will interpret
+    // those bytes as a readable character when rendering or processing the text.
     char utf8[5] = {0};
     int len = 0;
     if (codepoint < 0x80)
     {
+        // 1-byte UTF-8: 0xxxxxxx
         utf8[0] = static_cast<char>(codepoint);
         len = 1;
     }
     else if (codepoint < 0x800)
     {
+        // 2-byte UTF-8: 110xxxxx 10xxxxxx
         utf8[0] = static_cast<char>(0xC0 | (codepoint >> 6));
         utf8[1] = static_cast<char>(0x80 | (codepoint & 0x3F));
         len = 2;
     }
     else if (codepoint < 0x10000)
     {
+        // 3-byte UTF-8: 1110xxxx 10xxxxxx 10xxxxxx
         utf8[0] = static_cast<char>(0xE0 | (codepoint >> 12));
         utf8[1] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
         utf8[2] = static_cast<char>(0x80 | (codepoint & 0x3F));
@@ -482,6 +488,7 @@ void WindowManager::char_callback(GLFWwindow *window, unsigned int codepoint)
     }
     else
     {
+        // 4-byte UTF-8: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
         utf8[0] = static_cast<char>(0xF0 | (codepoint >> 18));
         utf8[1] = static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
         utf8[2] = static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
