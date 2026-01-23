@@ -75,11 +75,48 @@
             border: 1px solid #3e3e3e;
             cursor: pointer;
             margin-right: 2px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .ui-editor-tab:hover {
+            background: #2a2a2a;
+            border-color: #4ec9b0;
         }
 
         .ui-editor-tab.active {
             background: #0e639c;
             color: #ffffff;
+            border-color: #0e639c;
+        }
+
+        .ui-editor-tab.active:hover {
+            background: #1177bb;
+        }
+
+        /* v-table styles for inspector */
+        .inspector-table {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .inspector-table th {
+            text-align: left;
+            padding: 4px;
+            background: #2d2d30;
+            border-bottom: 1px solid #3e3e3e;
+            font-size: 11px;
+            color: #9cdcfe;
+        }
+
+        .inspector-table td {
+            padding: 4px;
+            border-bottom: 1px solid #2d2d30;
+            font-size: 12px;
+        }
+
+        .inspector-table tr:hover {
+            background: #2a2a2a;
         }
 
         .ui-editor-code {
@@ -107,10 +144,18 @@
             color: #ffffff;
             border: none;
             cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
         }
 
         .ui-editor-button:hover {
             background: #1177bb;
+        }
+
+        .ui-editor-button.pressing {
+            background: #094771;
+            transform: translateY(1px);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .ui-editor-preview {
@@ -156,15 +201,39 @@
             background: #1e1e1e;
             cursor: pointer;
             user-select: none;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
         }
 
         .entity-item:hover {
             background: #2a2a2a;
+            border-left-color: #4ec9b0;
         }
 
         .entity-item.selected {
             background: #0e639c;
             color: #ffffff;
+            border-left-color: #4ec9b0;
+        }
+
+        .entity-item.hovering {
+            background: #2a2a2a;
+            transform: translateX(4px);
+        }
+
+        .entity-tooltip {
+            position: absolute;
+            background: #252526;
+            border: 1px solid #4ec9b0;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #4ec9b0;
+            pointer-events: none;
+            margin-left: 260px;
+            margin-top: -30px;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
     </style>
 </head>
@@ -176,8 +245,15 @@
     <div class="content">
         <div class="scene-tree">
             <h3>Scene Hierarchy</h3>
-            <div v-for="entity in entities" v-bind:class="'entity-item' .. (selectedEntityId == entity.id and ' selected' or '')" @click="selectEntity(entity.id)">
+            <div v-for="entity in entities"
+                 v-bind:class="'entity-item' .. (selectedEntityId == entity.id and ' selected' or '') .. (hoveredEntityId == entity.id and ' hovering' or '')"
+                 @click="selectEntity(entity.id)"
+                 @mouseenter="onEntityHoverEnter(entity.id, entity.name)"
+                 @mouseleave="onEntityHoverLeave">
                 {{ entity.name }}
+            </div>
+            <div v-if="showEntityTooltip" class="entity-tooltip">
+                {{ tooltipText }}
             </div>
         </div>
 
@@ -189,23 +265,10 @@
             <h3>Inspector</h3>
             <div v-if="selectedEntityId">
                 <div><strong>{{ selectedEntityName }}</strong></div>
+
                 <div style="margin-top: 10px;">
-                    <div><strong>Position</strong></div>
-                    <div>X: {{ selectedEntityPosition.x }}</div>
-                    <div>Y: {{ selectedEntityPosition.y }}</div>
-                    <div>Z: {{ selectedEntityPosition.z }}</div>
-                </div>
-                <div style="margin-top: 10px;">
-                    <div><strong>Rotation</strong></div>
-                    <div>X: {{ selectedEntityRotation.x }}</div>
-                    <div>Y: {{ selectedEntityRotation.y }}</div>
-                    <div>Z: {{ selectedEntityRotation.z }}</div>
-                </div>
-                <div style="margin-top: 10px;">
-                    <div><strong>Scale</strong></div>
-                    <div>X: {{ selectedEntityScale.x }}</div>
-                    <div>Y: {{ selectedEntityScale.y }}</div>
-                    <div>Z: {{ selectedEntityScale.z }}</div>
+                    <div><strong>Transform</strong></div>
+                    <table v-table="transformTable" class="inspector-table"></table>
                 </div>
             </div>
             <div v-else>
@@ -224,9 +287,21 @@
 
             <div v-if="uiEditor.currentTemplate">
                 <div class="ui-editor-tabs">
-                    <div class="ui-editor-tab" :class="{active: uiEditor.activeTab == 'html'}" @click="uiEditor.activeTab = 'html'">HTML</div>
-                    <div class="ui-editor-tab" :class="{active: uiEditor.activeTab == 'css'}" @click="uiEditor.activeTab = 'css'">CSS</div>
-                    <div class="ui-editor-tab" :class="{active: uiEditor.activeTab == 'lua'}" @click="uiEditor.activeTab = 'lua'">Lua</div>
+                    <div class="ui-editor-tab"
+                         :class="{active: uiEditor.activeTab == 'html'}"
+                         @click="switchTab('html')"
+                         @mouseenter="onTabHover('html')"
+                         @mouseleave="onTabLeave">HTML</div>
+                    <div class="ui-editor-tab"
+                         :class="{active: uiEditor.activeTab == 'css'}"
+                         @click="switchTab('css')"
+                         @mouseenter="onTabHover('css')"
+                         @mouseleave="onTabLeave">CSS</div>
+                    <div class="ui-editor-tab"
+                         :class="{active: uiEditor.activeTab == 'lua'}"
+                         @click="switchTab('lua')"
+                         @mouseenter="onTabHover('lua')"
+                         @mouseleave="onTabLeave">Lua</div>
                 </div>
 
                 <textarea v-if="uiEditor.activeTab == 'html'" class="ui-editor-code" v-model="uiEditor.htmlCode" @input="onCodeChange"></textarea>
@@ -234,8 +309,16 @@
                 <textarea v-if="uiEditor.activeTab == 'lua'" class="ui-editor-code" v-model="uiEditor.luaCode" @input="onCodeChange"></textarea>
 
                 <div class="ui-editor-buttons">
-                    <button class="ui-editor-button" @click="saveTemplate">Save</button>
-                    <button class="ui-editor-button" @click="previewTemplate">Preview</button>
+                    <button class="ui-editor-button"
+                            :class="{pressing: pressedButton == 'save'}"
+                            @click="saveTemplate"
+                            @mousedown="onButtonPress('save')"
+                            @mouseup="onButtonRelease">Save</button>
+                    <button class="ui-editor-button"
+                            :class="{pressing: pressedButton == 'preview'}"
+                            @click="previewTemplate"
+                            @mousedown="onButtonPress('preview')"
+                            @mouseup="onButtonRelease">Preview</button>
                 </div>
 
                 <div v-if="uiEditor.errorMessage" class="ui-editor-error">
@@ -253,7 +336,11 @@
                 <div class="ui-editor-new-template">
                     <h4>Create New Template</h4>
                     <input type="text" v-model="uiEditor.newTemplateName" @click="focusInput('uiEditor.newTemplateName')" placeholder="Template name (e.g., 'my_ui')" />
-                    <button class="ui-editor-button" @click="createTemplate(uiEditor.newTemplateName)">Create</button>
+                    <button class="ui-editor-button"
+                            :class="{pressing: pressedButton == 'create'}"
+                            @click="createTemplate(uiEditor.newTemplateName)"
+                            @mousedown="onButtonPress('create')"
+                            @mouseup="onButtonRelease">Create</button>
                     <p style="font-size: 11px; color: #888; margin-top: 5px;">Enter a name without extension (e.g., 'my_ui' creates my_ui.html, my_ui.css, my_ui.lua)</p>
                 </div>
             </div>
