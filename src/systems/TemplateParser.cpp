@@ -207,6 +207,13 @@ std::string TemplateParser::ProcessNode(GumboNode *node, LuaUIState &state)
             }
         }
 
+        // Check for v-table attribute (must come before v-for)
+        GumboAttribute *vtable = gumbo_get_attribute(&element.attributes, "v-table");
+        if (vtable)
+        {
+            return ProcessVTableElement(node, vtable->value, state);
+        }
+
         // Check for v-for attribute
         GumboAttribute *vfor = gumbo_get_attribute(&element.attributes, "v-for");
         if (vfor)
@@ -442,6 +449,149 @@ std::string TemplateParser::ProcessVForElement(GumboNode *node, const std::strin
     }
 
     return result.str();
+}
+
+std::string TemplateParser::ProcessVTableElement(GumboNode *node, const std::string &expression, LuaUIState &state)
+{
+    // Get the table data from Lua state
+    sol::object tableDataObj = state.GetValue(expression);
+
+    if (!tableDataObj.is<sol::table>())
+    {
+        LOG_ERROR("[TemplateParser] v-table data not found or not a table: {}", expression);
+        return "";
+    }
+
+    sol::table tableData = tableDataObj.as<sol::table>();
+
+    // Try to get columns/headers
+    sol::object columnsObj = tableData["columns"];
+    if (!columnsObj.valid() || columnsObj.get_type() == sol::type::nil)
+    {
+        // Try alternative naming: "headers"
+        columnsObj = tableData["headers"];
+    }
+
+    // Try to get rows/data
+    sol::object rowsObj = tableData["rows"];
+    if (!rowsObj.valid() || rowsObj.get_type() == sol::type::nil)
+    {
+        // Try alternative naming: "data"
+        rowsObj = tableData["data"];
+    }
+
+    if (!columnsObj.is<sol::table>() || !rowsObj.is<sol::table>())
+    {
+        LOG_ERROR("[TemplateParser] v-table requires 'columns' (or 'headers') and 'rows' (or 'data') arrays");
+        return "";
+    }
+
+    sol::table columns = columnsObj.as<sol::table>();
+    sol::table rows = rowsObj.as<sol::table>();
+
+    // Get node tag name to preserve container
+    GumboElement &element = node->v.element;
+    const char* tagName = gumbo_normalized_tagname(element.tag);
+
+    // Build result HTML
+    std::ostringstream oss;
+
+    // Start container tag (preserve original tag, but usually <table>)
+    oss << "<" << tagName;
+
+    // Copy attributes from original element (except v-table)
+    for (unsigned int i = 0; i < element.attributes.length; i++)
+    {
+        GumboAttribute *attr = static_cast<GumboAttribute *>(element.attributes.data[i]);
+        std::string attrName(attr->name);
+
+        // Skip v-table directive itself
+        if (attrName == "v-table")
+            continue;
+
+        oss << " " << attr->name;
+        if (attr->value && strlen(attr->value) > 0)
+        {
+            oss << "=\"" << attr->value << "\"";
+        }
+    }
+
+    oss << ">";
+
+    // Generate thead
+    oss << "<thead><tr>";
+    for (auto &colPair : columns)
+    {
+        sol::object colObj = colPair.second;
+        std::string colName;
+        if (colObj.is<std::string>())
+        {
+            colName = colObj.as<std::string>();
+        }
+        else if (colObj.is<int>())
+        {
+            colName = std::to_string(colObj.as<int>());
+        }
+        else if (colObj.is<double>())
+        {
+            colName = std::to_string(colObj.as<double>());
+        }
+        else
+        {
+            colName = "Column";
+        }
+        oss << "<th>" << colName << "</th>";
+    }
+    oss << "</tr></thead>";
+
+    // Generate tbody
+    oss << "<tbody>";
+    for (auto &rowPair : rows)
+    {
+        sol::object rowObj = rowPair.second;
+        if (!rowObj.is<sol::table>())
+            continue;
+
+        sol::table rowTable = rowObj.as<sol::table>();
+        oss << "<tr>";
+
+        for (auto &cellPair : rowTable)
+        {
+            sol::object cellObj = cellPair.second;
+            std::string cellValue;
+
+            if (cellObj.is<std::string>())
+            {
+                cellValue = cellObj.as<std::string>();
+            }
+            else if (cellObj.is<int>())
+            {
+                cellValue = std::to_string(cellObj.as<int>());
+            }
+            else if (cellObj.is<double>())
+            {
+                cellValue = std::to_string(cellObj.as<double>());
+            }
+            else if (cellObj.is<bool>())
+            {
+                cellValue = cellObj.as<bool>() ? "true" : "false";
+            }
+            else
+            {
+                cellValue = "";
+            }
+
+            oss << "<td>" << cellValue << "</td>";
+        }
+
+        oss << "</tr>";
+    }
+    oss << "</tbody>";
+
+    // Close container tag
+    oss << "</" << tagName << ">";
+
+    return oss.str();
 }
 
 std::string TemplateParser::SerializeElementForIteration(GumboNode *node, LuaUIState &state,

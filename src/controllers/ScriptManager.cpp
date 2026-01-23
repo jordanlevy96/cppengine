@@ -349,6 +349,7 @@ namespace LuaBindings
 
         lua.new_usertype<HTMLRendererMT>("HTMLRendererMT",
                                          "HandleClickEvent", &HTMLRendererMT::HandleClickEvent,
+                                         "HandleMouseButtonEvent", &HTMLRendererMT::HandleMouseButtonEvent,
                                          "UpdateHoverState", &HTMLRendererMT::UpdateHoverState);
 
         lua.new_usertype<Config>("Config",

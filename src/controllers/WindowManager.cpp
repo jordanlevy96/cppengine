@@ -326,28 +326,21 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
 void WindowManager::click_callback(GLFWwindow *window, int button, int action, int mods)
 {
     // Log all click events for debugging
-    LOG_WARNING("[WindowManager] click_callback triggered: button={}, action={}, mods={}", button, action, mods);
+    LOG_TRACE_L2("[WindowManager] click_callback triggered: button={}, action={}, mods={}", button, action, mods);
 
-    // Handle button press events (action=GLFW_PRESS)
-    // In some cases, we might only receive release events, so we process those too
-    if (action != GLFW_PRESS && action != GLFW_RELEASE)
+    // Only process GLFW_PRESS to avoid double-triggering on press+release
+    // UI click handlers should fire once per user action
+    if (action != GLFW_PRESS)
     {
-        LOG_DEBUG("[WindowManager] Ignoring click event with action={} (not GLFW_PRESS or GLFW_RELEASE)", action);
+        LOG_TRACE_L3("[WindowManager] Ignoring non-press event (action={})", action);
         return;
-    }
-
-    // For now, process both press and release
-    // This makes click detection more reliable across platforms
-    if (action == GLFW_RELEASE)
-    {
-        LOG_DEBUG("[WindowManager] Processing mouse release event (some platforms only send release)");
     }
 
     // Get cursor position at time of click
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
 
-    LOG_INFO("[WindowManager] Mouse click detected: button={}, pos=({}, {})", button, xpos, ypos);
+    LOG_TRACE_L2("[WindowManager] Mouse click detected: button={}, pos=({}, {})", button, xpos, ypos);
 
     InputEvent event;
     event.type = InputTypes::Click;
@@ -356,21 +349,21 @@ void WindowManager::click_callback(GLFWwindow *window, int button, int action, i
 
     // Try C++ handlers first
     WindowManager &wm = GetInstance();
-    LOG_INFO("[WindowManager] Trying {} C++ handlers for click event", wm.m_inputHandlers.size());
+    LOG_TRACE_L3("[WindowManager] Trying {} C++ handlers for click event", wm.m_inputHandlers.size());
     for (const auto &[id, handler] : wm.m_inputHandlers)
     {
-        LOG_DEBUG("[WindowManager] Calling handler ID {}", id);
+        LOG_TRACE_L3("[WindowManager] Calling handler ID {}", id);
         bool consumed = handler(event);
-        LOG_DEBUG("[WindowManager] Handler ID {} returned {}", id, consumed ? "true (consumed)" : "false (pass through)");
+        LOG_TRACE_L3("[WindowManager] Handler ID {} returned {}", id, consumed ? "true (consumed)" : "false (pass through)");
         if (consumed)
         {
-            LOG_DEBUG("[WindowManager] Click input consumed by handler ID {}", id);
+            LOG_TRACE_L2("[WindowManager] Click input consumed by handler ID {}", id);
             return; // Event consumed, don't send to Lua
         }
     }
 
     // Fall through to Lua if no C++ handler consumed event
-    LOG_DEBUG("[WindowManager] No handlers consumed click, adding to Lua queue");
+    LOG_TRACE_L3("[WindowManager] No handlers consumed click, adding to Lua queue");
     ScriptManager &sm = ScriptManager::GetInstance();
     APPEND_EVENT(event)
 }

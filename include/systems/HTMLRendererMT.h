@@ -119,14 +119,27 @@ public:
      * @param button Mouse button (0=left, 1=right, 2=middle)
      * @return true if click was handled by an interactive element
      * @note Thread-safe, uses m_frontInteractiveElements
+     * @note Only triggers on button press (not release)
      */
     bool HandleClickEvent(float x, float y, int button);
+
+    /**
+     * @brief Handle mouse button event with action (press/release)
+     * @param x Mouse X coordinate (window space)
+     * @param y Mouse Y coordinate (window space)
+     * @param button Mouse button (0=left, 1=right, 2=middle)
+     * @param action GLFW action (GLFW_PRESS or GLFW_RELEASE)
+     * @return true if event was handled by an interactive element
+     * @note Thread-safe, dispatches mousedown/mouseup events based on action
+     * @note Use this for fine-grained control; HandleClickEvent for simple clicks
+     */
+    bool HandleMouseButtonEvent(float x, float y, int button, int action);
 
     /**
      * @brief Update hover state based on cursor position
      * @param x Mouse X coordinate (window space)
      * @param y Mouse Y coordinate (window space)
-     * @note Generates synthetic mouseover/mouseout events
+     * @note Generates synthetic mouseover/mouseout/mouseenter/mouseleave events
      */
     void UpdateHoverState(float x, float y);
 

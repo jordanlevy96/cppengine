@@ -1275,6 +1275,74 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
     return false; // Event not handled
 }
 
+bool HTMLRendererMT::HandleMouseButtonEvent(float x, float y, int button, int action)
+{
+    // Convert window coordinates to framebuffer coordinates
+    int windowWidth, windowHeight;
+    glfwGetWindowSize(m_window, &windowWidth, &windowHeight);
+
+    float scaleX = (float)m_width / (float)windowWidth;
+    float scaleY = (float)m_height / (float)windowHeight;
+
+    float framebufferX = x * scaleX;
+    float framebufferY = y * scaleY;
+
+    x = framebufferX;
+    y = framebufferY;
+
+    // Copy interactive elements (thread-safe)
+    std::vector<InteractiveElement> elements;
+    {
+        std::lock_guard<std::mutex> lock(m_interactiveElementsMutex);
+        elements = m_frontInteractiveElements;
+    }
+
+    // Determine event type based on action
+    std::string eventType;
+    if (action == GLFW_PRESS)
+    {
+        eventType = "mousedown";
+    }
+    else if (action == GLFW_RELEASE)
+    {
+        eventType = "mouseup";
+    }
+    else
+    {
+        return false; // Unknown action
+    }
+
+    // Hit-test in reverse order (highest z-index first)
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it)
+    {
+        const auto &elem = *it;
+
+        // Point-in-rectangle test
+        if (x >= elem.x && x < elem.x + elem.width &&
+            y >= elem.y && y < elem.y + elem.height)
+        {
+            // Check if element has handler for this event type
+            auto handlerIt = elem.handlers.find(eventType);
+            if (handlerIt != elem.handlers.end())
+            {
+                // Dispatch to ReactiveUI
+                ReactiveUI &ui = ReactiveUI::GetInstance();
+                ReactiveUI::EventData eventData;
+                eventData.x = x;
+                eventData.y = y;
+                eventData.button = button;
+                eventData.elemId = elem.id;
+                eventData.eventType = eventType;
+
+                ui.DispatchEvent(eventType, handlerIt->second, eventData);
+                return true; // Event handled
+            }
+        }
+    }
+
+    return false; // Event not handled
+}
+
 void HTMLRendererMT::UpdateHoverState(float x, float y)
 {
     // Convert window coordinates to framebuffer coordinates
@@ -1315,7 +1383,9 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
     // Check if hover state changed
     if (newHoveredElement != m_lastHoveredElement)
     {
-        // Dispatch mouseout to old element
+        ReactiveUI &ui = ReactiveUI::GetInstance();
+
+        // Dispatch mouseout/mouseleave to old element
         if (!m_lastHoveredElement.empty())
         {
             // Find old element
@@ -1323,26 +1393,33 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
             {
                 if (elem.id == m_lastHoveredElement)
                 {
+                    ReactiveUI::EventData eventData;
+                    eventData.x = x;
+                    eventData.y = y;
+                    eventData.button = -1; // No button for hover events
+                    eventData.elemId = elem.id;
+
+                    // Dispatch mouseout event
                     auto mouseoutIt = elem.handlers.find("mouseout");
                     if (mouseoutIt != elem.handlers.end())
                     {
-                        // Dispatch to ReactiveUI
-                        ReactiveUI &ui = ReactiveUI::GetInstance();
-                        ReactiveUI::EventData eventData;
-                        eventData.x = x;
-                        eventData.y = y;
-                        eventData.button = -1; // No button for hover events
-                        eventData.elemId = elem.id;
                         eventData.eventType = "mouseout";
-
                         ui.DispatchEvent("mouseout", mouseoutIt->second, eventData);
+                    }
+
+                    // Dispatch mouseleave event (alias for mouseout, for web compat)
+                    auto mouseleaveIt = elem.handlers.find("mouseleave");
+                    if (mouseleaveIt != elem.handlers.end())
+                    {
+                        eventData.eventType = "mouseleave";
+                        ui.DispatchEvent("mouseleave", mouseleaveIt->second, eventData);
                     }
                     break;
                 }
             }
         }
 
-        // Dispatch mouseover to new element
+        // Dispatch mouseover/mouseenter to new element
         if (!newHoveredElement.empty())
         {
             // Find new element
@@ -1350,19 +1427,26 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
             {
                 if (elem.id == newHoveredElement)
                 {
+                    ReactiveUI::EventData eventData;
+                    eventData.x = x;
+                    eventData.y = y;
+                    eventData.button = -1; // No button for hover events
+                    eventData.elemId = elem.id;
+
+                    // Dispatch mouseover event
                     auto mouseoverIt = elem.handlers.find("mouseover");
                     if (mouseoverIt != elem.handlers.end())
                     {
-                        // Dispatch to ReactiveUI
-                        ReactiveUI &ui = ReactiveUI::GetInstance();
-                        ReactiveUI::EventData eventData;
-                        eventData.x = x;
-                        eventData.y = y;
-                        eventData.button = -1; // No button for hover events
-                        eventData.elemId = elem.id;
                         eventData.eventType = "mouseover";
-
                         ui.DispatchEvent("mouseover", mouseoverIt->second, eventData);
+                    }
+
+                    // Dispatch mouseenter event (alias for mouseover, for web compat)
+                    auto mouseenterIt = elem.handlers.find("mouseenter");
+                    if (mouseenterIt != elem.handlers.end())
+                    {
+                        eventData.eventType = "mouseenter";
+                        ui.DispatchEvent("mouseenter", mouseenterIt->second, eventData);
                     }
                     break;
                 }
@@ -1371,7 +1455,7 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
 
         // TODO: CSS :hover pseudo-class support requires litehtml API integration
         // Need to call something like elem->set_pseudo_class(":hover", true) on hovered element
-        // For now, hover events are dispatched to Lua handlers via mouseover/mouseout
+        // For now, hover events are dispatched to Lua handlers via mouseover/mouseout/mouseenter/mouseleave
 
         m_lastHoveredElement = newHoveredElement;
     }
