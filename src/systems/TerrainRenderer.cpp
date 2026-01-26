@@ -229,6 +229,7 @@ void TerrainRenderer::Render(Camera *cam)
 
     // Set terrain config uniforms
     m_shader->SetFloat("u_heightScale", m_config.heightScale);
+    m_shader->SetFloat("u_heightOffset", m_config.heightOffset);
     // mapSize is in world units (tiles * tileSize), not tile counts
     float mapWorldWidth = static_cast<float>(m_config.mapWidth * m_config.tileSize);
     float mapWorldHeight = static_cast<float>(m_config.mapHeight * m_config.tileSize);

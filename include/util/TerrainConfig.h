@@ -56,6 +56,7 @@ struct TerrainConfig
     int mapWidth = 4096;            ///< Number of tiles horizontally
     int mapHeight = 2048;           ///< Number of tiles vertically
     float heightScale = 100.0f;     ///< Height multiplier
+    float heightOffset = 0.0f;      ///< Vertical offset (negative = push down, positive = lift up)
     bool wrapHorizontal = true;     ///< Enable horizontal wrap
 
     // Cache settings

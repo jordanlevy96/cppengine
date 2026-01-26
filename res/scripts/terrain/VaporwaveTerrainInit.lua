@@ -14,7 +14,8 @@ local terrainConfig = {
     mapHeight = 22,
 
     tileSize = 512,
-    heightScale = 300.0,  -- Moderate height so terrain doesn't obscure grid
+    heightScale = 100.0,    -- Mountain height
+    heightOffset = -200.0,  -- Push terrain way down below grid (grid is at Y=0 to Y=20)
 
     wrapHorizontal = true,
 
@@ -27,16 +28,16 @@ local terrainConfig = {
     biomeTilesPath = "../res/terrain/biome/",
 
     -- VAPORWAVE FOG: Pink/purple haze
-    fogStart = 100.0,    -- Start close to grid
-    fogEnd = 1000.0,     -- Extend into distance
+    fogStart = 200.0,    -- Start after grid
+    fogEnd = 2000.0,     -- Extend far into distance
     fogColor = { r = 0.8, g = 0.3, b = 0.7 },  -- Pink/magenta fog
 
-    -- Clipmap rings (coarser for background)
+    -- Clipmap rings (larger to cover visible area)
     rings = {
-        { resolution = 128, texelSize = 2.0 },   -- Ring 0
-        { resolution = 128, texelSize = 4.0 },   -- Ring 1
-        { resolution = 128, texelSize = 8.0 },   -- Ring 2
-        { resolution = 128, texelSize = 16.0 },  -- Ring 3
+        { resolution = 128, texelSize = 4.0 },   -- Ring 0
+        { resolution = 128, texelSize = 8.0 },   -- Ring 1
+        { resolution = 128, texelSize = 16.0 },  -- Ring 2
+        { resolution = 128, texelSize = 32.0 },  -- Ring 3 (wide coverage)
     }
 }
 

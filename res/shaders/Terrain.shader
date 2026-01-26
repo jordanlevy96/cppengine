@@ -13,6 +13,7 @@ uniform vec3 u_worldOrigin;
 
 // Terrain config
 uniform float u_heightScale;
+uniform float u_heightOffset;  // Vertical offset to push terrain up/down
 uniform vec2 u_mapSize;
 uniform int u_tileSize;
 
@@ -73,8 +74,8 @@ void main()
     // Normal from height differences (Y is up)
     vec3 normal = normalize(vec3(hL - hR, 2.0 * worldTexelSize, hD - hU));
 
-    // Build final position relative to world origin
-    vec3 localPos = vec3(worldXZ.x, height, worldXZ.y) - u_worldOrigin;
+    // Build final position relative to world origin (with vertical offset for layering)
+    vec3 localPos = vec3(worldXZ.x, height + u_heightOffset, worldXZ.y) - u_worldOrigin;
 
     gl_Position = u_projection * u_view * vec4(localPos, 1.0);
 
