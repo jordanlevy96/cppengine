@@ -19,14 +19,14 @@ input:
 
 game:
   resourcePath: ../res/
-  logPath: ../logs/terrain.log
-  appName: TerrainTest
-  scenePath: scenes/TerrainTestScene.yaml
+  logPath: ../logs/tetris.log
+  appName: VaporwaveTetris
+  scenePath: scenes/TetrisScene.yaml
   debug: true
-  htmlPath: ui/templates/terrain.html
-  cssPath: ui/styles/terrain.css
-  luaStatePath: ui/state/terrain.lua
-  templateName: TerrainTest
+  htmlPath: ui/templates/game.html
+  cssPath: ui/styles/game.css
+  luaStatePath: ui/state/game.lua
+  templateName: VaporwaveTetris
 
 window:
   targetFPS: 60

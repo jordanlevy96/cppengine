@@ -106,11 +106,25 @@ uniform vec3 u_fogColor;
 
 void main()
 {
-    // Simple height-based base color (fallback when no biome tiles are present)
-    vec3 lowColor = vec3(0.10, 0.35, 0.12);
-    vec3 highColor = vec3(0.55, 0.55, 0.55);
-    float t = smoothstep(0.25, 0.85, clamp(v_height01, 0.0, 1.0));
-    vec3 baseColor = mix(lowColor, highColor, t);
+    // VAPORWAVE COLOR PALETTE: Deep purple → Pink → Cyan gradient
+    vec3 color1 = vec3(0.4, 0.1, 0.6);   // Deep purple (low elevation)
+    vec3 color2 = vec3(0.9, 0.3, 0.6);   // Hot pink (mid-low)
+    vec3 color3 = vec3(0.95, 0.6, 0.4);  // Coral/orange (mid-high)
+    vec3 color4 = vec3(0.3, 0.8, 0.95);  // Cyan (high elevation)
+
+    // Multi-stop gradient for richer vaporwave aesthetic
+    float h = clamp(v_height01, 0.0, 1.0);
+    vec3 baseColor;
+    if (h < 0.33) {
+        float t = smoothstep(0.0, 0.33, h);
+        baseColor = mix(color1, color2, t);
+    } else if (h < 0.66) {
+        float t = smoothstep(0.33, 0.66, h);
+        baseColor = mix(color2, color3, t);
+    } else {
+        float t = smoothstep(0.66, 1.0, h);
+        baseColor = mix(color3, color4, t);
+    }
 
     // Simple Lambert diffuse lighting
     vec3 normal = normalize(v_normal);

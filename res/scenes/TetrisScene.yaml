@@ -7,6 +7,7 @@ capabilities:
 
 # Game-specific scripts loaded before entities (in order)
 scripts:
+  - "terrain/VaporwaveTerrainInit.lua"  # Vaporwave background terrain
   - "games/tetris/TetrisConstants.lua"
   - "games/tetris/TetriminoData.lua"
   - "games/tetris/Tetrimino.lua"
