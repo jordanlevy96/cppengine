@@ -51,3 +51,7 @@ logs/
 # Python Stuff
 **/__pycache__/
 **/__pycache__/*.cache/
+**/.venv/
+
+# Generated terrain tiles (large binary assets)
+res/terrain/

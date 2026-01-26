@@ -282,11 +282,11 @@ bool EngineCore::InitializeUI(const std::string &htmlPath,
 
     // Create methods table in Lua state for event handlers
     sol::table stateTable = m_luaState->GetStateTable();
-    sol::table methods = stateTable["methods"];
-    if (!methods.valid())
+    sol::object methodsObj = stateTable["methods"];
+    if (!methodsObj.valid() || methodsObj.get_type() == sol::type::lua_nil)
     {
         sol::state &lua = m_scriptManager->GetLuaState();
-        methods = lua.create_table();
+        sol::table methods = lua.create_table();
         stateTable["methods"] = methods;
         LOG_INFO("Created methods table in Lua UI state for event handlers");
     }

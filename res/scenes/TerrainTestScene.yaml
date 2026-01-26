@@ -1,0 +1,23 @@
+name: "TerrainTestScene"
+
+# Engine capabilities required by scene modules
+capabilities:
+  ui: true
+  input: true
+
+# Scripts loaded before entities (in order)
+scripts:
+  - "terrain/TerrainInit.lua"
+  - "terrain/TerrainInput.lua"
+
+scene:
+  objects:
+    # Simple light source
+    - name: "sun"
+      transform:
+        pos: { x: 0, y: 100, z: 0 }
+        scale: { x: 1, y: 1, z: 1 }
+      components:
+        - type: "RenderComponent"
+          shader: "Basic.shader"
+          model: "cube.obj"

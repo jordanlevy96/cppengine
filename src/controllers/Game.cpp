@@ -33,6 +33,7 @@
 #include "util/Logger.h"
 #include "util/ConfigLoader.h"
 #include "util/FrameTiming.h"
+#include "systems/TerrainRenderer.h"
 #include <fstream>
 #include <chrono>
 #include <thread>
@@ -107,7 +108,7 @@ void Game::RunFixedLoop()
 
     // Initialize frame timing with fixed timestep
     FrameTiming timing(FrameTimingMode::FIXED, conf.targetFPS);
-    timing.SetVSync(true);  // Enable VSync for fixed-speed games
+    timing.SetVSync(true); // Enable VSync for fixed-speed games
     glfwSwapInterval(1);
 
     while (!m_core.ShouldClose())
@@ -132,6 +133,12 @@ void Game::RunFixedLoop()
         TweenSystem::Update(delta);
         HierarchySystem::Update();
 
+        // Update terrain (tile streaming, dirty rects)
+        if (TerrainRenderer::GetInstance().IsInitialized())
+        {
+            TerrainRenderer::GetInstance().Update(cam, delta);
+        }
+
         // Render (every frame in fixed mode)
         Render();
         m_core.EndFrame();
@@ -149,7 +156,7 @@ void Game::RunVariableLoop()
 
     // Initialize frame timing with variable speed (60 FPS sim, conf.targetFPS render)
     FrameTiming timing(FrameTimingMode::VARIABLE, 60.0, conf.targetFPS);
-    timing.SetVSync(false);  // We control frame timing
+    timing.SetVSync(false); // We control frame timing
     glfwSwapInterval(0);
 
     while (!m_core.ShouldClose())
@@ -176,6 +183,12 @@ void Game::RunVariableLoop()
         // Update animation and hierarchy
         TweenSystem::Update(delta);
         HierarchySystem::Update();
+
+        // Update terrain (tile streaming, dirty rects)
+        if (TerrainRenderer::GetInstance().IsInitialized())
+        {
+            TerrainRenderer::GetInstance().Update(cam, delta);
+        }
 
         // Render at capped framerate (decoupled from simulation)
         if (timing.ShouldRenderFrame())
@@ -207,10 +220,16 @@ void Game::Render()
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // 2. Game Objects
+    // 2. Terrain (before game objects for depth)
+    if (TerrainRenderer::GetInstance().IsInitialized())
+    {
+        TerrainRenderer::GetInstance().Render(cam);
+    }
+
+    // 3. Game Objects
     RenderSystem::Update(cam, delta);
 
-    // 3. UI
+    // 4. UI
     htmlRenderer->Render();
 }
 
@@ -299,6 +318,15 @@ void Game::CloseWindow()
 void Game::Shutdown()
 {
     LOG_INFO("[Game] Shutting down");
+
+    // Shutdown terrain BEFORE logger is destroyed (static destruction order issue)
+    // If we don't do this explicitly, TerrainRenderer's static destructor runs
+    // after Quill's backend is destroyed, causing a hang when logging
+    if (TerrainRenderer::GetInstance().IsInitialized())
+    {
+        TerrainRenderer::GetInstance().Shutdown();
+    }
+
     htmlRenderer->Shutdown();
     windowManager->Shutdown();
     scriptManager->Shutdown();

@@ -60,8 +60,8 @@ bool Editor::Initialize()
         return true;
     }
 
-    // Load config and initialize EngineCore
-    if (!m_core.Initialize("../res/conf/settings.yaml", conf, &m_camera))
+    // Load config and initialize EngineCore (use editor-specific settings)
+    if (!m_core.Initialize("../res/conf/editor_settings.yaml", conf, &m_camera))
     {
         return false;
     }
@@ -156,14 +156,19 @@ bool Editor::Initialize()
     sol::table stateTable = luaUIState->GetStateTable();
 
     // Get or create methods table (defensive - editor.lua should have it, but be safe)
-    sol::table methods = stateTable["methods"];
-    if (!methods.valid())
+    sol::object methodsObj = stateTable["methods"];
+    sol::table methods;
+    if (!methodsObj.valid() || methodsObj.get_type() == sol::type::lua_nil)
     {
         ScriptManager &scriptManager = ScriptManager::GetInstance();
         sol::state &lua = scriptManager.GetLuaState();
         methods = lua.create_table();
         stateTable["methods"] = methods;
         LOG_WARNING("[Editor] Created methods table - it should exist in editor.lua");
+    }
+    else
+    {
+        methods = methodsObj.as<sol::table>();
     }
 
     // Register selectEntity in the methods table - bind to C++ implementation

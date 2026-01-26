@@ -34,6 +34,7 @@ struct InputEvent
     std::variant<std::string, glm::vec2, glm::vec3> input; ///< Event data (key name, 2D position, or 3D click data)
     ///< vec3 format for clicks: (x, y, button) where button: 0=left, 1=right, 2=middle
     int mods = 0; ///< Keyboard modifiers (GLFW_MOD_CONTROL, GLFW_MOD_SHIFT, etc.)
+    int action = 0; ///< Action for key/click events (GLFW_PRESS, GLFW_RELEASE, GLFW_REPEAT)
 };
 
 /**

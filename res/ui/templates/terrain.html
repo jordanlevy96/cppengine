@@ -1,0 +1,37 @@
+<html>
+<head>
+    <link rel="stylesheet" href="../styles/terrain.css">
+</head>
+<body>
+    <div class="stats-panel">
+        <div class="title">Terrain Test</div>
+        <div class="stat-row">
+            <span class="label">FPS:</span>
+            <span class="value">{{ fps }}</span>
+        </div>
+        <div class="stat-row">
+            <span class="label">Frame Time:</span>
+            <span class="value">{{ frameTime }}ms</span>
+        </div>
+        <div class="divider"></div>
+        <div class="stat-row">
+            <span class="label">CPU Tiles:</span>
+            <span class="value">{{ cpuTiles }}</span>
+        </div>
+        <div class="stat-row">
+            <span class="label">GPU Slots:</span>
+            <span class="value">{{ gpuSlots }}</span>
+        </div>
+        <div class="divider"></div>
+        <div class="controls">
+            <div>WASD - Move</div>
+            <div>Right Click + Mouse - Look</div>
+            <div>Scroll - Height</div>
+            <div>T - Wireframe</div>
+            <div>P - Print Stats</div>
+            <div>H - Test Height Edit</div>
+            <div>ESC - Quit</div>
+        </div>
+    </div>
+</body>
+</html>

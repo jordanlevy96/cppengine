@@ -303,6 +303,7 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
         event.type = InputTypes::Key;
         event.input = GLFW_KEY(key);
         event.mods = mods;
+        event.action = action;
 
         LOG_INFO("[WindowManager] Key event: key={}, action={}, mods={}", GLFW_KEY(key), action, mods);
 
@@ -353,6 +354,7 @@ void WindowManager::click_callback(GLFWwindow *window, int button, int action, i
     event.type = InputTypes::Click;
     event.input = glm::vec3(xpos, ypos, button);
     event.mods = mods;
+    event.action = action;
 
     // Try C++ handlers first
     WindowManager &wm = GetInstance();
