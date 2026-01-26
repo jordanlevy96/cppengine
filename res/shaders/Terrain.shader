@@ -36,20 +36,18 @@ out float v_height01;
 
 float SampleHeight(vec2 sampleXZ)
 {
-    // Wrap X (horizontal) and clamp Z to world bounds.
-    sampleXZ.x = mod(sampleXZ.x, u_mapSize.x);
-    sampleXZ.y = clamp(sampleXZ.y, 0.0, u_mapSize.y - 1.0);
+    // VAPORWAVE BACKGROUND MODE: Procedural gradient based on distance
+    // Creates smooth wave pattern that always renders (no tile dependencies)
+    float z = sampleXZ.y;
+    float x = sampleXZ.x;
 
-    ivec2 tileCoord = ivec2(int(floor(sampleXZ.x / float(u_tileSize))),
-                            int(floor(sampleXZ.y / float(u_tileSize))));
-    int slot = texelFetch(u_heightSlotMap, tileCoord, 0).r;
-    if (slot < 0)
-    {
-        return 0.0;
-    }
+    // Simple sine wave for variation
+    float wave = sin(z * 0.05) * 0.3 + sin(x * 0.03) * 0.2;
 
-    vec2 tileUV = fract(sampleXZ / float(u_tileSize));
-    return texture(u_heightTiles, vec3(tileUV, float(slot))).r * u_heightScale;
+    // Height varies from 0 to 1 based on Z position
+    float height01 = fract((z + wave * 100.0) / 500.0);
+
+    return height01 * u_heightScale;
 }
 
 void main()
