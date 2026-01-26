@@ -14,8 +14,8 @@ local terrainConfig = {
     mapHeight = 22,
 
     tileSize = 512,
-    heightScale = 50.0,     -- Flatten mountains for background
-    heightOffset = -500.0,  -- WAY down below everything
+    heightScale = 200.0,     -- Tall mountains that extend up into viewport
+    heightOffset = -100.0,   -- Start below, extend upward through viewport
 
     wrapHorizontal = true,
 
@@ -27,17 +27,17 @@ local terrainConfig = {
     heightTilesPath = "../res/terrain/height/",
     biomeTilesPath = "../res/terrain/biome/",
 
-    -- VAPORWAVE FOG: Reduced so colors show through
-    fogStart = 1000.0,   -- Start way in the distance
-    fogEnd = 5000.0,     -- Very far away
-    fogColor = { r = 0.2, g = 0.1, b = 0.3 },  -- Dark purple fog (subtle)
+    -- VAPORWAVE FOG: Minimal fog
+    fogStart = 5000.0,    -- Very far away so colors show
+    fogEnd = 10000.0,     -- Extremely far
+    fogColor = { r = 0.1, g = 0.05, b = 0.15 },  -- Match background
 
-    -- Clipmap rings (larger to cover visible area)
+    -- Clipmap rings (HUGE to cover entire viewport)
     rings = {
-        { resolution = 128, texelSize = 4.0 },   -- Ring 0
-        { resolution = 128, texelSize = 8.0 },   -- Ring 1
-        { resolution = 128, texelSize = 16.0 },  -- Ring 2
-        { resolution = 128, texelSize = 32.0 },  -- Ring 3 (wide coverage)
+        { resolution = 128, texelSize = 8.0 },   -- Ring 0
+        { resolution = 128, texelSize = 16.0 },  -- Ring 1
+        { resolution = 128, texelSize = 32.0 },  -- Ring 2
+        { resolution = 128, texelSize = 64.0 },  -- Ring 3 (massive coverage)
     }
 }
 
