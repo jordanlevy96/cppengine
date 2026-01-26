@@ -216,8 +216,8 @@ void Game::Render()
     glfwGetFramebufferSize(windowManager->window, &width, &height);
     glViewport(0, 0, width, height);
 
-    // 1. Background
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    // 1. Background - dark purple for vaporwave aesthetic
+    glClearColor(0.1f, 0.05f, 0.15f, 1.0f);  // Deep purple/black
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // 2. Terrain (before game objects for depth)

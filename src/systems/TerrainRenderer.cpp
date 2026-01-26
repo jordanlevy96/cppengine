@@ -214,6 +214,9 @@ void TerrainRenderer::Render(Camera *cam)
 
     m_shader->Use();
 
+    // Disable depth writes so terrain renders purely as background
+    glDepthMask(GL_FALSE);
+
     // Set matrices - terrain vertices are in local space (relative to worldOrigin)
     // so the view matrix must also use camera position relative to worldOrigin
     glm::vec3 cameraPos = cam->transform.Pos;
@@ -344,6 +347,9 @@ void TerrainRenderer::Render(Camera *cam)
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Restore depth writes for subsequent rendering
+    glDepthMask(GL_TRUE);
 }
 
 void TerrainRenderer::MarkHeightDelta(int x, int y, int w, int h, float delta)
