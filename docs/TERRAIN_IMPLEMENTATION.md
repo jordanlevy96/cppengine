@@ -1,5 +1,5 @@
 # World Map System Implementation (EU/Factorio-Style)
-**Status:** Planned (design + implementation notes)  
+**Status:** Partial (design + prototype rendering)  
 **Last Updated:** 2026-01-28  
 **Version:** 0.1.0
 
@@ -252,11 +252,39 @@ Rendering remains main-thread (OpenGL context):
 - Implement quadtree tile selection for a flat wrapped map.
 - Implement GPU tile cache with LRU + budgeted uploads.
 
+#### Phase 0 (implemented prototype): procedural tiled background renderer
+
+To validate the “render tiles + GPU cache” half of this document without committing to map data formats yet, the engine now includes a **procedural tiled background** prototype:
+
+- **Stable tile keys**: `(lod, tileX, tileY)` (currently `lod=0` only)
+- **GPU cache**: `GL_TEXTURE_2D_ARRAY` with slot eviction (LRU) and a per-frame upload budget
+- **Tile content**: CPU-generated `RGBA8` (neon grid pattern) with seamless edges between neighboring tiles
+- **Draw**: instanced quads on a fixed ground plane, rendered before scene objects with depth writes disabled
+
+Primary files:
+- `include/systems/TiledBackgroundRenderer.h`
+- `src/systems/TiledBackgroundRenderer.cpp`
+- `res/shaders/TiledBackground.shader`
+- `res/scripts/backgrounds/TiledBackground.lua`
+- `res/scenes/TetrisScene.yaml` (enables/configures in the Tetris scene)
+
+This is intentionally “overkill” for Tetris, but exercises the architecture needed for the EU/Factorio map renderer: tile keying, cache management, upload budgeting, and a shader sampling path.
+
 ### Phase 1 — EU map visuals + picking
 
 - Province borders via `provinceId` neighbor compare in shader.
 - Province picking (ID buffer or texture sampling path).
 - UI overlay wiring for selected province.
+
+---
+
+## Next steps (to converge on EU/Factorio map rendering)
+
+- Replace the prototype’s **single-LOD selection** with quadtree selection and a screen-space error/zoom policy.
+- Expand tile payload beyond `baseColor`:
+  - `provinceId` (integer texture) for borders + picking
+  - `water` / `elevation` (as needed for shading + gameplay)
+- Move tile generation/build to a worker thread and keep only uploads/draw on the render thread (main thread).
 
 ### Phase 2 — Terrain + water edits
 
@@ -277,4 +305,3 @@ Rendering remains main-thread (OpenGL context):
 - Cell resolution: smallest meaningful simulation cell size.
 - Province representation: authoritative raster IDs vs vector polygons with raster cache.
 - Serialization format and compression strategy.
-

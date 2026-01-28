@@ -1,6 +1,6 @@
 # Imhotep Documentation Index
 
-> Last Updated: 2026-01-27
+> Last Updated: 2026-01-28
 
 ## Quick Reference
 
@@ -23,7 +23,7 @@
 | [EDITOR_VIEWPORT.md](architecture/EDITOR_VIEWPORT.md) | Viewport rendering, texture transfer, click handling | Partial |
 | [TRANSFORM_PIPELINE.md](architecture/TRANSFORM_PIPELINE.md) | Hierarchical transform refactor plan | Planned |
 | [VULKAN_MIGRATION.md](architecture/VULKAN_MIGRATION.md) | OpenGL to Vulkan migration analysis | Research |
-| [TERRAIN_IMPLEMENTATION.md](TERRAIN_IMPLEMENTATION.md) | EU/Factorio-style world map implementation notes | Planned |
+| [TERRAIN_IMPLEMENTATION.md](TERRAIN_IMPLEMENTATION.md) | EU/Factorio-style world map implementation notes | Partial |
 
 ---
 
