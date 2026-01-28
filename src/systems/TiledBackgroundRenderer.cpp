@@ -90,9 +90,8 @@ bool TiledBackgroundRenderer::Initialize()
     }
 
     EnsureDrawResources();
-    RecreateCacheIfNeeded();
-
     m_initialized = true;
+    RecreateCacheIfNeeded();
     LOG_INFO("TiledBackgroundRenderer initialized (tileRes={}, cacheSlots={})",
              m_config.tileResolution, m_config.cacheSlots);
     return true;
