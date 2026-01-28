@@ -31,6 +31,11 @@ scene:
           shader: "OutlinedCube.shader"
           model: "cube.obj"
 
+    - name: "TiledBackground"
+      components:
+        - type: "LuaScript"
+          script: "backgrounds/TiledBackground.lua"
+
     - name: "FlyingProps"
       components:
         - type: "LuaScript"

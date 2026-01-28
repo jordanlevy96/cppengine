@@ -38,6 +38,7 @@
 #include "util/TransformUtils.h"
 #include "systems/ReactiveUI.h"
 #include "systems/HTMLRendererMT.h"
+#include "systems/TiledBackgroundRenderer.h"
 
 #include "controllers/WindowManager.h"
 
@@ -522,6 +523,97 @@ namespace LuaBindings
             Transform& t = Registry::GetInstance().GetComponent<Transform>(id);
             const glm::vec3 d = t.Pos - game.cam->transform.Pos;
             return glm::dot(d, game.cam->front); });
+
+        // ====================================================================
+        // Tiled background renderer (procedural tiles + GPU cache)
+        // ====================================================================
+
+        sol::table backgroundTiles = lua.create_table();
+
+        backgroundTiles["Enable"] = [](bool enabled)
+        { TiledBackgroundRenderer::GetInstance().SetEnabled(enabled); };
+
+        backgroundTiles["Configure"] = [](sol::table cfg)
+        {
+            TiledBackgroundConfig c{};
+
+            auto setNumber = [&](const char* key, auto setter)
+            {
+                sol::object v = cfg[key];
+                if (!v.valid()) {
+                    return;
+                }
+                if (v.is<double>()) {
+                    setter(static_cast<float>(v.as<double>()));
+                } else if (v.is<int>()) {
+                    setter(static_cast<float>(v.as<int>()));
+                } else if (v.is<float>()) {
+                    setter(v.as<float>());
+                } else if (v.is<std::string>()) {
+                    try {
+                        setter(std::stof(v.as<std::string>()));
+                    } catch (...) {
+                    }
+                }
+            };
+
+            auto setInt = [&](const char* key, auto setter)
+            {
+                sol::object v = cfg[key];
+                if (!v.valid()) {
+                    return;
+                }
+                if (v.is<int>()) {
+                    setter(v.as<int>());
+                } else if (v.is<double>()) {
+                    setter(static_cast<int>(v.as<double>()));
+                } else if (v.is<std::string>()) {
+                    try {
+                        setter(std::stoi(v.as<std::string>()));
+                    } catch (...) {
+                    }
+                }
+            };
+
+            auto setBool = [&](const char* key, auto setter)
+            {
+                sol::object v = cfg[key];
+                if (!v.valid()) {
+                    return;
+                }
+                if (v.is<bool>()) {
+                    setter(v.as<bool>());
+                } else if (v.is<int>()) {
+                    setter(v.as<int>() != 0);
+                } else if (v.is<std::string>()) {
+                    std::string s = v.as<std::string>();
+                    std::transform(s.begin(), s.end(), s.begin(),
+                                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+                    if (s == "true" || s == "1" || s == "yes") {
+                        setter(true);
+                    } else if (s == "false" || s == "0" || s == "no") {
+                        setter(false);
+                    }
+                }
+            };
+
+            setBool("enabled", [&](bool v) { c.enabled = v; });
+            setNumber("planeY", [&](float v) { c.planeY = v; });
+            setNumber("farDistance", [&](float v) { c.farDistance = v; });
+            setNumber("widthMultiplier", [&](float v) { c.widthMultiplier = v; });
+            setInt("tileResolution", [&](int v) { c.tileResolution = v; });
+            setInt("cacheSlots", [&](int v) { c.cacheSlots = v; });
+            setInt("maxUploadsPerFrame", [&](int v) { c.maxUploadsPerFrame = v; });
+            setNumber("tileWorldSize", [&](float v) { c.tileWorldSize = v; });
+
+            setNumber("gridSpacing", [&](float v) { c.gridSpacing = v; });
+            setInt("majorEvery", [&](int v) { c.majorEvery = v; });
+            setNumber("lineWidth", [&](float v) { c.lineWidth = v; });
+
+            TiledBackgroundRenderer::GetInstance().Configure(c);
+        };
+
+        lua["BackgroundTiles"] = backgroundTiles;
     }
 }
 
