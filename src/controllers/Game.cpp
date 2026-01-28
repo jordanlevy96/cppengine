@@ -33,11 +33,8 @@
 #include "util/Logger.h"
 #include "util/ConfigLoader.h"
 #include "util/FrameTiming.h"
-#include "systems/TerrainRenderer.h"
-#include <fstream>
 #include <chrono>
 #include <thread>
-#include <cmath>
 
 bool Game::Initialize()
 {
@@ -133,12 +130,6 @@ void Game::RunFixedLoop()
         TweenSystem::Update(delta);
         HierarchySystem::Update();
 
-        // Update terrain (tile streaming, dirty rects)
-        if (TerrainRenderer::GetInstance().IsInitialized())
-        {
-            TerrainRenderer::GetInstance().Update(cam, delta);
-        }
-
         // Render (every frame in fixed mode)
         Render();
         m_core.EndFrame();
@@ -184,12 +175,6 @@ void Game::RunVariableLoop()
         TweenSystem::Update(delta);
         HierarchySystem::Update();
 
-        // Update terrain (tile streaming, dirty rects)
-        if (TerrainRenderer::GetInstance().IsInitialized())
-        {
-            TerrainRenderer::GetInstance().Update(cam, delta);
-        }
-
         // Render at capped framerate (decoupled from simulation)
         if (timing.ShouldRenderFrame())
         {
@@ -216,20 +201,14 @@ void Game::Render()
     glfwGetFramebufferSize(windowManager->window, &width, &height);
     glViewport(0, 0, width, height);
 
-    // 1. Background - dark purple for vaporwave aesthetic
-    glClearColor(0.1f, 0.05f, 0.15f, 1.0f);  // Deep purple/black
+    // 0. Clear to vaporwave sky color (background)
+    glClearColor(0.2f, 0.7f, 0.9f, 1.0f);  // Cyan sky
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // 2. Terrain (before game objects for depth)
-    if (TerrainRenderer::GetInstance().IsInitialized())
-    {
-        TerrainRenderer::GetInstance().Render(cam);
-    }
-
-    // 3. Game Objects
+    // 1. Game Objects
     RenderSystem::Update(cam, delta);
 
-    // 4. UI
+    // 2. UI
     htmlRenderer->Render();
 }
 
@@ -318,14 +297,6 @@ void Game::CloseWindow()
 void Game::Shutdown()
 {
     LOG_INFO("[Game] Shutting down");
-
-    // Shutdown terrain BEFORE logger is destroyed (static destruction order issue)
-    // If we don't do this explicitly, TerrainRenderer's static destructor runs
-    // after Quill's backend is destroyed, causing a hang when logging
-    if (TerrainRenderer::GetInstance().IsInitialized())
-    {
-        TerrainRenderer::GetInstance().Shutdown();
-    }
 
     htmlRenderer->Shutdown();
     windowManager->Shutdown();

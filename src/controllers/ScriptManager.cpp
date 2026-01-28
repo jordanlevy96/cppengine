@@ -17,7 +17,6 @@
  * - Input event handling (keyboard, mouse)
  * - Game state management
  * - UI state updates (via LuaUIState)
- * - Terrain editing (Terrain.MarkHeightDelta, Terrain.MarkHeightSet, etc.)
  *
  * Python bindings:
  * - Data analysis and exports
@@ -39,7 +38,6 @@
 #include "util/TransformUtils.h"
 #include "systems/ReactiveUI.h"
 #include "systems/HTMLRendererMT.h"
-#include "systems/TerrainRenderer.h"
 
 #include "controllers/WindowManager.h"
 
@@ -458,125 +456,6 @@ namespace LuaBindings
         lua.set_function("GetEntityByName", [](const std::string &name) -> EntityID
                          { return Registry::GetInstance().GetEntityByName(name); });
 
-        // ====================================================================
-        // TERRAIN BINDINGS - Height editing and queries
-        // ====================================================================
-
-        // Create Terrain namespace table
-        sol::table Terrain = lua.create_named_table("Terrain");
-
-        // Terrain.MarkHeightDelta(x, y, w, h, delta) - Queue additive height edit
-        Terrain.set_function("MarkHeightDelta", [](int x, int y, int w, int h, float delta)
-                             {
-            auto& terrain = TerrainRenderer::GetInstance();
-            if (terrain.IsInitialized()) {
-                terrain.MarkHeightDelta(x, y, w, h, delta);
-            } else {
-                LOG_WARNING("[Lua] Terrain.MarkHeightDelta called but terrain not initialized");
-            } });
-
-        // Terrain.MarkHeightSet(x, y, w, h, value) - Queue absolute height set
-        Terrain.set_function("MarkHeightSet", [](int x, int y, int w, int h, float value)
-                             {
-            auto& terrain = TerrainRenderer::GetInstance();
-            if (terrain.IsInitialized()) {
-                terrain.MarkHeightSet(x, y, w, h, value);
-            } else {
-                LOG_WARNING("[Lua] Terrain.MarkHeightSet called but terrain not initialized");
-            } });
-
-        // Terrain.GetHeightAt(worldX, worldZ) - Sample height at world position
-        Terrain.set_function("GetHeightAt", [](float worldX, float worldZ) -> float
-                             {
-            auto& terrain = TerrainRenderer::GetInstance();
-            if (terrain.IsInitialized()) {
-                return terrain.GetHeightAt(worldX, worldZ);
-            }
-            LOG_WARNING("[Lua] Terrain.GetHeightAt called but terrain not initialized");
-            return 0.0f; });
-
-        // Terrain.IsInitialized() - Check if terrain system is ready
-        Terrain.set_function("IsInitialized", []() -> bool
-                             { return TerrainRenderer::GetInstance().IsInitialized(); });
-
-        // Terrain.SetWireframe(enabled) - Toggle wireframe rendering
-        Terrain.set_function("SetWireframe", [](bool enabled)
-                             {
-            auto& terrain = TerrainRenderer::GetInstance();
-            if (terrain.IsInitialized()) {
-                terrain.SetWireframe(enabled);
-            } });
-
-        // Terrain.SetShowClipRings(enabled) - Toggle clipmap ring visualization
-        Terrain.set_function("SetShowClipRings", [](bool enabled)
-                             {
-            auto& terrain = TerrainRenderer::GetInstance();
-            if (terrain.IsInitialized()) {
-                terrain.SetShowClipRings(enabled);
-            } });
-
-        // Terrain.GetStats() - Get debug statistics table
-        Terrain.set_function("GetStats", [&lua]() -> sol::table
-                             {
-            sol::table stats = lua.create_table();
-            auto& terrain = TerrainRenderer::GetInstance();
-            if (terrain.IsInitialized()) {
-                TerrainStats s = terrain.GetStats();
-                stats["cpuCacheSize"] = s.cpuCacheSize;
-                stats["gpuCacheSize"] = s.gpuCacheSize;
-                stats["tilesLoaded"] = s.tilesLoaded;
-                stats["tilesUploaded"] = s.tilesUploaded;
-                stats["bytesUploadedThisFrame"] = static_cast<int>(s.bytesUploadedThisFrame);
-                stats["cacheHits"] = s.cacheHits;
-                stats["cacheMisses"] = s.cacheMisses;
-                stats["pendingDirtyRects"] = s.pendingDirtyRects;
-            }
-            return stats; });
-
-        // Terrain.Initialize(config) - Initialize terrain system from Lua config table
-        Terrain.set_function("Initialize", [](sol::table config)
-                             {
-            auto& terrain = TerrainRenderer::GetInstance();
-            if (terrain.IsInitialized()) {
-                LOG_WARNING("[Lua] Terrain.Initialize called but terrain already initialized");
-                return true;
-            }
-
-            TerrainConfig cfg;
-
-            // Read optional config values from Lua table
-            if (config["mapWidth"].valid()) cfg.mapWidth = config["mapWidth"];
-            if (config["mapHeight"].valid()) cfg.mapHeight = config["mapHeight"];
-            if (config["tileSize"].valid()) cfg.tileSize = config["tileSize"];
-            if (config["heightScale"].valid()) cfg.heightScale = config["heightScale"];
-            if (config["wrapHorizontal"].valid()) cfg.wrapHorizontal = config["wrapHorizontal"];
-            if (config["cpuCacheSize"].valid()) cfg.cpuCacheSize = config["cpuCacheSize"];
-            if (config["gpuCacheSize"].valid()) cfg.gpuCacheSize = config["gpuCacheSize"];
-            if (config["heightTilesPath"].valid()) cfg.heightTilesPath = config["heightTilesPath"].get<std::string>();
-            if (config["biomeTilesPath"].valid()) cfg.biomeTilesPath = config["biomeTilesPath"].get<std::string>();
-            if (config["fogStart"].valid()) cfg.fogStart = config["fogStart"];
-            if (config["fogEnd"].valid()) cfg.fogEnd = config["fogEnd"];
-
-            // Read rings array if provided
-            if (config["rings"].valid() && config["rings"].get_type() == sol::type::table) {
-                sol::table rings = config["rings"];
-                cfg.rings.clear();
-                for (auto& kv : rings) {
-                    sol::table ring = kv.second.as<sol::table>();
-                    TerrainConfig::Ring r;
-                    if (ring["resolution"].valid()) r.resolution = ring["resolution"];
-                    if (ring["texelSize"].valid()) r.texelSize = ring["texelSize"];
-                    cfg.rings.push_back(r);
-                }
-            }
-
-            bool success = terrain.Initialize(cfg);
-            if (success) {
-                LOG_INFO("[Lua] Terrain initialized successfully");
-            } else {
-                LOG_ERROR("[Lua] Terrain initialization failed");
-            }
-            return success; });
     }
 }
 

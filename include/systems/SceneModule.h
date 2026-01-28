@@ -6,8 +6,6 @@
  * - Role-based dependency resolution
  * - Capability requirements validation
  * - Backward compatibility with legacy scripts
- *
- * @see docs/architecture/SCENE_CONTRACTS.md
  */
 
 #pragma once

@@ -83,7 +83,7 @@ TetrisGrid = {
     nextPieceType = nil,     -- Next piece to spawn
 
     -- Static
-    borderColor = vec3(C.BORDER_COLOR_GRAY, C.BORDER_COLOR_GRAY, C.BORDER_COLOR_GRAY),
+    borderColor = C.BORDER_COLOR,
 
     -- Dynamic
     timeSinceLastMove = 0,
@@ -112,7 +112,7 @@ TetrisGrid = {
     init = function(self, ctx)
         InitModules(ctx)
         RequireModules()
-        self.borderColor = vec3(C.BORDER_COLOR_GRAY, C.BORDER_COLOR_GRAY, C.BORDER_COLOR_GRAY)
+        self.borderColor = C.BORDER_COLOR
     end,
 
     ready = function(self)
@@ -560,7 +560,7 @@ TetrisGrid = {
         -- Hide ghost during clearing effect
         self:hideGhostPreview()
 
-        -- Store affected blocks and apply first color (green)
+        -- Store affected blocks and apply first color (neon magenta)
         for _, lineY in ipairs(linesToClear) do
             for x = 0, C.GRID_WIDTH - 1 do
                 local entity = self.grid[x][lineY]
@@ -569,8 +569,8 @@ TetrisGrid = {
                     local transform = GetTransform(entity)
                     state.affectedBlocks[entity] = vec4(transform.Color.x, transform.Color.y, transform.Color.z, transform.Color.w)
 
-                    -- Apply first color (green with full opacity)
-                    transform.Color = vec4(0, 0.8, 0, 1.0)
+                    -- Apply first color (neon magenta with full opacity)
+                    transform.Color = vec4(1.0, 0.0, 0.8, 1.0)
                 end
             end
         end
@@ -582,19 +582,19 @@ TetrisGrid = {
         local state = self.clearingState
         state.elapsedTime = state.elapsedTime + delta  -- delta is in milliseconds
 
-        -- Stage 1: 0-50ms (Original → Green) - already set by clearLines
+        -- Stage 1: 0-50ms (Original → Magenta) - already set by clearLines
 
-        -- Stage 2: 50-100ms (Green → Yellow)
+        -- Stage 2: 50-100ms (Magenta → Cyan)
         if state.elapsedTime >= 50 and state.elapsedTime < 100 then
             for entityID, _ in pairs(state.affectedBlocks) do
                 local transform = GetTransform(entityID)
                 if transform then
-                    transform.Color = vec4(0.8, 0.8, 0, 1.0)  -- Yellow with full opacity
+                    transform.Color = vec4(0.0, 0.9, 1.0, 1.0)  -- Electric cyan with full opacity
                 end
             end
         end
 
-        -- Stage 3: 100-150ms (Yellow → White)
+        -- Stage 3: 100-150ms (Cyan → White flash)
         if state.elapsedTime >= 100 and state.elapsedTime < 150 then
             for entityID, _ in pairs(state.affectedBlocks) do
                 local transform = GetTransform(entityID)

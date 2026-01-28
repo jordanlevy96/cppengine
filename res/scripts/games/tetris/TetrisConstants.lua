@@ -74,8 +74,8 @@ TetrisConstants.SPAWN_ROW = TetrisConstants.GRID_HEIGHT - 4                    -
 -- ----------------------------------------------------------------------------
 -- RENDERING CONFIGURATION
 -- ----------------------------------------------------------------------------
--- Border color: medium gray (same value for R, G, B channels).
-TetrisConstants.BORDER_COLOR_GRAY = 0.471
+-- Border color
+TetrisConstants.BORDER_COLOR = vec3(1.0, 0.0, 0.8)
 
 -- Camera field of view in degrees.
 TetrisConstants.CAMERA_FOV_DEGREES = 45

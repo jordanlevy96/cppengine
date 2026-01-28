@@ -1,422 +1,280 @@
-# Terrain System Implementation
-**Status:** Foundation complete, ready for Phase 1 polish
-**Last Updated:** 2026-01-25
+# World Map System Implementation (EU/Factorio-Style)
+**Status:** Planned (design + implementation notes)  
+**Last Updated:** 2026-01-28  
 **Version:** 0.1.0
 
 ---
 
-## Overview
+## Scope
 
-Imhotep implements a **streaming clipmap-based terrain system** with async tile loading, LRU caching, and runtime height editing. Designed to scale to large open worlds (2B+ unit maps) while maintaining 60 FPS performance.
+This document defines the target architecture for an **EU-style world map** (provinces, borders, political/strategic overlays) combined with **Factorio-style automation** (large simulation, local activity windows, dynamic world changes).
 
-**Key Achievement**: 3600+ LOC of production-quality infrastructure with zero blocking issues.
+The previous clipmap terrain prototype has been removed; this design is explicitly **world-centric** (stable IDs and coordinates), not camera-centric.
 
 ---
 
-## Architecture
+## Design goals (non-negotiable)
 
-### System Components
+- **Stable addressing**: all persistent state is keyed by stable world coordinates and IDs (not camera-relative structures).
+- **Incremental updates**: edits (terraforming, river diversion, construction) trigger bounded recompute and bounded GPU uploads.
+- **Scalable simulation**: simulation runs by chunk scheduling + LOD (detailed near, aggregated far).
+- **Determinism-friendly**: serialization, replay, and networking should be possible later (no hidden camera-driven state).
+- **Fast picking/selection**: province picking and entity picking are first-class (ID buffers / ID textures).
+
+---
+
+## Core concepts
+
+### 1) World coordinates (authoritative) vs render coordinates (ephemeral)
+
+- **Authoritative world space** is integer-addressed and stable.
+- **Render space** is camera-relative floats (floating origin) derived from authoritative coordinates.
+
+Recommended coordinate types:
+
+- `ChunkCoord` = `(int32 chunkX, int32 chunkY)`
+- `CellCoord` = `(int32 x, int32 y)` (world cell coordinates in a chosen “simulation resolution”)
+- `CellInChunk` = `(uint16 localX, uint16 localY)` with fixed chunk dimensions
+- `WorldCell` = `(ChunkCoord, CellInChunk)` (or `(int64 x, int64 y)`)
+
+### 2) Chunking (the unit of persistence and scheduling)
+
+Use fixed-size chunks (example: `256×256` simulation cells per chunk):
+
+- persistence: one file (or block) per chunk per layer
+- simulation scheduling: activate/deactivate by chunk
+- dirty propagation: edits mark chunks dirty
+- streaming: cache by chunk keys
+
+### 3) Render tiles (the unit of LOD and GPU cache)
+
+Rendering uses **stable tiles** selected by a quadtree/LOD scheme:
+
+- key: `(lod, tileX, tileY)`
+- each tile covers a stable world rectangle
+- tiles map to textures (arrays or atlas) stored in a GPU cache
+
+This is distinct from simulation chunks:
+- simulation chunk size is chosen for CPU scheduling and locality
+- render tile size is chosen for GPU cache efficiency and visual resolution
+
+---
+
+## Data model
+
+### Base layers (authoritative CPU)
+
+At minimum:
+
+- `elevation` (height field or “terrain class”)
+- `water` (water depth / water mask)
+- `soil` / `biome` (for visuals and gameplay rules)
+- `provinceId` (integer ID per cell)
+
+Optional but likely:
+- `riverMask` / `flowDir` / `flowAccum` derived layers
+- `roadMask` / `railMask` / `navCost`
+- `resourceMask` (ore, fertility, etc.)
+
+### Derived layers (recomputed)
+
+Derived layers are produced by deterministic transforms on base layers:
+
+- hydrology: flow direction, accumulation, river network extraction
+- borders: province edge mask, coastlines
+- rendering: color layers, shading layers, normal/gradient layers
+
+### Edits (operations, not full rewrites)
+
+Edits should be expressed as operations on world coordinates:
+
+- raise/lower terrain in a brush region
+- carve a channel / build a dam
+- paint province IDs / split provinces (later)
+- place/remove automation entities
+
+Edits should:
+- record as an operation log (for persistence and undo/redo later), and/or
+- apply into a delta layer per chunk, with periodic compaction into base layers.
+
+---
+
+## Persistence and streaming
+
+### Chunk storage layout
+
+One workable layout:
 
 ```
-TerrainRenderer (orchestrator)
-├─ ClipmapGeometry (4 LOD rings)
-├─ TileCache (LRU CPU + GPU management)
-├─ StreamingController (async PBO loading)
-├─ DirtyRectQueue (height edit tracking)
-└─ Terrain.shader (displacement + lighting)
+res/world/
+  meta.yaml
+  chunks/
+    cx_0000_cy_0000/
+      elevation.bin
+      water.bin
+      biome.bin
+      provinceId.bin
+      edits.log
+    cx_0000_cy_0001/
+      ...
 ```
 
-### Data Flow
+Notes:
+- Keep formats simple first (raw or lightly compressed).
+- Version chunk files (magic + version) to support migrations.
 
-1. **Camera movement** → Query required tiles
-2. **Streaming Controller** → Load tiles from disk asynchronously via PBO ring buffer
-3. **Tile Cache** → Store in CPU cache, upload to GPU when needed
-4. **Height Slot Map** → Indirection layer maps tile coords → GPU texture slot
-5. **Terrain Shader** → Sample heights + compute normals + apply lighting
+### Streaming pipeline (CPU)
 
-### World Coordination
+Goal: load/unload chunk data based on camera + simulation activity window.
 
-- **Horizontal wrap**: Enabled by default (useful for maps without hard edges)
-- **World origin rebasing**: Camera maintains ~0 local position by rebasing origin every N frames (prevents float precision loss at 2B+ distances)
-- **Height-based rendering**: Central difference normals, proper world space transformations
-
----
-
-## Configuration
-
-### Lua Scene Setup
-
-Edit `res/scripts/terrain/TerrainInit.lua`:
-
-```lua
-local terrainConfig = {
-    mapWidth = 43,              -- Tile count (horizontal)
-    mapHeight = 22,             -- Tile count (vertical)
-    tileSize = 512,             -- Pixels per tile
-    heightScale = 500.0,        -- Height multiplier
-    wrapHorizontal = true,      -- Wrap at edges
-
-    cpuCacheSize = 64,          -- CPU tiles
-    gpuCacheSize = 32,          -- GPU slots
-
-    fogStart = 500.0,           -- Linear fog near distance
-    fogEnd = 2000.0,            -- Linear fog far distance
-
-    rings = {
-        { resolution = 128, texelSize = 1.0 },   -- Ring 0 (detail)
-        { resolution = 128, texelSize = 2.0 },   -- Ring 1
-        { resolution = 128, texelSize = 4.0 },   -- Ring 2
-        { resolution = 128, texelSize = 8.0 },   -- Ring 3 (distant)
-    }
-}
-```
-
-### YAML Scene Configuration
-
-See `res/conf/terrain_settings.yaml` for override examples.
+Recommended stages:
+1. Determine needed chunks (camera view + simulation window + prefetch margin).
+2. Background I/O thread loads chunk blobs into CPU memory.
+3. Main thread (or worker threads) build derived layers / render tiles.
+4. Main thread uploads render tiles to GPU cache with a per-frame budget.
 
 ---
 
-## API Reference
+## Rendering architecture
 
-### C++ (TerrainRenderer)
+### 1) Tile selection (quadtree LOD)
 
-```cpp
-// Initialization
-bool Initialize(const TerrainConfig& config);
-void Shutdown();
+Use quadtree traversal to select a set of tiles that:
+- cover the camera view
+- meet a screen-space error threshold (or zoom-level threshold)
 
-// Per-frame updates
-void Update(const glm::vec3& cameraPos);
-void Render(const Camera& camera);
+This yields a list of stable render tiles `(lod, x, y)`.
 
-// Height editing (thread-safe)
-void MarkHeightDelta(int x, int z, int w, int h, float delta);
-void MarkHeightSet(int x, int z, int w, int h, float value);
+### 2) GPU cache (texture array or atlas)
 
-// Queries
-float GetHeightAt(const glm::vec2& worldXZ) const;
-TerrainStats GetStats() const;
+Maintain an LRU cache of tile textures on GPU:
+- key → slot index
+- eviction policy: LRU by last used frame
+- upload policy: budgeted per frame (bytes or tiles)
 
-// Debug
-void SetWireframe(bool enabled);
-void SetShowClipRings(bool enabled);
-```
+Typical tile texture layers:
+- `baseColor` (RGBA8)
+- `provinceId` (R16UI or R32UI)
+- `water` (R8/R16)
+- `elevation` (R16/R16F) if needed for shading
 
-### Lua Bindings
+### 3) Borders and picking
 
-```lua
--- Terrain initialization
-local success = Terrain.Initialize(config)
+Borders:
+- store `provinceId` per cell in a texture
+- in shader, sample neighbors and draw border where IDs differ
 
--- Debug
-Terrain.SetWireframe(enabled)
-Terrain.SetShowClipRings(enabled)
-if Terrain.IsInitialized() then
-    local stats = Terrain.GetStats()
-end
+Picking:
+- option A: render an offscreen ID buffer (provinceId/entityId)
+- option B: sample `provinceId` texture at mouse position (requires mapping from screen → world)
 
--- Height editing
-Terrain.MarkHeightDelta(x, z, w, h, delta)
-Terrain.MarkHeightSet(x, z, w, h, value)
-```
+### 4) Projection
 
-### Input Controls (TerrainInput.lua)
+Choose early:
+- **flat wrapped map** (e.g., equirectangular with horizontal wrap) for EU-style
+- **spherical/cube-sphere** if you need true globe behavior
 
-| Key | Action |
-|-----|--------|
-| W/A/S/D | Camera movement |
-| Shift + WASD | Fast movement (3x) |
-| T | Toggle wireframe |
-| R | Toggle ring visualization |
-| P | Print cache statistics |
-| H | Test height edit |
-| Right Mouse | Camera look mode |
-| Scroll | Adjust camera height |
-| ESC | Quit |
+Flat wrapped maps are simpler and align with “EU-style” expectations.
 
 ---
 
-## Performance Characteristics
+## Simulation architecture (Factorio-style automation)
 
-### Typical Frame Breakdown (M1 Mac)
+### 1) Simulation cells vs entities
 
-| Phase | Time | Notes |
-|-------|------|-------|
-| Game Logic | 1-2ms | Input, scripting |
-| Terrain Update | 0.5-1ms | Tile streaming queries |
-| 3D Render | 2-3ms | Mesh drawing |
-| Terrain Composite | 1-2ms | Texture uploads |
-| UI Render (async) | 5-15ms | Doesn't block game thread |
-| **Total** | **~7-9ms** | Headroom for 60 FPS (16.67ms) |
+Keep two grids:
+- **cell grid**: terrain/water/province per cell (chunked)
+- **entity graph**: automation entities (belts, machines, pipes) anchored to cells
 
-### Memory Usage
+### 2) Chunk scheduling (activity windows)
 
-- **CPU Cache**: 64 tiles × 512² × 4 bytes = ~512 MB (configurable)
-- **GPU Cache**: 32 slots × 512² × 2 bytes + 512² × 4 bytes = ~34 MB
-- **Per-frame uploads**: ~10 MB/frame (configurable, typically <2 MB actual)
+Define:
+- `ActiveChunks`: near camera or within user-defined regions
+- `WarmChunks`: cached but simulated at reduced rate
+- `ColdChunks`: persisted only (no active sim)
 
-### Streaming
+### 3) Simulation LOD
 
-- **Async loading**: Background thread loads from disk
-- **PBO ring buffer**: 3 buffers, double-buffered uploads prevent stalls
-- **Silent fallback**: Missing tiles render as height 0.0 (continue rendering)
+To scale:
+- near: detailed per-entity simulation (tick-by-tick)
+- far: aggregated throughput simulation per chunk/region
+- transitions must conserve resources and remain deterministic
 
 ---
 
-## Data Format
+## Dynamic world changes (terraforming + rivers)
 
-### Height Tiles
+### Dirty region pipeline
 
-**Format**: 16-bit normalized (GL_R16)
-**Size**: 512×512 pixels per tile
-**Range**: 0.0-1.0 (scaled by `heightScale` uniform)
-**Location**: `res/terrain/height/tile_X_Y.bin` (binary format)
+When an edit occurs:
+1. Convert edit region → set of affected chunks.
+2. Apply edit ops to chunk base/delta layers.
+3. Mark derived layers dirty for a bounded influence region.
+4. Recompute derived layers incrementally.
+5. Invalidate and rebuild intersecting render tiles.
+6. Budgeted GPU uploads update only those tiles.
 
-**Generation**: `tools/bake_heightmap.py` (converts heightmap images to tile set)
+### River diversion specifics (incremental hydrology)
 
-### Biome Tiles (Future)
+Hydrology recompute should be region-bounded:
+- local terrain change updates flow directions locally
+- changes propagate downstream; cap propagation by:
+  - watershed boundaries, and/or
+  - a max influence distance per tick, and/or
+  - queued incremental propagation over multiple frames
 
-**Format**: RGBA8 splatting (GL_RGBA8)
-**Channels**: R=grass, G=rock, B=sand, A=snow
-**Location**: `res/terrain/biome/biome_X_Y.bin`
-
----
-
-## Phase 1: Visual Polish (Current)
-
-### 1.1 Extended Fog and View Distance
-- **Status**: 60% ready (uniforms exist, need exponential option)
-- **Target**: Fog range 2000-8000, exponential falloff
-- **Files**: `res/shaders/Terrain.shader`, `res/scripts/terrain/TerrainInit.lua`
-
-### 1.2 Improved Color Ramp
-- **Status**: 30% ready (basic gradient exists, need configurability)
-- **Target**: Water/grass/rock/snow color stops
-- **Files**: `include/util/TerrainConfig.h`, `res/shaders/Terrain.shader`
-
-### 1.3 Geomorph Blending
-- **Status**: 0% ready (not yet implemented)
-- **Target**: Hide LOD transitions with vertex morphing
-- **Files**: `src/util/ClipmapGeometry.cpp`, `res/shaders/Terrain.shader`
-
-### 1.4 Wireframe Toggle
-- **Status**: ✅ 100% complete
-- **Control**: T key (already working)
+Keep the recompute deterministic (same inputs → same outputs).
 
 ---
 
-## Phase 2: Material System
+## Engine integration points (Imhotep)
 
-### 2.1 Biome Texture Splatting
-- Use 4-channel RGBA splatting (R=grass, G=rock, B=sand, A=snow)
-- Materials: grass, rock, sand, snow (configurable)
+### Prefer C++ “services” for heavy world systems
 
-### 2.2 Triplanar Mapping
-- Project textures from 3 axes to avoid stretching
+Large systems (map streaming, hydrology, automation) should be C++ services exposed to Lua via narrow APIs:
+- use `ServiceRegistry` (see `include/systems/ServiceRegistry.h`) to register `WorldMapService`, `HydrologyService`, etc.
+- Lua scripts remain orchestration/UI and high-level gameplay rules
 
-### 2.3 Detail Textures
-- High-frequency overlay for close-up views
+### Render loop ownership
 
----
-
-## Phase 3: Lighting Improvements
-
-### 3.1 Normal Map Support
-- Pre-computed from heightmap offline
-- Per-pixel lighting instead of vertex normals
-
-### 3.2 Shadow Mapping
-- Cascaded shadow maps (CSM) for large view distances
-
-### 3.3 Ambient Occlusion
-- SSAO or pre-baked AO
-
-### 3.4 Time of Day System
-- Configurable sun direction/color
+Rendering remains main-thread (OpenGL context):
+- CPU work can be multithreaded (I/O, tile builds, derived recompute)
+- GPU uploads must be budgeted and done on the main thread
 
 ---
 
-## Phase 4+: Advanced Features
+## Implementation roadmap (phased)
 
-- **Water rendering** - Plane detection, waves, reflections
-- **Atmosphere** - Rayleigh/Mie scattering, volumetric fog
-- **Vegetation** - Grass and trees with LOD
-- **Advanced streaming** - Virtual texturing, compression, predictive loading
+### Phase 0 — Foundations
 
----
+- Define coordinate types and conversions (cell/chunk/tile).
+- Implement chunk storage for `provinceId` and a dummy `baseColor` layer.
+- Implement quadtree tile selection for a flat wrapped map.
+- Implement GPU tile cache with LRU + budgeted uploads.
 
-## Debugging
+### Phase 1 — EU map visuals + picking
 
-### Print Cache Statistics
-```lua
--- Press P key in game, or call:
-Terrain.GetStats()  -- Returns {cpuCacheSize, gpuCacheSize, tilesLoaded, ...}
-```
+- Province borders via `provinceId` neighbor compare in shader.
+- Province picking (ID buffer or texture sampling path).
+- UI overlay wiring for selected province.
 
-### Toggle Wireframe
-```lua
--- Press T key in game, or call:
-Terrain.SetWireframe(true)
-```
+### Phase 2 — Terrain + water edits
 
-### Console Output
-Check `logs/imhotep.log` for:
-- Frame-by-frame tile loading
-- Cache hit/miss statistics
-- Ring geometry debug info
-- Streaming controller status
+- Add `elevation` + `water` layers, edits, dirty-region propagation.
+- Add incremental derived recompute (flow + rivers) with bounded propagation.
+- Update render tiles incrementally on changes.
 
-### Camera Debugging
-Position camera over known areas:
-- **Himalayas** (tile 32, row 7): Brightest/highest area
-- **Ocean** (tile 0, row 0): Darkest/lowest area
-- **Deserts** (tiles 10-20): Mid-elevation
+### Phase 3 — Automation simulation
+
+- Implement entity placement, chunk scheduling, and near/far simulation LOD.
+- Integrate with persistence and deterministic stepping.
 
 ---
 
-## Common Tasks
+## Open questions (answer early)
 
-### Add a New Terrain Feature
-1. Modify `TerrainConfig` struct to store new parameter
-2. Load parameter in `TerrainInit.lua`
-3. Pass to shader via uniform
-4. Implement in `Terrain.shader`
-5. Add Lua binding in `ScriptManager.cpp` if user-facing
+- Projection: flat wrapped vs globe.
+- Cell resolution: smallest meaningful simulation cell size.
+- Province representation: authoritative raster IDs vs vector polygons with raster cache.
+- Serialization format and compression strategy.
 
-### Change Height Scale
-```lua
--- In TerrainInit.lua:
-heightScale = 1000.0  -- Default 500.0
-```
-
-### Adjust Fog Distance
-```lua
--- In TerrainInit.lua:
-fogStart = 1000.0  -- Was 500.0
-fogEnd = 5000.0    -- Was 2000.0
-```
-
-### Test Height Editing
-```lua
--- Press H key in game to modify terrain under camera
--- Or call C++ directly:
-Terrain.MarkHeightDelta(100, 100, 50, 50, 100.0)  -- Raise a 50x50 area by 100 units
-```
-
----
-
-## Implementation Notes
-
-### Thread Safety
-- **Main thread**: Camera, rendering, most queries
-- **Loader thread**: Disk I/O, tile decompression
-- **Synchronization**: Mutex-protected tile cache, dirty rect queue
-- **GPU uploads**: PBO ring buffer (double-buffered, no stalls)
-
-### Precision Considerations
-- Uses `float` (32-bit) for heights and positions
-- World origin rebasing recommended for maps >1M units
-- Height 16-bit normalized texture prevents precision loss after rebasing
-
-### Edge Cases Handled
-- Horizontal wrap: Tile X automatically wraps to (X % mapWidth)
-- Vertical clamping: Tile Z clamped to [0, mapHeight-1)
-- Missing tiles: Silently return 0.0 height (continue rendering)
-- Camera at extremes: Origin rebasing prevents precision loss
-
----
-
-## Building & Running
-
-### Build
-```bash
-cd build && cmake .. && make -j8
-```
-
-### Run Terrain Scene
-```bash
-./imhotep  # Automatically loads TerrainTestScene
-```
-
-### Modify Heightmap
-```bash
-python3 tools/bake_heightmap.py <input.png> ../res/terrain/height/
-```
-
----
-
-## References
-
-- **Clipmap Research**: Losasso et al., "Geometry Clipmaps" (SIGGRAPH 2005)
-- **LOD Blending**: "Geomorphing" / "Blending" techniques for smooth LOD transitions
-- **Virtual Texturing**: https://developer.nvidia.com/gpugems/gpugems2/
-- **Cascaded Shadow Maps**: DirectX documentation on CSM techniques
-
----
-
-## File Inventory
-
-### Core System
-- `include/systems/TerrainRenderer.h` - Main interface (195 LOC)
-- `src/systems/TerrainRenderer.cpp` - Implementation (412 LOC)
-
-### Geometry
-- `include/util/ClipmapGeometry.h` - Ring generation (138 LOC)
-- `src/util/ClipmapGeometry.cpp` - Implementation (183 LOC)
-
-### Caching
-- `include/util/TileCache.h` - Cache interface (311 LOC)
-- `src/util/TileCache.cpp` - LRU implementation (470 LOC)
-
-### Streaming
-- `include/util/StreamingController.h` - Async loader (177 LOC)
-- `src/util/StreamingController.cpp` - PBO implementation (372 LOC)
-
-### Utilities
-- `include/util/DirtyRectQueue.h` - Edit queue (142 LOC)
-- `src/util/DirtyRectQueue.cpp` - Implementation (168 LOC)
-- `include/util/TerrainConfig.h` - Configuration (91 LOC)
-
-### Rendering
-- `res/shaders/Terrain.shader` - GLSL (132 LOC)
-
-### Scripting
-- `res/scripts/terrain/TerrainInit.lua` - Scene init (68 LOC)
-- `res/scripts/terrain/TerrainInput.lua` - Input handling (102 LOC)
-
-### Configuration
-- `res/conf/terrain_settings.yaml` - YAML config (26 LOC)
-- `res/scenes/TerrainTestScene.yaml` - Scene def (23 LOC)
-
-### Tools
-- `tools/bake_heightmap.py` - Height tile generation (247 LOC)
-
-**Total**: ~3,500 LOC implementation + ~1,300 LOC config/tools
-
----
-
-## Known Limitations
-
-| Feature | Status | Phase |
-|---------|--------|-------|
-| Configurable color ramps | ✗ | 1.2 |
-| Geomorph LOD blending | ✗ | 1.3 |
-| Exponential fog | ✗ | 1.1 |
-| Normal maps | ✗ | 3.1 |
-| Shadow mapping | ✗ | 3.2 |
-| Water rendering | ✗ | 4.x |
-| Vegetation | ✗ | 6.x |
-
----
-
-## Next Steps
-
-1. **Phase 1.1**: Implement exponential fog, expand range to 2000-8000 units
-2. **Phase 1.2**: Create water/grass/rock/snow color stops system
-3. **Phase 1.3**: Add vertex morphing for LOD transitions
-4. **Phase 2.1**: Biome texture splatting (major visual upgrade)
-
----
-
-_Last Updated: 2026-01-25 by Claude Code_

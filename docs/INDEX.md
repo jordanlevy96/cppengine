@@ -1,6 +1,6 @@
 # Imhotep Documentation Index
 
-> Last Updated: 2026-01-21
+> Last Updated: 2026-01-27
 
 ## Quick Reference
 
@@ -23,14 +23,7 @@
 | [EDITOR_VIEWPORT.md](architecture/EDITOR_VIEWPORT.md) | Viewport rendering, texture transfer, click handling | Partial |
 | [TRANSFORM_PIPELINE.md](architecture/TRANSFORM_PIPELINE.md) | Hierarchical transform refactor plan | Planned |
 | [VULKAN_MIGRATION.md](architecture/VULKAN_MIGRATION.md) | OpenGL to Vulkan migration analysis | Research |
-
----
-
-## Feature Documentation
-
-| Document | Purpose | Status |
-|----------|---------|--------|
-| [line-clearing-effect.md](features/line-clearing-effect.md) | Tetris line clear visual effect (color pulse) | Complete |
+| [TERRAIN_IMPLEMENTATION.md](TERRAIN_IMPLEMENTATION.md) | EU/Factorio-style world map implementation notes | Planned |
 
 ---
 
@@ -39,7 +32,6 @@
 | Document | Date | Purpose |
 |----------|------|---------|
 | [handoff.incremental-ui.md](handoff.incremental-ui.md) | 2026-01-19 | Incremental UI update architecture - Phase 1 instrumentation complete |
-| [handoff.20260116.md](handoff.20260116.md) | 2026-01-16 | Phase 1 completion - click-to-select, inspector, viewport highlighting |
 
 ---
 
@@ -90,12 +82,8 @@ Transform system refactor for proper hierarchy support:
 ### VULKAN_MIGRATION.md
 Future graphics API migration research: current OpenGL analysis, Vulkan requirements, migration strategy.
 
-### line-clearing-effect.md
-Tetris line clearing visual effect implementation:
-- **Color pulse effect** (✅ Complete): Green → yellow → white transition over 400ms before grid collapse
-- State machine approach blocks new piece spawns during effect
-- Architecture supports future particle system integration
-- All implementation in Lua (no C++ changes needed)
+### TERRAIN_IMPLEMENTATION.md
+Implementation notes for an EU/Factorio-style world map: stable chunked data, quadtree render tiles, GPU cache + streaming, province borders/picking, and incremental recompute for dynamic changes.
 
 ### handoff.incremental-ui.md
 Incremental UI update optimization architecture:
