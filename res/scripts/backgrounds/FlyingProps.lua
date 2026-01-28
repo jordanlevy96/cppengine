@@ -1,7 +1,7 @@
--- FlyingProps.lua
+-- FlyingProps.lua (Tetris)
 --
--- Scene-agnostic background prop spawner.
--- Attach as a LuaScript component to an entity named "FlyingProps" (or rename the table to match).
+-- Small background effect: spawn simple props that drift along camera.front.
+-- Heavy math helpers live in C++ (ComputeCameraSpawnPosition, MoveEntityAlongCameraFront, DistanceAlongCameraFront).
 
 local function Trim(s)
     if type(s) ~= "string" then
@@ -66,38 +66,32 @@ local function RandRange(minVal, maxVal)
 end
 
 FlyingProps = {
-    -- ------------------------------------------------------------------------
-    -- Config (YAML overrides arrive as strings)
-    -- ------------------------------------------------------------------------
     enabled = true,
 
     shader = "Basic.shader",
-    models = "cube.obj,pyramid.obj,tetrahedron.obj,octahedron.obj,bunny.obj",
+    models = "pyramid.obj,octahedron.obj,tetrahedron.obj,cube.obj",
 
-    spawnRate = 0.8,         -- props/second
-    maxProps = 20,           -- active props cap
-    speed = 12.0,            -- world units/second along camera.front
-    travelSign = 1.0,        -- 1 = along camera.front (toward horizon), -1 = toward camera
+    spawnRate = 0.75,         -- props/second
+    maxProps = 24,            -- active props cap
+    speed = 12.0,             -- units/second along camera.front
+    travelSign = 1.0,         -- 1 = along camera.front, -1 = toward camera
 
-    spawnDistanceMin = 60.0, -- distance along camera.front from camera
+    spawnDistanceMin = 80.0,  -- distance along camera.front from camera
     spawnDistanceMax = 140.0,
-    despawnDistance = 600.0, -- distance along camera.front before despawn
+    despawnDistance = 700.0,  -- distance along camera.front before despawn
 
-    lateralRange = 50.0,     -- units along camera right vector
-    verticalRange = 25.0,    -- units along +Y
-    baseYOffset = 0.0,       -- vertical bias
+    lateralRange = 80.0,
+    verticalRange = 40.0,
+    baseYOffset = -10.0,
 
     scaleMin = 0.6,
-    scaleMax = 2.0,
+    scaleMax = 2.5,
 
     bobAmplitudeMin = 0.0,
     bobAmplitudeMax = 3.0,
     bobSpeedMin = 0.5,
     bobSpeedMax = 1.5,
 
-    -- ------------------------------------------------------------------------
-    -- Internal
-    -- ------------------------------------------------------------------------
     _modelList = {},
     _renderComponents = {},
     _activeProps = {},
@@ -105,14 +99,55 @@ FlyingProps = {
     _timeMs = 0.0,
 
     ready = function(self)
-        self:_NormalizeConfig()
-        self:_BuildRenderComponents()
+        self.enabled = ToBool(self.enabled, true)
+        self.spawnRate = ToNumber(self.spawnRate, 0.75)
+        self.maxProps = math.floor(ToNumber(self.maxProps, 24))
+        self.speed = ToNumber(self.speed, 12.0)
+        self.travelSign = ToNumber(self.travelSign, 1.0)
+
+        self.spawnDistanceMin = ToNumber(self.spawnDistanceMin, 80.0)
+        self.spawnDistanceMax = ToNumber(self.spawnDistanceMax, 140.0)
+        self.despawnDistance = ToNumber(self.despawnDistance, 700.0)
+
+        self.lateralRange = ToNumber(self.lateralRange, 80.0)
+        self.verticalRange = ToNumber(self.verticalRange, 40.0)
+        self.baseYOffset = ToNumber(self.baseYOffset, -10.0)
+
+        self.scaleMin = ToNumber(self.scaleMin, 0.6)
+        self.scaleMax = ToNumber(self.scaleMax, 2.5)
+
+        self.bobAmplitudeMin = ToNumber(self.bobAmplitudeMin, 0.0)
+        self.bobAmplitudeMax = ToNumber(self.bobAmplitudeMax, 3.0)
+        self.bobSpeedMin = ToNumber(self.bobSpeedMin, 0.5)
+        self.bobSpeedMax = ToNumber(self.bobSpeedMax, 1.5)
+
+        if self.spawnDistanceMax < self.spawnDistanceMin then
+            local tmp = self.spawnDistanceMin
+            self.spawnDistanceMin = self.spawnDistanceMax
+            self.spawnDistanceMax = tmp
+        end
+
+        if self.scaleMax < self.scaleMin then
+            local tmp = self.scaleMin
+            self.scaleMin = self.scaleMax
+            self.scaleMax = tmp
+        end
+
+        self._modelList = SplitCSV(self.models)
+        if #self._modelList == 0 then
+            self._modelList = {"cube.obj"}
+        end
+
+        self._renderComponents = {}
+        for _, model in ipairs(self._modelList) do
+            local rc = CreateRenderComponent(self.shader, Trim(model))
+            table.insert(self._renderComponents, rc)
+        end
 
         self._activeProps = {}
         self._spawnAccumulatorMs = 0.0
         self._timeMs = 0.0
 
-        -- Seed a small initial set so the scene isn't empty.
         local initial = math.min(8, self.maxProps)
         for _ = 1, initial do
             self:_SpawnProp()
@@ -124,53 +159,27 @@ FlyingProps = {
             return
         end
 
-        local camera = GameManager and GameManager.camera or nil
-        if not camera then
+        if not GameManager or not GameManager.camera then
             return
         end
 
         local deltaSec = deltaMs * 0.001
         self._timeMs = self._timeMs + deltaMs
-
-        local front = camera.front
-        local camPos = camera.transform.Pos
-
-        -- Camera right vector assuming Y-up world: right = normalize(cross(front, up))
-        -- with up=(0,1,0) => right=( -front.z, 0, front.x )
-        local rightX = -front.z
-        local rightZ = front.x
-        local rightLen = math.sqrt(rightX * rightX + rightZ * rightZ)
-        if rightLen < 0.0001 then
-            rightX = 1.0
-            rightZ = 0.0
-            rightLen = 1.0
-        end
-        rightX = rightX / rightLen
-        rightZ = rightZ / rightLen
-
-        local moveX = front.x * self.speed * deltaSec * self.travelSign
-        local moveY = front.y * self.speed * deltaSec * self.travelSign
-        local moveZ = front.z * self.speed * deltaSec * self.travelSign
-
         local timeSec = self._timeMs * 0.001
+
+        local moveDist = self.speed * deltaSec * self.travelSign
 
         for i = #self._activeProps, 1, -1 do
             local p = self._activeProps[i]
             local t = GetTransform(p.id)
             if t then
-                t.Pos.x = t.Pos.x + moveX
-                t.Pos.y = t.Pos.y + moveY
-                t.Pos.z = t.Pos.z + moveZ
+                MoveEntityAlongCameraFront(p.id, moveDist)
 
                 if p.bobAmplitude > 0.0 then
                     t.Pos.y = p.baseY + math.sin(timeSec * p.bobSpeed + p.bobPhase) * p.bobAmplitude
                 end
 
-                local dx = t.Pos.x - camPos.x
-                local dy = t.Pos.y - camPos.y
-                local dz = t.Pos.z - camPos.z
-                local distAlongFront = dx * front.x + dy * front.y + dz * front.z
-
+                local distAlongFront = DistanceAlongCameraFront(p.id)
                 if self.travelSign > 0.0 then
                     if distAlongFront > self.despawnDistance then
                         DestroyEntity(p.id)
@@ -197,76 +206,7 @@ FlyingProps = {
         end
     end,
 
-    _NormalizeConfig = function(self)
-        self.enabled = ToBool(self.enabled, true)
-
-        self.spawnRate = ToNumber(self.spawnRate, 0.8)
-        self.maxProps = math.floor(ToNumber(self.maxProps, 20))
-        self.speed = ToNumber(self.speed, 12.0)
-        self.travelSign = ToNumber(self.travelSign, 1.0)
-
-        self.spawnDistanceMin = ToNumber(self.spawnDistanceMin, 60.0)
-        self.spawnDistanceMax = ToNumber(self.spawnDistanceMax, 140.0)
-        self.despawnDistance = ToNumber(self.despawnDistance, 600.0)
-
-        self.lateralRange = ToNumber(self.lateralRange, 50.0)
-        self.verticalRange = ToNumber(self.verticalRange, 25.0)
-        self.baseYOffset = ToNumber(self.baseYOffset, 0.0)
-
-        self.scaleMin = ToNumber(self.scaleMin, 0.6)
-        self.scaleMax = ToNumber(self.scaleMax, 2.0)
-
-        self.bobAmplitudeMin = ToNumber(self.bobAmplitudeMin, 0.0)
-        self.bobAmplitudeMax = ToNumber(self.bobAmplitudeMax, 3.0)
-        self.bobSpeedMin = ToNumber(self.bobSpeedMin, 0.5)
-        self.bobSpeedMax = ToNumber(self.bobSpeedMax, 1.5)
-
-        if self.spawnDistanceMax < self.spawnDistanceMin then
-            local tmp = self.spawnDistanceMin
-            self.spawnDistanceMin = self.spawnDistanceMax
-            self.spawnDistanceMax = tmp
-        end
-
-        if self.scaleMax < self.scaleMin then
-            local tmp = self.scaleMin
-            self.scaleMin = self.scaleMax
-            self.scaleMax = tmp
-        end
-
-        if type(self.models) == "string" then
-            self._modelList = SplitCSV(self.models)
-        elseif type(self.models) == "table" then
-            self._modelList = self.models
-        else
-            self._modelList = {"cube.obj"}
-        end
-
-        if self.maxProps < 0 then
-            self.maxProps = 0
-        end
-        if self.spawnRate < 0.0 then
-            self.spawnRate = 0.0
-        end
-    end,
-
-    _BuildRenderComponents = function(self)
-        self._renderComponents = {}
-
-        for _, model in ipairs(self._modelList) do
-            local m = Trim(model)
-            if m and m ~= "" then
-                local rc = CreateRenderComponent(self.shader, m)
-                table.insert(self._renderComponents, rc)
-            end
-        end
-
-        if #self._renderComponents == 0 then
-            table.insert(self._renderComponents, CreateRenderComponent(self.shader, "cube.obj"))
-        end
-    end,
-
     _PickColor = function(self)
-        -- Default palette (can be overridden by editing this script or adding a config hook later).
         local palette = {
             vec3(1.0, 0.0, 0.8),
             vec3(0.0, 0.9, 1.0),
@@ -279,36 +219,11 @@ FlyingProps = {
     end,
 
     _SpawnProp = function(self)
-        local camera = GameManager and GameManager.camera or nil
-        if not camera then
-            return
-        end
-
-        local front = camera.front
-        local camPos = camera.transform.Pos
-
-        local rightX = -front.z
-        local rightZ = front.x
-        local rightLen = math.sqrt(rightX * rightX + rightZ * rightZ)
-        if rightLen < 0.0001 then
-            rightX = 1.0
-            rightZ = 0.0
-            rightLen = 1.0
-        end
-        rightX = rightX / rightLen
-        rightZ = rightZ / rightLen
-
         local dist = RandRange(self.spawnDistanceMin, self.spawnDistanceMax)
         local lateral = RandRange(-self.lateralRange, self.lateralRange)
-        local vertical = RandRange(-self.verticalRange, self.verticalRange) + self.baseYOffset
+        local vertical = RandRange(-self.verticalRange, self.verticalRange)
 
-        local baseX = camPos.x + front.x * dist
-        local baseY = camPos.y + front.y * dist
-        local baseZ = camPos.z + front.z * dist
-
-        local x = baseX + rightX * lateral
-        local y = baseY + vertical
-        local z = baseZ + rightZ * lateral
+        local pos = ComputeCameraSpawnPosition(dist, lateral, vertical, self.baseYOffset)
 
         local entity = RegisterEntity()
         if self.__entityId then
@@ -316,9 +231,7 @@ FlyingProps = {
         end
 
         local t = GetTransform(entity)
-        t.Pos.x = x
-        t.Pos.y = y
-        t.Pos.z = z
+        t.Pos = pos
 
         local scale = RandRange(self.scaleMin, self.scaleMax)
         t.Scale = vec3(scale, scale, scale)
@@ -333,7 +246,7 @@ FlyingProps = {
 
         table.insert(self._activeProps, {
             id = entity,
-            baseY = y,
+            baseY = pos.y,
             bobAmplitude = bobAmplitude,
             bobSpeed = bobSpeed,
             bobPhase = bobPhase

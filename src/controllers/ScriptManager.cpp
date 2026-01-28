@@ -456,6 +456,72 @@ namespace LuaBindings
         lua.set_function("GetEntityByName", [](const std::string &name) -> EntityID
                          { return Registry::GetInstance().GetEntityByName(name); });
 
+        // ====================================================================
+        // Small math/helpers for succinct Lua (game-specific scripts)
+        // ====================================================================
+
+        // Compute camera right vector in a Y-up world: right = normalize(cross(front, up)).
+        lua.set_function("GetCameraRight", []() -> glm::vec3
+                         {
+            Game& game = Game::GetInstance();
+            if (!game.cam) {
+                return glm::vec3(1.0f, 0.0f, 0.0f);
+            }
+
+            const glm::vec3& front = game.cam->front;
+            glm::vec3 right(-front.z, 0.0f, front.x);
+            float len = glm::length(right);
+            if (len < 0.0001f) {
+                return glm::vec3(1.0f, 0.0f, 0.0f);
+            }
+            return right / len; });
+
+        // Compute a spawn position relative to the current camera orientation.
+        // distance: along camera.front, lateral: along camera.right, vertical: along +Y, baseYOffset: applied to vertical.
+        lua.set_function("ComputeCameraSpawnPosition", [](float distance, float lateral, float vertical, float baseYOffset) -> glm::vec3
+                         {
+            Game& game = Game::GetInstance();
+            if (!game.cam) {
+                return glm::vec3(0.0f, 0.0f, 0.0f);
+            }
+
+            const glm::vec3& front = game.cam->front;
+            const glm::vec3 camPos = game.cam->transform.Pos;
+
+            glm::vec3 right(-front.z, 0.0f, front.x);
+            float len = glm::length(right);
+            if (len < 0.0001f) {
+                right = glm::vec3(1.0f, 0.0f, 0.0f);
+            } else {
+                right /= len;
+            }
+
+            glm::vec3 pos = camPos + front * distance + right * lateral;
+            pos.y += vertical + baseYOffset;
+            return pos; });
+
+        // Move an entity along camera.front by distance units (positive = along front).
+        lua.set_function("MoveEntityAlongCameraFront", [](EntityID id, float distance)
+                         {
+            Game& game = Game::GetInstance();
+            if (!game.cam) {
+                return;
+            }
+
+            Transform& t = Registry::GetInstance().GetComponent<Transform>(id);
+            t.Pos += game.cam->front * distance; });
+
+        // Project vector (entityPos - cameraPos) onto camera.front.
+        lua.set_function("DistanceAlongCameraFront", [](EntityID id) -> float
+                         {
+            Game& game = Game::GetInstance();
+            if (!game.cam) {
+                return 0.0f;
+            }
+
+            Transform& t = Registry::GetInstance().GetComponent<Transform>(id);
+            const glm::vec3 d = t.Pos - game.cam->transform.Pos;
+            return glm::dot(d, game.cam->front); });
     }
 }
 
