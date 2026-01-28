@@ -10,13 +10,13 @@ TiledBackground = {
     farDistance = 500.0,
     widthMultiplier = 1.2,
 
-	    tileResolution = 256,
-	    cacheSlots = 128,
-	    maxUploadsPerFrame = 8,
-	    tileWorldSize = 64.0,
-	    lodCount = 4,
-	    lodScale = 2.0,
-	    lodSplitFactor = 6.0,
+    tileResolution = 256,
+    cacheSlots = 128,
+    maxUploadsPerFrame = 8,
+    tileWorldSize = 512.0,
+    lodCount = 4,
+    lodScale = 2.0,
+    lodSplitFactor = 6.0,
 
     gridSpacing = 4.0,
     majorEvery = 8,
@@ -35,15 +35,15 @@ TiledBackground = {
             widthMultiplier = self.widthMultiplier,
             tileResolution = self.tileResolution,
             cacheSlots = self.cacheSlots,
-	            maxUploadsPerFrame = self.maxUploadsPerFrame,
-	            tileWorldSize = self.tileWorldSize,
-	            lodCount = self.lodCount,
-	            lodScale = self.lodScale,
-	            lodSplitFactor = self.lodSplitFactor,
-	            gridSpacing = self.gridSpacing,
-	            majorEvery = self.majorEvery,
-	            lineWidth = self.lineWidth
-	        })
+            maxUploadsPerFrame = self.maxUploadsPerFrame,
+            tileWorldSize = self.tileWorldSize,
+            lodCount = self.lodCount,
+            lodScale = self.lodScale,
+            lodSplitFactor = self.lodSplitFactor,
+            gridSpacing = self.gridSpacing,
+            majorEvery = self.majorEvery,
+            lineWidth = self.lineWidth
+        })
 
         BackgroundTiles.Enable(self.enabled)
     end,

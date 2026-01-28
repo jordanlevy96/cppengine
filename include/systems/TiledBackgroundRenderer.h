@@ -47,7 +47,7 @@ struct TiledBackgroundConfig
     int cacheSlots = 96;        ///< Max tiles resident on GPU (texture array layers)
     int maxUploadsPerFrame = 2; ///< Budget for new tile uploads per frame
 
-    float tileWorldSize = 64.0f; ///< Base world units covered by one tile edge (lod=0)
+    float tileWorldSize = 512.0f; ///< Base world units covered by one tile edge (lod=0, coarsest)
     int lodCount = 4;            ///< Number of LOD levels (lod=0..lodCount-1)
     float lodScale = 2.0f;       ///< Tile size multiplier per LOD (typically 2.0)
     float lodSplitFactor = 6.0f; ///< Subdivide when dist < tileSize*factor

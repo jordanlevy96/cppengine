@@ -199,7 +199,7 @@ void TiledBackgroundRenderer::SetEnabled(bool enabled)
 float TiledBackgroundRenderer::GetTileWorldSizeForLOD(int lod) const
 {
     const int clamped = ClampLodIndex(lod, m_config.lodCount);
-    return m_config.tileWorldSize * std::pow(m_config.lodScale, static_cast<float>(clamped));
+    return m_config.tileWorldSize / std::pow(m_config.lodScale, static_cast<float>(clamped));
 }
 
 void TiledBackgroundRenderer::RecreateCacheIfNeeded()
@@ -319,8 +319,8 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
         int y = 0;
     };
 
-    const int maxLod = std::max(0, m_config.lodCount - 1);
-    const float rootTileSize = GetTileWorldSizeForLOD(maxLod);
+    const int rootLod = 0;
+    const float rootTileSize = GetTileWorldSizeForLOD(rootLod);
     const float invRootSize = 1.0f / rootTileSize;
 
     const int rootX0 = static_cast<int>(std::floor(minX * invRootSize));
@@ -342,7 +342,7 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
     {
         for (int tx = clampedX0; tx <= clampedX1; tx++)
         {
-            stack.push_back(Node{.lod = maxLod, .x = tx, .y = ty});
+            stack.push_back(Node{.lod = rootLod, .x = tx, .y = ty});
         }
     }
 
@@ -365,13 +365,13 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
 
         const float latDist = std::abs(glm::dot(rel, rightXZ));
 
-        const bool canSplit = (n.lod > 0);
+        const bool canSplit = (n.lod < m_config.lodCount - 1);
         const float splitThreshold = tileSize * m_config.lodSplitFactor;
         const bool shouldSplit = (fwdDist >= 0.0f && fwdDist < splitThreshold);
 
         if (canSplit && shouldSplit)
         {
-            const int childLod = n.lod - 1;
+            const int childLod = n.lod + 1;
             const int cx = n.x * 2;
             const int cy = n.y * 2;
             stack.push_back(Node{.lod = childLod, .x = cx + 0, .y = cy + 0});
@@ -743,7 +743,7 @@ void TiledBackgroundRenderer::Render(Camera *camera, float deltaMs)
     m_lastStats.residentTiles = resident;
     m_lastStats.pendingUploads = static_cast<int>(m_pendingUploads.size());
 
-    const std::uint64_t logIntervalFrames = 120;
+    const std::uint64_t logIntervalFrames = 600;
     if (m_frameIndex - m_lastStatsLogFrame >= logIntervalFrames)
     {
         m_lastStatsLogFrame = m_frameIndex;
