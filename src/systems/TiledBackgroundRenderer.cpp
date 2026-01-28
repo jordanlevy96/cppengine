@@ -52,6 +52,15 @@ namespace
     {
         return std::clamp(x, 0.0f, 1.0f);
     }
+
+    int ClampLodIndex(int lod, int lodCount)
+    {
+        if (lodCount <= 1)
+        {
+            return 0;
+        }
+        return std::clamp(lod, 0, lodCount - 1);
+    }
 }
 
 TiledBackgroundRenderer::~TiledBackgroundRenderer() = default;
@@ -143,6 +152,7 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
 {
     m_config = config;
     m_cacheDirty = true;
+    m_warnedTileOverflow = false;
 
     if (m_config.tileResolution < 4)
     {
@@ -160,6 +170,18 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
     {
         m_config.tileWorldSize = 1.0f;
     }
+    if (m_config.lodCount < 1)
+    {
+        m_config.lodCount = 1;
+    }
+    if (m_config.lodScale < 1.01f)
+    {
+        m_config.lodScale = 2.0f;
+    }
+    if (m_config.lodSplitFactor < 0.1f)
+    {
+        m_config.lodSplitFactor = 0.1f;
+    }
 
     EnsureInitialized();
     RecreateCacheIfNeeded();
@@ -172,6 +194,12 @@ void TiledBackgroundRenderer::SetEnabled(bool enabled)
     {
         EnsureInitialized();
     }
+}
+
+float TiledBackgroundRenderer::GetTileWorldSizeForLOD(int lod) const
+{
+    const int clamped = ClampLodIndex(lod, m_config.lodCount);
+    return m_config.tileWorldSize * std::pow(m_config.lodScale, static_cast<float>(clamped));
 }
 
 void TiledBackgroundRenderer::RecreateCacheIfNeeded()
@@ -223,7 +251,7 @@ void TiledBackgroundRenderer::RecreateCacheIfNeeded()
     m_cacheDirty = false;
 }
 
-void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<TileKey> &outKeys) const
+void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<TileKey> &outKeys)
 {
     outKeys.clear();
 
@@ -275,28 +303,129 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
         maxZ = std::max(maxZ, c.y);
     }
 
-    const float invSize = 1.0f / m_config.tileWorldSize;
-    const int x0 = static_cast<int>(std::floor(minX * invSize));
-    const int x1 = static_cast<int>(std::floor(maxX * invSize));
-    const int y0 = static_cast<int>(std::floor(minZ * invSize));
-    const int y1 = static_cast<int>(std::floor(maxZ * invSize));
+    struct Candidate
+    {
+        TileKey key{};
+        float forwardDist = 0.0f;
+        float lateralDist = 0.0f;
+    };
+
+    std::vector<Candidate> candidates;
+
+    struct Node
+    {
+        int lod = 0;
+        int x = 0;
+        int y = 0;
+    };
+
+    const int maxLod = std::max(0, m_config.lodCount - 1);
+    const float rootTileSize = GetTileWorldSizeForLOD(maxLod);
+    const float invRootSize = 1.0f / rootTileSize;
+
+    const int rootX0 = static_cast<int>(std::floor(minX * invRootSize));
+    const int rootX1 = static_cast<int>(std::floor(maxX * invRootSize));
+    const int rootY0 = static_cast<int>(std::floor(minZ * invRootSize));
+    const int rootY1 = static_cast<int>(std::floor(maxZ * invRootSize));
 
     // Cap selection to avoid runaway in case of bad config.
     const int maxTilesPerAxis = 128;
-    const int clampedX0 = std::max(x0, x1 - maxTilesPerAxis);
-    const int clampedX1 = std::min(x1, x0 + maxTilesPerAxis);
-    const int clampedY0 = std::max(y0, y1 - maxTilesPerAxis);
-    const int clampedY1 = std::min(y1, y0 + maxTilesPerAxis);
+    const int clampedX0 = std::max(rootX0, rootX1 - maxTilesPerAxis);
+    const int clampedX1 = std::min(rootX1, rootX0 + maxTilesPerAxis);
+    const int clampedY0 = std::max(rootY0, rootY1 - maxTilesPerAxis);
+    const int clampedY1 = std::min(rootY1, rootY0 + maxTilesPerAxis);
 
-    outKeys.reserve(static_cast<size_t>((clampedX1 - clampedX0 + 1) * (clampedY1 - clampedY0 + 1)));
+    std::vector<Node> stack;
+    stack.reserve(static_cast<size_t>((clampedX1 - clampedX0 + 1) * (clampedY1 - clampedY0 + 1)));
 
     for (int ty = clampedY0; ty <= clampedY1; ty++)
     {
         for (int tx = clampedX0; tx <= clampedX1; tx++)
         {
-            outKeys.push_back(TileKey{0, tx, ty});
+            stack.push_back(Node{.lod = maxLod, .x = tx, .y = ty});
         }
     }
+
+    while (!stack.empty())
+    {
+        const Node n = stack.back();
+        stack.pop_back();
+
+        const float tileSize = GetTileWorldSizeForLOD(n.lod);
+        const glm::vec2 center((static_cast<float>(n.x) + 0.5f) * tileSize,
+                               (static_cast<float>(n.y) + 0.5f) * tileSize);
+        const glm::vec2 rel = center - originXZ;
+        const float fwdDist = glm::dot(rel, fwdXZ);
+
+        const float behindEpsilon = -tileSize;
+        if (fwdDist < behindEpsilon)
+        {
+            continue;
+        }
+
+        const float latDist = std::abs(glm::dot(rel, rightXZ));
+
+        const bool canSplit = (n.lod > 0);
+        const float splitThreshold = tileSize * m_config.lodSplitFactor;
+        const bool shouldSplit = (fwdDist >= 0.0f && fwdDist < splitThreshold);
+
+        if (canSplit && shouldSplit)
+        {
+            const int childLod = n.lod - 1;
+            const int cx = n.x * 2;
+            const int cy = n.y * 2;
+            stack.push_back(Node{.lod = childLod, .x = cx + 0, .y = cy + 0});
+            stack.push_back(Node{.lod = childLod, .x = cx + 1, .y = cy + 0});
+            stack.push_back(Node{.lod = childLod, .x = cx + 0, .y = cy + 1});
+            stack.push_back(Node{.lod = childLod, .x = cx + 1, .y = cy + 1});
+            continue;
+        }
+
+        candidates.push_back(Candidate{
+            .key = TileKey{n.lod, n.x, n.y},
+            .forwardDist = fwdDist,
+            .lateralDist = latDist});
+    }
+
+    std::sort(candidates.begin(), candidates.end(),
+              [](const Candidate &a, const Candidate &b)
+              {
+                  if (a.forwardDist != b.forwardDist)
+                  {
+                      return a.forwardDist < b.forwardDist;
+                  }
+                  if (a.lateralDist != b.lateralDist)
+                  {
+                      return a.lateralDist < b.lateralDist;
+                  }
+                  if (a.key.y != b.key.y)
+                  {
+                      return a.key.y < b.key.y;
+                  }
+                  return a.key.x < b.key.x;
+              });
+
+    const int maxKeys = std::max(1, m_config.cacheSlots);
+    const int candidateCount = static_cast<int>(candidates.size());
+    if (candidateCount > maxKeys)
+    {
+        if (!m_warnedTileOverflow)
+        {
+            LOG_WARNING("TiledBackgroundRenderer: visible tiles ({}) exceed cacheSlots ({}); truncating selection (consider increasing cacheSlots or reducing farDistance/widthMultiplier)",
+                        candidateCount, maxKeys);
+            m_warnedTileOverflow = true;
+        }
+        candidates.resize(static_cast<size_t>(maxKeys));
+    }
+
+    outKeys.reserve(candidates.size());
+    for (const Candidate &c : candidates)
+    {
+        outKeys.push_back(c.key);
+    }
+
+    m_lastStats.visibleCandidates = candidateCount;
+    m_lastStats.selectedTiles = static_cast<int>(outKeys.size());
 }
 
 int TiledBackgroundRenderer::ResolveTileLayer(const TileKey &key, bool &outIsNew)
@@ -309,8 +438,10 @@ int TiledBackgroundRenderer::ResolveTileLayer(const TileKey &key, bool &outIsNew
     {
         const int slot = it->second;
         m_slots[slot].lastUsedFrame = m_frameIndex;
+        m_lastStats.cacheHits++;
         return slot;
     }
+    m_lastStats.cacheMisses++;
 
     // Find free slot or evict LRU.
     int chosen = -1;
@@ -338,6 +469,7 @@ int TiledBackgroundRenderer::ResolveTileLayer(const TileKey &key, bool &outIsNew
         {
             const std::uint64_t evicted = PackKey(m_slots[chosen].key);
             m_keyToSlot.erase(evicted);
+            m_lastStats.evictions++;
         }
     }
 
@@ -406,6 +538,8 @@ void TiledBackgroundRenderer::UploadPendingTiles()
         {
             m_slots[slot].uploaded = true;
         }
+
+        m_lastStats.uploadsThisFrame++;
     }
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
@@ -445,7 +579,7 @@ void TiledBackgroundRenderer::EnsureDrawResources()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void *)(sizeof(float) * 2));
     glEnableVertexAttribArray(1);
 
-    // Instance data: originXZ (vec2) + layer (float)
+    // Instance data: originXZ (vec2) + layer (float) + hasData (float) + tileWorldSize (float)
     glBindBuffer(GL_ARRAY_BUFFER, m_instanceVbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(TileInstance) * 1, nullptr, GL_DYNAMIC_DRAW);
 
@@ -456,6 +590,14 @@ void TiledBackgroundRenderer::EnsureDrawResources()
     glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, layer));
     glEnableVertexAttribArray(3);
     glVertexAttribDivisor(3, 1);
+
+    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, hasData));
+    glEnableVertexAttribArray(4);
+    glVertexAttribDivisor(4, 1);
+
+    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, tileWorldSize));
+    glEnableVertexAttribArray(5);
+    glVertexAttribDivisor(5, 1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -478,7 +620,7 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetMat4("view", view);
     m_shader->SetMat4("projection", camera->Projection);
     m_shader->SetFloat("u_planeY", m_config.planeY);
-    m_shader->SetFloat("u_tileWorldSize", m_config.tileWorldSize);
+    m_shader->SetVec4("u_fallbackColor", m_config.baseColorA);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_tileTextureArray);
@@ -514,6 +656,8 @@ void TiledBackgroundRenderer::Render(Camera *camera, float deltaMs)
     RecreateCacheIfNeeded();
 
     m_frameIndex++;
+    m_lastStats = Stats{};
+    m_lastStats.frameIndex = m_frameIndex;
 
     std::vector<TileKey> visibleKeys;
     SelectVisibleTiles(camera, visibleKeys);
@@ -530,13 +674,30 @@ void TiledBackgroundRenderer::Render(Camera *camera, float deltaMs)
             m_pendingUploads.push_back(key);
         }
 
-        const glm::vec2 originXZ(key.x * m_config.tileWorldSize, key.y * m_config.tileWorldSize);
+        const float tileSize = GetTileWorldSizeForLOD(key.lod);
+        const glm::vec2 originXZ(key.x * tileSize, key.y * tileSize);
         instances.push_back(TileInstance{
             .originXZ = originXZ,
-            .layer = static_cast<float>(slot)});
+            .layer = static_cast<float>(slot),
+            .hasData = 0.0f,
+            .tileWorldSize = tileSize});
     }
 
     UploadPendingTiles();
+
+    // Mark which instances have valid data.
+    for (TileInstance &inst : instances)
+    {
+        const int slot = static_cast<int>(inst.layer);
+        if (slot >= 0 && slot < static_cast<int>(m_slots.size()) && m_slots[slot].uploaded)
+        {
+            inst.hasData = 1.0f;
+        }
+        else
+        {
+            inst.hasData = 0.0f;
+        }
+    }
 
     // Grow instance buffer if needed.
     if (static_cast<int>(instances.size()) > m_instanceCapacity)
@@ -552,12 +713,50 @@ void TiledBackgroundRenderer::Render(Camera *camera, float deltaMs)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Render behind everything else.
+    const GLboolean wasCullEnabled = glIsEnabled(GL_CULL_FACE);
+    GLboolean wasDepthMask = GL_TRUE;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &wasDepthMask);
+
     glDisable(GL_CULL_FACE);
     glDepthMask(GL_FALSE);
 
     DrawTiles(camera, instances);
 
-    glDepthMask(GL_TRUE);
+    if (wasCullEnabled)
+    {
+        glEnable(GL_CULL_FACE);
+    }
+    else
+    {
+        glDisable(GL_CULL_FACE);
+    }
+    glDepthMask(wasDepthMask);
+
+    int resident = 0;
+    for (const TileSlot &s : m_slots)
+    {
+        if (s.occupied)
+        {
+            resident++;
+        }
+    }
+    m_lastStats.residentTiles = resident;
+    m_lastStats.pendingUploads = static_cast<int>(m_pendingUploads.size());
+
+    const std::uint64_t logIntervalFrames = 120;
+    if (m_frameIndex - m_lastStatsLogFrame >= logIntervalFrames)
+    {
+        m_lastStatsLogFrame = m_frameIndex;
+        LOG_INFO("BackgroundTiles: sel={} cand={} res={} uploads={} pend={} hit={} miss={} evict={}",
+                 m_lastStats.selectedTiles,
+                 m_lastStats.visibleCandidates,
+                 m_lastStats.residentTiles,
+                 m_lastStats.uploadsThisFrame,
+                 m_lastStats.pendingUploads,
+                 m_lastStats.cacheHits,
+                 m_lastStats.cacheMisses,
+                 m_lastStats.evictions);
+    }
 }
 
 void TiledBackgroundRenderer::GenerateTileRGBA8(const TileKey &key, std::vector<std::uint8_t> &outPixels) const
@@ -567,7 +766,7 @@ void TiledBackgroundRenderer::GenerateTileRGBA8(const TileKey &key, std::vector<
 
     outPixels.resize(static_cast<size_t>(w * h * 4));
 
-    const float tileSize = m_config.tileWorldSize;
+    const float tileSize = GetTileWorldSizeForLOD(key.lod);
     const float grid = std::max(0.0001f, m_config.gridSpacing);
     const float majorGrid = grid * std::max(1, m_config.majorEvery);
     const float lineW = std::max(0.0f, m_config.lineWidth);

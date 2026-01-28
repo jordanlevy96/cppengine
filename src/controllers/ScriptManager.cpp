@@ -605,6 +605,9 @@ namespace LuaBindings
             setInt("cacheSlots", [&](int v) { c.cacheSlots = v; });
             setInt("maxUploadsPerFrame", [&](int v) { c.maxUploadsPerFrame = v; });
             setNumber("tileWorldSize", [&](float v) { c.tileWorldSize = v; });
+            setInt("lodCount", [&](int v) { c.lodCount = v; });
+            setNumber("lodScale", [&](float v) { c.lodScale = v; });
+            setNumber("lodSplitFactor", [&](float v) { c.lodSplitFactor = v; });
 
             setNumber("gridSpacing", [&](float v) { c.gridSpacing = v; });
             setInt("majorEvery", [&](int v) { c.majorEvery = v; });

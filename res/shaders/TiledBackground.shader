@@ -6,25 +6,28 @@ layout (location = 1) in vec2 aUV;
 
 layout (location = 2) in vec2 iOriginXZ;  // world-space origin (x,z)
 layout (location = 3) in float iLayer;    // texture array layer index
+layout (location = 4) in float iHasData;  // 1.0 if valid, else 0.0
+layout (location = 5) in float iTileWorldSize;
 
 out vec2 vUV;
-out float vLayer;
+flat out float vLayer;
+flat out float vHasData;
 
 uniform mat4 view;
 uniform mat4 projection;
 uniform float u_planeY;
-uniform float u_tileWorldSize;
 
 void main()
 {
     vec3 worldPos = vec3(
-        iOriginXZ.x + aLocalXZ.x * u_tileWorldSize,
+        iOriginXZ.x + aLocalXZ.x * iTileWorldSize,
         u_planeY,
-        iOriginXZ.y + aLocalXZ.y * u_tileWorldSize
+        iOriginXZ.y + aLocalXZ.y * iTileWorldSize
     );
 
     vUV = aUV;
     vLayer = iLayer;
+    vHasData = iHasData;
     gl_Position = projection * view * vec4(worldPos, 1.0);
 }
 
@@ -32,13 +35,22 @@ void main()
 #version 330 core
 
 in vec2 vUV;
-in float vLayer;
+flat in float vLayer;
+flat in float vHasData;
 
 out vec4 FragColor;
 
 uniform sampler2DArray u_tiles;
+uniform vec4 u_fallbackColor;
 
 void main()
 {
-    FragColor = texture(u_tiles, vec3(vUV, vLayer));
+    if (vHasData < 0.5)
+    {
+        FragColor = u_fallbackColor;
+    }
+    else
+    {
+        FragColor = texture(u_tiles, vec3(vUV, vLayer));
+    }
 }

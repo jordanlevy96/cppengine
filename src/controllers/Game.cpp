@@ -241,6 +241,17 @@ void Game::TrackFPS()
             luaState->SetValue("data.fps", currentFPS);
             luaState->SetValue("data.frameTime", std::to_string(currentFrameTime).substr(0, 5));
 
+            // BackgroundTiles stats (updated by renderer during Render())
+            const auto bgStats = TiledBackgroundRenderer::GetInstance().GetLastStats();
+            luaState->SetValue("data.bg_tilesSelected", bgStats.selectedTiles);
+            luaState->SetValue("data.bg_tilesCandidates", bgStats.visibleCandidates);
+            luaState->SetValue("data.bg_cacheResident", bgStats.residentTiles);
+            luaState->SetValue("data.bg_uploads", bgStats.uploadsThisFrame);
+            luaState->SetValue("data.bg_pending", bgStats.pendingUploads);
+            luaState->SetValue("data.bg_cacheHits", bgStats.cacheHits);
+            luaState->SetValue("data.bg_cacheMisses", bgStats.cacheMisses);
+            luaState->SetValue("data.bg_evictions", bgStats.evictions);
+
             // Update game mode and speed info
             const char *modeName = (m_gameMode == GameMode::FIXED) ? "FIXED" : "VARIABLE";
             luaState->SetValue("data.gameMode", std::string(modeName));

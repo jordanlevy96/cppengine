@@ -38,24 +38,27 @@ class Shader;
  */
 struct TiledBackgroundConfig
 {
-    bool enabled = false;     ///< Master toggle (renderer no-ops when disabled)
-    float planeY = 0.0f;      ///< World Y coordinate for the ground plane
-    float farDistance = 600.0f; ///< How far forward to cover (world units)
+    bool enabled = false;         ///< Master toggle (renderer no-ops when disabled)
+    float planeY = 0.0f;          ///< World Y coordinate for the ground plane
+    float farDistance = 600.0f;   ///< How far forward to cover (world units)
     float widthMultiplier = 1.2f; ///< Expands computed view width for safety
 
-    int tileResolution = 256; ///< Tile texture size (pixels, square)
-    int cacheSlots = 96;      ///< Max tiles resident on GPU (texture array layers)
+    int tileResolution = 256;   ///< Tile texture size (pixels, square)
+    int cacheSlots = 96;        ///< Max tiles resident on GPU (texture array layers)
     int maxUploadsPerFrame = 2; ///< Budget for new tile uploads per frame
 
-    float tileWorldSize = 64.0f; ///< World units covered by one tile edge
+    float tileWorldSize = 64.0f; ///< Base world units covered by one tile edge (lod=0)
+    int lodCount = 4;            ///< Number of LOD levels (lod=0..lodCount-1)
+    float lodScale = 2.0f;       ///< Tile size multiplier per LOD (typically 2.0)
+    float lodSplitFactor = 6.0f; ///< Subdivide when dist < tileSize*factor
 
     // Vaporwave grid parameters (world-space)
-    float gridSpacing = 4.0f;    ///< Minor grid spacing (world units)
-    int majorEvery = 8;          ///< Major line every N minor lines
-    float lineWidth = 0.08f;     ///< Line half-width (world units)
+    float gridSpacing = 4.0f; ///< Minor grid spacing (world units)
+    int majorEvery = 8;       ///< Major line every N minor lines
+    float lineWidth = 0.08f;  ///< Line half-width (world units)
 
-    glm::vec4 baseColorA = glm::vec4(0.08f, 0.02f, 0.12f, 1.0f); ///< Near color
-    glm::vec4 baseColorB = glm::vec4(0.20f, 0.02f, 0.25f, 1.0f); ///< Far color
+    glm::vec4 baseColorA = glm::vec4(0.08f, 0.02f, 0.12f, 1.0f);   ///< Near color
+    glm::vec4 baseColorB = glm::vec4(0.20f, 0.02f, 0.25f, 1.0f);   ///< Far color
     glm::vec4 minorLineColor = glm::vec4(0.0f, 0.85f, 1.0f, 1.0f); ///< Cyan
     glm::vec4 majorLineColor = glm::vec4(1.0f, 0.0f, 0.80f, 1.0f); ///< Magenta
 };
@@ -66,6 +69,22 @@ struct TiledBackgroundConfig
 class TiledBackgroundRenderer
 {
 public:
+    /**
+     * @brief Stats snapshot for debugging/perf verification
+     */
+    struct Stats
+    {
+        std::uint64_t frameIndex = 0;
+        int visibleCandidates = 0; ///< Pre-cap candidate tiles (post-quadtree)
+        int selectedTiles = 0;     ///< Tiles actually submitted (<= cacheSlots)
+        int residentTiles = 0;     ///< Occupied cache slots
+        int pendingUploads = 0;    ///< Tiles queued to upload
+        int uploadsThisFrame = 0;  ///< Tiles uploaded this frame
+        int cacheHits = 0;         ///< Resolve hits this frame
+        int cacheMisses = 0;       ///< Resolve misses this frame
+        int evictions = 0;         ///< LRU evictions this frame
+    };
+
     /**
      * @brief Get singleton instance
      */
@@ -114,6 +133,11 @@ public:
      */
     void Render(Camera *camera, float deltaMs);
 
+    /**
+     * @brief Get latest stats snapshot (updated during Render)
+     */
+    Stats GetLastStats() const { return m_lastStats; }
+
 private:
     TiledBackgroundRenderer() = default;
 
@@ -133,16 +157,20 @@ private:
     {
         glm::vec2 originXZ = glm::vec2(0.0f); ///< world-space origin (x,z)
         float layer = 0.0f;                   ///< texture array layer index (float for attrib)
+        float hasData = 0.0f;                 ///< 1.0 if this layer contains valid tile data, else 0.0
+        float tileWorldSize = 0.0f;           ///< world size for this tile instance
     };
 
     bool EnsureInitialized();
     void RecreateCacheIfNeeded();
 
-    void SelectVisibleTiles(Camera *camera, std::vector<TileKey> &outKeys) const;
+    void SelectVisibleTiles(Camera *camera, std::vector<TileKey> &outKeys);
     int ResolveTileLayer(const TileKey &key, bool &outIsNew);
 
     void UploadPendingTiles();
     void GenerateTileRGBA8(const TileKey &key, std::vector<std::uint8_t> &outPixels) const;
+
+    float GetTileWorldSizeForLOD(int lod) const;
 
     void EnsureDrawResources();
     void DrawTiles(Camera *camera, const std::vector<TileInstance> &instances) const;
@@ -163,6 +191,9 @@ private:
     std::uint64_t m_frameIndex = 0;
     std::uint32_t m_tileTextureArray = 0;
 
+    Stats m_lastStats{};
+    std::uint64_t m_lastStatsLogFrame = 0;
+
     std::vector<TileSlot> m_slots;
     std::unordered_map<std::uint64_t, int> m_keyToSlot; ///< packed key -> slot index
     std::vector<TileKey> m_pendingUploads;
@@ -173,6 +204,8 @@ private:
     std::uint32_t m_instanceVbo = 0;
     int m_instanceCapacity = 0;
     std::unique_ptr<Shader> m_shader;
+
+    bool m_warnedTileOverflow = false;
 
     static std::uint64_t PackKey(const TileKey &key);
 };
