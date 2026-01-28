@@ -36,7 +36,7 @@ scene:
         - type: "LuaScript"
           script: "backgrounds/FlyingProps.lua"
           shader: "Basic.shader"
-          models: "pyramid.obj,octahedron.obj,cube.obj"
+          models: "pyramid.obj,octahedron.obj,tetrahedron.obj,cube.obj"
           spawnRate: 0.75
           maxProps: 24
           speed: 12.0

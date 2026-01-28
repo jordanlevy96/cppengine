@@ -72,7 +72,7 @@ FlyingProps = {
     enabled = true,
 
     shader = "Basic.shader",
-    models = "cube.obj,pyramid.obj,octahedron.obj,bunny.obj",
+    models = "cube.obj,pyramid.obj,tetrahedron.obj,octahedron.obj,bunny.obj",
 
     spawnRate = 0.8,         -- props/second
     maxProps = 20,           -- active props cap
@@ -340,4 +340,3 @@ FlyingProps = {
         })
     end
 }
-
