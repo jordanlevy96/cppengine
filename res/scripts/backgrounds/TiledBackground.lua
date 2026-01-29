@@ -37,6 +37,13 @@ TiledBackground = {
     minorLineWidth = 0.08,
     majorLineWidth = 0.2,
 
+    -- Horizon blending (ground -> sky):
+    -- - Blends tile colors + fades line intensity to reduce a hard seam at the horizon.
+    -- - Distances are measured in world units (XZ plane distance from camera).
+    horizonBlendStart = 90.0,
+    horizonBlendEnd = 160.0,
+    horizonBlendColor = { r = 0.02, g = 0.02, b = 0.08, a = 1.0 },
+
     ready = function(self)
         if not BackgroundTiles then
             log_error("[TiledBackground] BackgroundTiles API not found")
@@ -58,7 +65,11 @@ TiledBackground = {
             gridSpacing = self.gridSpacing,
             majorEvery = self.majorEvery,
             minorLineWidth = self.minorLineWidth,
-            majorLineWidth = self.majorLineWidth
+            majorLineWidth = self.majorLineWidth,
+
+            horizonBlendStart = self.horizonBlendStart,
+            horizonBlendEnd = self.horizonBlendEnd,
+            horizonBlendColor = self.horizonBlendColor
         })
 
         BackgroundTiles.Enable(self.enabled)

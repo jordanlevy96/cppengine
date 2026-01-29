@@ -177,6 +177,10 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
         m_config.lodSplitFactor = 0.1f;
     }
 
+    // Horizon blending must be monotonic.
+    m_config.horizonBlendStart = std::max(0.0f, m_config.horizonBlendStart);
+    m_config.horizonBlendEnd = std::max(m_config.horizonBlendStart, m_config.horizonBlendEnd);
+
     EnsureInitialized();
     RecreateCacheIfNeeded();
 }
@@ -741,6 +745,10 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetFloat("u_majorLineWidth", m_config.majorLineWidth);
     m_shader->SetVec4("u_minorLineColor", m_config.minorLineColor);
     m_shader->SetVec4("u_majorLineColor", m_config.majorLineColor);
+    m_shader->SetVec3("u_cameraPos", cameraPos);
+    m_shader->SetFloat("u_horizonBlendStart", m_config.horizonBlendStart);
+    m_shader->SetFloat("u_horizonBlendEnd", m_config.horizonBlendEnd);
+    m_shader->SetVec4("u_horizonBlendColor", m_config.horizonBlendColor);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_tileTextureArray);

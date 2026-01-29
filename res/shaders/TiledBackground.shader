@@ -13,6 +13,7 @@ out vec2 vUV;
 flat out float vLayer;
 flat out float vHasData;
 out vec2 vWorldXZ;
+out vec3 vWorldPos;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -30,6 +31,7 @@ void main()
     vLayer = iLayer;
     vHasData = iHasData;
     vWorldXZ = worldPos.xz;
+    vWorldPos = worldPos;
     gl_Position = projection * view * vec4(worldPos, 1.0);
 }
 
@@ -40,6 +42,7 @@ in vec2 vUV;
 flat in float vLayer;
 flat in float vHasData;
 in vec2 vWorldXZ;
+in vec3 vWorldPos;
 
 out vec4 FragColor;
 
@@ -51,6 +54,11 @@ uniform float u_minorLineWidth;
 uniform float u_majorLineWidth;
 uniform vec4 u_minorLineColor;
 uniform vec4 u_majorLineColor;
+
+uniform vec3 u_cameraPos;
+uniform float u_horizonBlendStart;
+uniform float u_horizonBlendEnd;
+uniform vec4 u_horizonBlendColor;
 
 float gridLine1D(float coord, float spacing, float halfWidth)
 {
@@ -107,9 +115,23 @@ void main()
         gridLine1D(vWorldXZ.y, majorGrid, majorHalfW)
     );
 
+    // Ground->sky blending near horizon:
+    // Fade both base color and line intensity to avoid a hard seam and reduce distant aliasing.
+    float distXZ = length(vWorldPos.xz - u_cameraPos.xz);
+    float startD = max(u_horizonBlendStart, 0.0);
+    float endD = max(u_horizonBlendEnd, startD + 0.0001);
+    float blendT = smoothstep(startD, endD, distXZ);
+
+    // Fade lines out slightly faster than the base color to reduce high-frequency shimmer.
+    float lineFade = 1.0 - blendT;
+    minorAlpha *= lineFade;
+    majorAlpha *= lineFade;
+
     vec4 color = baseColor;
     color = mix(color, u_minorLineColor, minorAlpha);
     color = mix(color, u_majorLineColor, majorAlpha);
+
+    color = mix(color, u_horizonBlendColor, blendT);
 
     FragColor = color;
 }

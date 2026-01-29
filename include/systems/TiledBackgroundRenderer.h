@@ -62,6 +62,15 @@ struct TiledBackgroundConfig
     glm::vec4 baseColorB = glm::vec4(0.20f, 0.02f, 0.25f, 1.0f);   ///< Far color
     glm::vec4 minorLineColor = glm::vec4(0.0f, 0.85f, 1.0f, 1.0f); ///< Cyan
     glm::vec4 majorLineColor = glm::vec4(1.0f, 0.0f, 0.80f, 1.0f); ///< Magenta
+
+    // Horizon blending (ground -> sky)
+    //
+    // The grid is very high-contrast up close; at long distance it will alias and/or form a hard seam against the sky.
+    // These parameters fade both the tile color and line intensity toward a target "horizon" color based on distance
+    // from the camera (measured in XZ plane).
+    float horizonBlendStart = 90.0f; ///< Distance at which ground begins blending toward horizon color (world units)
+    float horizonBlendEnd = 160.0f;  ///< Distance at which blending reaches 100% (must be >= horizonBlendStart)
+    glm::vec4 horizonBlendColor = glm::vec4(0.02f, 0.02f, 0.08f, 1.0f); ///< Target color used near horizon (match sky bottom)
 };
 
 /**
