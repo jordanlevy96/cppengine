@@ -74,6 +74,8 @@ uniform float u_skyHorizonY;
 uniform float u_skyHorizonGlow;
 uniform vec3 u_skyHorizonColor;
 
+float saturate(float x) { return clamp(x, 0.0, 1.0); }
+
 float gridLine1D(float coord, float spacing, float halfWidth)
 {
     if (halfWidth <= 0.0 || spacing <= 0.0)
