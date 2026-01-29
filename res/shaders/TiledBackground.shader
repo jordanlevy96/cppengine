@@ -14,7 +14,6 @@ flat out float vLayer;
 flat out float vHasData;
 out vec2 vWorldXZ;
 out vec3 vWorldPos;
-out float vScreenY;
 out float vViewDepth;
 
 uniform mat4 view;
@@ -37,7 +36,6 @@ void main()
     vHasData = iHasData;
     vWorldXZ = worldPos.xz;
     vWorldPos = worldPos;
-    vScreenY = clip.y / max(1e-6, clip.w) * 0.5 + 0.5;
     vViewDepth = max(0.0, -viewPos.z);
     gl_Position = clip;
 }
@@ -50,7 +48,6 @@ flat in float vLayer;
 flat in float vHasData;
 in vec2 vWorldXZ;
 in vec3 vWorldPos;
-in float vScreenY;
 in float vViewDepth;
 
 out vec4 FragColor;
@@ -66,13 +63,6 @@ uniform vec4 u_majorLineColor;
 
 uniform float u_horizonBlendStart;
 uniform float u_horizonBlendEnd;
-
-// Sky parameters (mirrors SkyBackground.shader)
-uniform vec3 u_skyTopColor;
-uniform vec3 u_skyBottomColor;
-uniform float u_skyHorizonY;
-uniform float u_skyHorizonGlow;
-uniform vec3 u_skyHorizonColor;
 
 float saturate(float x) { return clamp(x, 0.0, 1.0); }
 
@@ -106,8 +96,6 @@ float gridLine1D(float coord, float spacing, float halfWidth)
 
 void main()
 {
-    const float kHorizonTint = 0.65;
-
     vec4 baseColor = u_fallbackColor;
     if (vHasData < 0.5)
     {
@@ -148,14 +136,7 @@ void main()
     color = mix(color, u_minorLineColor, minorAlpha);
     color = mix(color, u_majorLineColor, majorAlpha);
 
-    float t = saturate(vScreenY);
-    vec3 skyColor = mix(u_skyBottomColor, u_skyTopColor, t);
-
-    float h = abs(t - u_skyHorizonY);
-    float hg = (u_skyHorizonGlow <= 0.0) ? 0.0 : exp(- (h * h) / max(1e-6, u_skyHorizonGlow * u_skyHorizonGlow));
-    skyColor = mix(skyColor, u_skyHorizonColor, saturate(hg) * kHorizonTint);
-
-    color.rgb = mix(color.rgb, skyColor, blendT);
-
-    FragColor = color;
+    // Let the sky pass show through via alpha fade, which produces a clean "blend" rather than a fuzzy haze.
+    // (Sky is rendered first; ground is drawn after with GL blending enabled.)
+    FragColor = vec4(color.rgb, 1.0 - blendT);
 }
