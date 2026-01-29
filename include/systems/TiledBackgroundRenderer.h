@@ -53,9 +53,10 @@ struct TiledBackgroundConfig
     float lodSplitFactor = 6.0f; ///< Subdivide when dist < tileSize*factor
 
     // Vaporwave grid parameters (world-space)
-    float gridSpacing = 4.0f; ///< Minor grid spacing (world units)
-    int majorEvery = 8;       ///< Major line every N minor lines
-    float lineWidth = 0.08f;  ///< Line half-width (world units)
+    float gridSpacing = 4.0f;     ///< Minor grid spacing (world units between cyan lines)
+    int majorEvery = 8;           ///< Every N minor lines becomes a major line (magenta)
+    float minorLineWidth = 0.06f; ///< Minor line half-width (world units)
+    float majorLineWidth = 0.12f; ///< Major line half-width (world units)
 
     glm::vec4 baseColorA = glm::vec4(0.08f, 0.02f, 0.12f, 1.0f);   ///< Near color
     glm::vec4 baseColorB = glm::vec4(0.20f, 0.02f, 0.25f, 1.0f);   ///< Far color

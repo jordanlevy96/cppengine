@@ -47,7 +47,8 @@ uniform sampler2DArray u_tiles;
 uniform vec4 u_fallbackColor;
 uniform float u_gridSpacing;
 uniform int u_majorEvery;
-uniform float u_lineWidth;
+uniform float u_minorLineWidth;
+uniform float u_majorLineWidth;
 uniform vec4 u_minorLineColor;
 uniform vec4 u_majorLineColor;
 
@@ -80,7 +81,8 @@ void main()
 
     float grid = max(0.0001, u_gridSpacing);
     float majorGrid = grid * max(u_majorEvery, 1);
-    float halfW = max(u_lineWidth, 0.0);
+    float minorHalfW = max(u_minorLineWidth, 0.0);
+    float majorHalfW = max(u_majorLineWidth, 0.0);
 
     float mx = mod(vWorldXZ.x, grid);
     float mz = mod(vWorldXZ.y, grid);
@@ -94,8 +96,8 @@ void main()
     float distMajorZ = min(Mz, majorGrid - Mz);
     float majorDist = min(distMajorX, distMajorZ);
 
-    float minorAlpha = lineMask(minorDist, halfW);
-    float majorAlpha = lineMask(majorDist, halfW * 1.5);
+    float minorAlpha = lineMask(minorDist, minorHalfW);
+    float majorAlpha = lineMask(majorDist, majorHalfW);
 
     vec4 color = baseColor;
     color = mix(color, u_minorLineColor, minorAlpha);

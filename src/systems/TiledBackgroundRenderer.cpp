@@ -734,7 +734,8 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetVec4("u_fallbackColor", m_config.baseColorA);
     m_shader->SetFloat("u_gridSpacing", m_config.gridSpacing);
     m_shader->SetInt("u_majorEvery", m_config.majorEvery);
-    m_shader->SetFloat("u_lineWidth", m_config.lineWidth);
+    m_shader->SetFloat("u_minorLineWidth", m_config.minorLineWidth);
+    m_shader->SetFloat("u_majorLineWidth", m_config.majorLineWidth);
     m_shader->SetVec4("u_minorLineColor", m_config.minorLineColor);
     m_shader->SetVec4("u_majorLineColor", m_config.majorLineColor);
 

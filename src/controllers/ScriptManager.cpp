@@ -611,7 +611,28 @@ namespace LuaBindings
 
             setNumber("gridSpacing", [&](float v) { c.gridSpacing = v; });
             setInt("majorEvery", [&](int v) { c.majorEvery = v; });
-            setNumber("lineWidth", [&](float v) { c.lineWidth = v; });
+
+            bool hadMinorWidth = false;
+            bool hadMajorWidth = false;
+            bool hadLegacyLineWidth = false;
+            float legacyLineWidth = 0.0f;
+
+            setNumber("minorLineWidth", [&](float v) { c.minorLineWidth = v; hadMinorWidth = true; });
+            setNumber("majorLineWidth", [&](float v) { c.majorLineWidth = v; hadMajorWidth = true; });
+
+            // Back-compat: lineWidth previously drove both minor and major widths (major was ~1.5x).
+            setNumber("lineWidth", [&](float v) { legacyLineWidth = v; hadLegacyLineWidth = true; });
+            if (hadLegacyLineWidth)
+            {
+                if (!hadMinorWidth)
+                {
+                    c.minorLineWidth = legacyLineWidth;
+                }
+                if (!hadMajorWidth)
+                {
+                    c.majorLineWidth = legacyLineWidth * 1.5f;
+                }
+            }
 
             TiledBackgroundRenderer::GetInstance().Configure(c);
         };

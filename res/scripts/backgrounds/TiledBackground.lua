@@ -7,20 +7,34 @@ TiledBackground = {
     -- YAML-configurable (strings supported by C++ Configure parser)
     enabled = true,
     planeY = 0.0,
-    farDistance = 500.0,
+    farDistance = 150.0,
     widthMultiplier = 1.2,
 
+    -- GPU tile cache:
+    -- - tileResolution affects only the *base gradient* (grid lines are procedural in the shader).
+    -- - cacheSlots controls how many tiles can be resident at once (more = less churn).
     tileResolution = 256,
     cacheSlots = 128,
     maxUploadsPerFrame = 8,
-    tileWorldSize = 512.0,
-    lodCount = 4,
-    lodScale = 2.0,
+
+    -- LOD:
+    -- - tileWorldSize is the coarsest tile size at lod=0 (world units per tile edge).
+    -- - Each finer LOD subdivides by lodScale (tileSize_lod = tileWorldSize / lodScale^lod).
+    -- - lodSplitFactor controls when a tile is refined: if a tile's center is closer than
+    --   (tileSize * lodSplitFactor) along the camera forward axis, it can split.
+    tileWorldSize = 1024,
+    lodCount = 32,
+    lodScale = 2.5,
     lodSplitFactor = 6.0,
 
+    -- Grid (world units):
+    -- - gridSpacing is distance between minor (cyan) lines.
+    -- - majorEvery makes every Nth minor line a major (magenta) line.
+    -- - minorLineWidth/majorLineWidth are HALF-widths (world units). Smaller = thinner/crisper.
     gridSpacing = 4.0,
-    majorEvery = 8,
-    lineWidth = 0.08,
+    majorEvery = 4,
+    minorLineWidth = 0.08,
+    majorLineWidth = 0.24,
 
     ready = function(self)
         if not BackgroundTiles then
@@ -42,7 +56,8 @@ TiledBackground = {
             lodSplitFactor = self.lodSplitFactor,
             gridSpacing = self.gridSpacing,
             majorEvery = self.majorEvery,
-            lineWidth = self.lineWidth
+            minorLineWidth = self.minorLineWidth,
+            majorLineWidth = self.majorLineWidth
         })
 
         BackgroundTiles.Enable(self.enabled)
