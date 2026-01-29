@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <cmath>
 #include <limits>
+#include <queue>
 
 namespace
 {
@@ -310,8 +311,6 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
         float lateralDist = 0.0f;
     };
 
-    std::vector<Candidate> candidates;
-
     struct Node
     {
         int lod = 0;
@@ -319,38 +318,8 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
         int y = 0;
     };
 
-    const int rootLod = 0;
-    const float rootTileSize = GetTileWorldSizeForLOD(rootLod);
-    const float invRootSize = 1.0f / rootTileSize;
-
-    const int rootX0 = static_cast<int>(std::floor(minX * invRootSize));
-    const int rootX1 = static_cast<int>(std::floor(maxX * invRootSize));
-    const int rootY0 = static_cast<int>(std::floor(minZ * invRootSize));
-    const int rootY1 = static_cast<int>(std::floor(maxZ * invRootSize));
-
-    // Cap selection to avoid runaway in case of bad config.
-    const int maxTilesPerAxis = 128;
-    const int clampedX0 = std::max(rootX0, rootX1 - maxTilesPerAxis);
-    const int clampedX1 = std::min(rootX1, rootX0 + maxTilesPerAxis);
-    const int clampedY0 = std::max(rootY0, rootY1 - maxTilesPerAxis);
-    const int clampedY1 = std::min(rootY1, rootY0 + maxTilesPerAxis);
-
-    std::vector<Node> stack;
-    stack.reserve(static_cast<size_t>((clampedX1 - clampedX0 + 1) * (clampedY1 - clampedY0 + 1)));
-
-    for (int ty = clampedY0; ty <= clampedY1; ty++)
+    auto computeCandidate = [&](const Node &n, Candidate &out) -> bool
     {
-        for (int tx = clampedX0; tx <= clampedX1; tx++)
-        {
-            stack.push_back(Node{.lod = rootLod, .x = tx, .y = ty});
-        }
-    }
-
-    while (!stack.empty())
-    {
-        const Node n = stack.back();
-        stack.pop_back();
-
         const float tileSize = GetTileWorldSizeForLOD(n.lod);
         const glm::vec2 center((static_cast<float>(n.x) + 0.5f) * tileSize,
                                (static_cast<float>(n.y) + 0.5f) * tileSize);
@@ -360,34 +329,195 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
         const float behindEpsilon = -tileSize;
         if (fwdDist < behindEpsilon)
         {
-            continue;
+            return false;
         }
 
         const float latDist = std::abs(glm::dot(rel, rightXZ));
+        out = Candidate{
+            .key = TileKey{n.lod, n.x, n.y},
+            .forwardDist = fwdDist,
+            .lateralDist = latDist};
+        return true;
+    };
 
-        const bool canSplit = (n.lod < m_config.lodCount - 1);
-        const float splitThreshold = tileSize * m_config.lodSplitFactor;
-        const bool shouldSplit = (fwdDist >= 0.0f && fwdDist < splitThreshold);
-
-        if (canSplit && shouldSplit)
+    auto shouldSplit = [&](const Candidate &c) -> bool
+    {
+        const int lod = c.key.lod;
+        if (lod >= m_config.lodCount - 1)
         {
-            const int childLod = n.lod + 1;
-            const int cx = n.x * 2;
-            const int cy = n.y * 2;
-            stack.push_back(Node{.lod = childLod, .x = cx + 0, .y = cy + 0});
-            stack.push_back(Node{.lod = childLod, .x = cx + 1, .y = cy + 0});
-            stack.push_back(Node{.lod = childLod, .x = cx + 0, .y = cy + 1});
-            stack.push_back(Node{.lod = childLod, .x = cx + 1, .y = cy + 1});
+            return false;
+        }
+
+        const float tileSize = GetTileWorldSizeForLOD(lod);
+        const float splitThreshold = tileSize * m_config.lodSplitFactor;
+        return (c.forwardDist >= 0.0f && c.forwardDist < splitThreshold);
+    };
+
+    // Build a complete-coverage selection under a hard budget:
+    // start from coarse tiles, then refine nearest tiles until budget is exhausted.
+    const int rootLod = 0;
+    const float rootTileSize = GetTileWorldSizeForLOD(rootLod);
+    const float invRootSize = 1.0f / rootTileSize;
+
+    const int rootX0 = static_cast<int>(std::floor(minX * invRootSize));
+    const int rootX1 = static_cast<int>(std::floor(maxX * invRootSize));
+    const int rootY0 = static_cast<int>(std::floor(minZ * invRootSize));
+    const int rootY1 = static_cast<int>(std::floor(maxZ * invRootSize));
+
+    // Cap root coverage in case of bad config.
+    const int maxTilesPerAxis = 128;
+    const int clampedX0 = std::max(rootX0, rootX1 - maxTilesPerAxis);
+    const int clampedX1 = std::min(rootX1, rootX0 + maxTilesPerAxis);
+    const int clampedY0 = std::max(rootY0, rootY1 - maxTilesPerAxis);
+    const int clampedY1 = std::min(rootY1, rootY0 + maxTilesPerAxis);
+
+    std::vector<Candidate> leaves;
+    leaves.reserve(static_cast<size_t>((clampedX1 - clampedX0 + 1) * (clampedY1 - clampedY0 + 1)));
+
+    struct HeapItem
+    {
+        float priority = 0.0f; // higher = split earlier
+        Candidate cand{};
+    };
+
+    struct HeapLess
+    {
+        bool operator()(const HeapItem &a, const HeapItem &b) const
+        {
+            if (a.priority != b.priority)
+            {
+                return a.priority < b.priority;
+            }
+            if (a.cand.forwardDist != b.cand.forwardDist)
+            {
+                return a.cand.forwardDist > b.cand.forwardDist;
+            }
+            if (a.cand.lateralDist != b.cand.lateralDist)
+            {
+                return a.cand.lateralDist > b.cand.lateralDist;
+            }
+            if (a.cand.key.lod != b.cand.key.lod)
+            {
+                return a.cand.key.lod < b.cand.key.lod;
+            }
+            if (a.cand.key.y != b.cand.key.y)
+            {
+                return a.cand.key.y > b.cand.key.y;
+            }
+            return a.cand.key.x > b.cand.key.x;
+        }
+    };
+
+    std::priority_queue<HeapItem, std::vector<HeapItem>, HeapLess> heap;
+
+    auto pushSplitCandidate = [&](const Candidate &c)
+    {
+        if (!shouldSplit(c))
+        {
+            return;
+        }
+        const float tileSize = GetTileWorldSizeForLOD(c.key.lod);
+        const float splitThreshold = tileSize * m_config.lodSplitFactor;
+        const float priority = (splitThreshold - c.forwardDist);
+        heap.push(HeapItem{.priority = priority, .cand = c});
+    };
+
+    for (int ty = clampedY0; ty <= clampedY1; ty++)
+    {
+        for (int tx = clampedX0; tx <= clampedX1; tx++)
+        {
+            Candidate c{};
+            if (!computeCandidate(Node{.lod = rootLod, .x = tx, .y = ty}, c))
+            {
+                continue;
+            }
+            leaves.push_back(c);
+            pushSplitCandidate(c);
+        }
+    }
+
+    const int maxKeys = std::max(1, m_config.cacheSlots);
+    if (static_cast<int>(leaves.size()) > maxKeys)
+    {
+        if (!m_warnedTileOverflow)
+        {
+            LOG_WARNING("TiledBackgroundRenderer: root coverage ({}) exceeds cacheSlots ({}); consider increasing cacheSlots or increasing tileWorldSize/reducing farDistance",
+                        leaves.size(), maxKeys);
+            m_warnedTileOverflow = true;
+        }
+        leaves.resize(static_cast<size_t>(maxKeys));
+        heap = {};
+    }
+
+    // Track active leaf membership by packed key for deterministic removal.
+    std::unordered_map<std::uint64_t, int> leafIndex;
+    leafIndex.reserve(leaves.size());
+    for (int i = 0; i < static_cast<int>(leaves.size()); i++)
+    {
+        leafIndex[PackKey(leaves[static_cast<size_t>(i)].key)] = i;
+    }
+
+    while (!heap.empty() && static_cast<int>(leaves.size()) < maxKeys)
+    {
+        const HeapItem item = heap.top();
+        heap.pop();
+
+        const std::uint64_t packed = PackKey(item.cand.key);
+        auto it = leafIndex.find(packed);
+        if (it == leafIndex.end())
+        {
+            continue; // already refined
+        }
+
+        const Candidate parent = item.cand;
+        if (!shouldSplit(parent))
+        {
             continue;
         }
 
-        candidates.push_back(Candidate{
-            .key = TileKey{n.lod, n.x, n.y},
-            .forwardDist = fwdDist,
-            .lateralDist = latDist});
+        // Remove parent leaf.
+        const int removeIndex = it->second;
+        const int lastIndex = static_cast<int>(leaves.size()) - 1;
+        if (removeIndex != lastIndex)
+        {
+            leaves[static_cast<size_t>(removeIndex)] = leaves.back();
+            leafIndex[PackKey(leaves[static_cast<size_t>(removeIndex)].key)] = removeIndex;
+        }
+        leaves.pop_back();
+        leafIndex.erase(it);
+
+        // Add children leaves.
+        const int childLod = parent.key.lod + 1;
+        const int cx = parent.key.x * 2;
+        const int cy = parent.key.y * 2;
+
+        const Node children[4] = {
+            Node{.lod = childLod, .x = cx + 0, .y = cy + 0},
+            Node{.lod = childLod, .x = cx + 1, .y = cy + 0},
+            Node{.lod = childLod, .x = cx + 0, .y = cy + 1},
+            Node{.lod = childLod, .x = cx + 1, .y = cy + 1},
+        };
+
+        for (const Node &ch : children)
+        {
+            if (static_cast<int>(leaves.size()) >= maxKeys)
+            {
+                break;
+            }
+
+            Candidate c{};
+            if (!computeCandidate(ch, c))
+            {
+                continue;
+            }
+
+            leafIndex[PackKey(c.key)] = static_cast<int>(leaves.size());
+            leaves.push_back(c);
+            pushSplitCandidate(c);
+        }
     }
 
-    std::sort(candidates.begin(), candidates.end(),
+    std::sort(leaves.begin(), leaves.end(),
               [](const Candidate &a, const Candidate &b)
               {
                   if (a.forwardDist != b.forwardDist)
@@ -398,6 +528,10 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
                   {
                       return a.lateralDist < b.lateralDist;
                   }
+                  if (a.key.lod != b.key.lod)
+                  {
+                      return a.key.lod < b.key.lod;
+                  }
                   if (a.key.y != b.key.y)
                   {
                       return a.key.y < b.key.y;
@@ -405,26 +539,13 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
                   return a.key.x < b.key.x;
               });
 
-    const int maxKeys = std::max(1, m_config.cacheSlots);
-    const int candidateCount = static_cast<int>(candidates.size());
-    if (candidateCount > maxKeys)
-    {
-        if (!m_warnedTileOverflow)
-        {
-            LOG_WARNING("TiledBackgroundRenderer: visible tiles ({}) exceed cacheSlots ({}); truncating selection (consider increasing cacheSlots or reducing farDistance/widthMultiplier)",
-                        candidateCount, maxKeys);
-            m_warnedTileOverflow = true;
-        }
-        candidates.resize(static_cast<size_t>(maxKeys));
-    }
-
-    outKeys.reserve(candidates.size());
-    for (const Candidate &c : candidates)
+    outKeys.reserve(leaves.size());
+    for (const Candidate &c : leaves)
     {
         outKeys.push_back(c.key);
     }
 
-    m_lastStats.visibleCandidates = candidateCount;
+    m_lastStats.visibleCandidates = static_cast<int>(leaves.size());
     m_lastStats.selectedTiles = static_cast<int>(outKeys.size());
 }
 
