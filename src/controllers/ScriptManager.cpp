@@ -39,6 +39,7 @@
 #include "systems/ReactiveUI.h"
 #include "systems/HTMLRendererMT.h"
 #include "systems/TiledBackgroundRenderer.h"
+#include "systems/SkyBackgroundRenderer.h"
 
 #include "controllers/WindowManager.h"
 
@@ -638,6 +639,162 @@ namespace LuaBindings
         };
 
         lua["BackgroundTiles"] = backgroundTiles;
+
+    // ====================================================================
+    // Sky background renderer (fullscreen gradient + sun)
+    // ====================================================================
+
+    {
+        sol::table backgroundSky = lua.create_table();
+
+        backgroundSky["Enable"] = [](bool enabled)
+        { SkyBackgroundRenderer::GetInstance().SetEnabled(enabled); };
+
+        backgroundSky["Configure"] = [](sol::table cfg)
+        {
+            SkyBackgroundConfig c{};
+
+            auto setNumber = [&](const char *key, auto setter)
+            {
+                sol::object v = cfg[key];
+                if (!v.valid())
+                {
+                    return;
+                }
+                if (v.is<double>())
+                {
+                    setter(static_cast<float>(v.as<double>()));
+                }
+                else if (v.is<int>())
+                {
+                    setter(static_cast<float>(v.as<int>()));
+                }
+                else if (v.is<float>())
+                {
+                    setter(v.as<float>());
+                }
+                else if (v.is<std::string>())
+                {
+                    try
+                    {
+                        setter(std::stof(v.as<std::string>()));
+                    }
+                    catch (...)
+                    {
+                    }
+                }
+            };
+
+            auto setBool = [&](const char *key, auto setter)
+            {
+                sol::object v = cfg[key];
+                if (!v.valid())
+                {
+                    return;
+                }
+                if (v.is<bool>())
+                {
+                    setter(v.as<bool>());
+                }
+                else if (v.is<int>())
+                {
+                    setter(v.as<int>() != 0);
+                }
+            };
+
+            auto setVec3 = [&](const char *key, glm::vec3 &out)
+            {
+                sol::object v = cfg[key];
+                if (!v.valid() || !v.is<sol::table>())
+                {
+                    return;
+                }
+
+                sol::table t = v.as<sol::table>();
+                auto getF = [&](const char *k, int idx, float &dst)
+                {
+                    sol::object o = t[k];
+                    if (!o.valid())
+                    {
+                        o = t[idx];
+                    }
+                    if (!o.valid())
+                    {
+                        return;
+                    }
+                    if (o.is<double>())
+                    {
+                        dst = static_cast<float>(o.as<double>());
+                    }
+                    else if (o.is<int>())
+                    {
+                        dst = static_cast<float>(o.as<int>());
+                    }
+                    else if (o.is<float>())
+                    {
+                        dst = o.as<float>();
+                    }
+                };
+
+                getF("r", 1, out.r);
+                getF("g", 2, out.g);
+                getF("b", 3, out.b);
+            };
+
+            auto setVec2 = [&](const char *key, glm::vec2 &out)
+            {
+                sol::object v = cfg[key];
+                if (!v.valid() || !v.is<sol::table>())
+                {
+                    return;
+                }
+
+                sol::table t = v.as<sol::table>();
+                auto getF = [&](const char *k, int idx, float &dst)
+                {
+                    sol::object o = t[k];
+                    if (!o.valid())
+                    {
+                        o = t[idx];
+                    }
+                    if (!o.valid())
+                    {
+                        return;
+                    }
+                    if (o.is<double>())
+                    {
+                        dst = static_cast<float>(o.as<double>());
+                    }
+                    else if (o.is<int>())
+                    {
+                        dst = static_cast<float>(o.as<int>());
+                    }
+                    else if (o.is<float>())
+                    {
+                        dst = o.as<float>();
+                    }
+                };
+
+                getF("x", 1, out.x);
+                getF("y", 2, out.y);
+            };
+
+            setBool("enabled", [&](bool v) { c.enabled = v; });
+            setVec3("topColor", c.topColor);
+            setVec3("bottomColor", c.bottomColor);
+            setNumber("horizonY", [&](float v) { c.horizonY = v; });
+            setNumber("horizonGlow", [&](float v) { c.horizonGlow = v; });
+            setVec3("horizonColor", c.horizonColor);
+            setVec2("sunPos", c.sunPos);
+            setNumber("sunRadius", [&](float v) { c.sunRadius = v; });
+            setNumber("sunGlow", [&](float v) { c.sunGlow = v; });
+            setVec3("sunColor", c.sunColor);
+
+            SkyBackgroundRenderer::GetInstance().Configure(c);
+        };
+
+        lua["BackgroundSky"] = backgroundSky;
+    }
     }
 }
 

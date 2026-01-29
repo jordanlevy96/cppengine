@@ -35,6 +35,7 @@ add_library(core SHARED
     "src/systems/SceneContext.cpp"
     "src/systems/SceneLoader.cpp"
     "src/systems/TiledBackgroundRenderer.cpp"
+    "src/systems/SkyBackgroundRenderer.cpp"
     "src/util/ConfigLoader.cpp"
     "src/util/FileIO.cpp"
     "src/util/FrameTiming.cpp"

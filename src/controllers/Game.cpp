@@ -28,6 +28,7 @@
 #include "systems/HierarchySystem.h"
 #include "systems/RenderSystem.h"
 #include "systems/ScriptSystem.h"
+#include "systems/SkyBackgroundRenderer.h"
 #include "systems/TweenSystem.h"
 #include "systems/TiledBackgroundRenderer.h"
 #include "util/TransformUtils.h"
@@ -202,9 +203,12 @@ void Game::Render()
     glfwGetFramebufferSize(windowManager->window, &width, &height);
     glViewport(0, 0, width, height);
 
-    // 0. Clear to vaporwave sky color (background)
-    glClearColor(0.2f, 0.7f, 0.9f, 1.0f);  // Cyan sky
+    // 0. Clear (sky is rendered as a fullscreen pass if enabled)
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // 0.25 Sky background (optional)
+    SkyBackgroundRenderer::GetInstance().Render(cam, static_cast<float>(delta));
 
     // 0.5 Procedural tiled background (optional)
     TiledBackgroundRenderer::GetInstance().Render(cam, static_cast<float>(delta));

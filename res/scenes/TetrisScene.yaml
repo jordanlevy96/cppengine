@@ -31,6 +31,11 @@ scene:
           shader: "OutlinedCube.shader"
           model: "cube.obj"
 
+    - name: "SkyBackground"
+      components:
+        - type: "LuaScript"
+          script: "backgrounds/SkyBackground.lua"
+
     - name: "TiledBackground"
       components:
         - type: "LuaScript"
