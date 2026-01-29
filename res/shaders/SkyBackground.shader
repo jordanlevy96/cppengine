@@ -43,9 +43,9 @@ void main()
     float t = saturate(vUV.y);
     vec3 color = mix(u_bottomColor, u_topColor, t);
 
-    // Horizon glow (Gaussian-like)
+    // Horizon blend (short-tail, not "foggy")
     float h = abs(t - u_horizonY);
-    float hg = (u_horizonGlow <= 0.0) ? 0.0 : exp(- (h * h) / max(1e-6, u_horizonGlow * u_horizonGlow));
+    float hg = (u_horizonGlow <= 0.0) ? 0.0 : (1.0 - smoothstep(0.0, u_horizonGlow, h));
     color = mix(color, u_horizonColor, saturate(hg) * kHorizonTint);
 
     // Sun disc + glow
