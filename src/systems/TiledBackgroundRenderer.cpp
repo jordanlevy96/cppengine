@@ -737,6 +737,18 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     const glm::vec3 cameraPos = camera->transform.Pos;
     const glm::mat4 view = glm::lookAt(cameraPos, cameraPos + camera->front, camera->up);
 
+    glm::vec3 forward = camera->front;
+    forward.y = 0.0f;
+    float len = glm::length(forward);
+    if (len < 0.0001f)
+    {
+        forward = glm::vec3(0.0f, 0.0f, -1.0f);
+    }
+    else
+    {
+        forward /= len;
+    }
+
     m_shader->SetMat4("view", view);
     m_shader->SetMat4("projection", camera->Projection);
     m_shader->SetFloat("u_planeY", m_config.planeY);
@@ -750,6 +762,9 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetFloat("u_horizonBlendStart", m_config.horizonBlendStart);
     m_shader->SetFloat("u_horizonBlendEnd", m_config.horizonBlendEnd);
     m_shader->SetFloat("u_horizonBlendPixels", m_config.horizonBlendPixels);
+    m_shader->SetFloat("u_farDistance", m_config.farDistance);
+    m_shader->SetVec2("u_cameraPosXZ", glm::vec2(cameraPos.x, cameraPos.z));
+    m_shader->SetVec2("u_cameraForwardXZ", glm::vec2(forward.x, forward.z));
 
     const SkyBackgroundConfig &sky = SkyBackgroundRenderer::GetInstance().GetConfig();
     m_shader->SetVec3("u_skyTopColor", sky.topColor);

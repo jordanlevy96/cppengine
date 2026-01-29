@@ -13,13 +13,15 @@ out vec2 vUV;
 flat out float vLayer;
 flat out float vHasData;
 out vec2 vWorldXZ;
-out vec3 vWorldPos;
-out float vScreenY;
-out float vViewDepth;
+	out vec3 vWorldPos;
+	out float vScreenY;
+	out float vForwardDist;
 
-uniform mat4 view;
-uniform mat4 projection;
-uniform float u_planeY;
+	uniform mat4 view;
+	uniform mat4 projection;
+	uniform float u_planeY;
+	uniform vec2 u_cameraPosXZ;
+	uniform vec2 u_cameraForwardXZ;
 
 void main()
 {
@@ -35,11 +37,11 @@ void main()
     vUV = aUV;
     vLayer = iLayer;
     vHasData = iHasData;
-    vWorldXZ = worldPos.xz;
-    vWorldPos = worldPos;
-    vScreenY = clip.y / max(1e-6, clip.w) * 0.5 + 0.5;
-    vViewDepth = max(0.0, -viewPos.z);
-    gl_Position = clip;
+	vWorldXZ = worldPos.xz;
+	vWorldPos = worldPos;
+	vScreenY = clip.y / max(1e-6, clip.w) * 0.5 + 0.5;
+	vForwardDist = dot(worldPos.xz - u_cameraPosXZ, u_cameraForwardXZ);
+	gl_Position = clip;
 }
 
 #shader fragment
@@ -49,9 +51,9 @@ in vec2 vUV;
 flat in float vLayer;
 flat in float vHasData;
 in vec2 vWorldXZ;
-in vec3 vWorldPos;
-in float vScreenY;
-in float vViewDepth;
+	in vec3 vWorldPos;
+	in float vScreenY;
+	in float vForwardDist;
 
 out vec4 FragColor;
 
@@ -64,9 +66,10 @@ uniform float u_majorLineWidth;
 uniform vec4 u_minorLineColor;
 uniform vec4 u_majorLineColor;
 
-uniform float u_horizonBlendStart;
-uniform float u_horizonBlendEnd;
-uniform float u_horizonBlendPixels;
+	uniform float u_horizonBlendStart;
+	uniform float u_horizonBlendEnd;
+	uniform float u_horizonBlendPixels;
+	uniform float u_farDistance;
 
 // Sky gradient colors used as the blend target (sky itself is rendered in a separate pass).
 uniform vec3 u_skyTopColor;
@@ -129,14 +132,23 @@ void main()
         gridLine1D(vWorldXZ.y, majorGrid, majorHalfW)
     );
 
-    // Ground->sky blending near horizon:
-    // Fade both base color and line intensity to avoid a hard seam and reduce distant aliasing.
-    float startD = max(u_horizonBlendStart, 0.0);
-    float endD = max(u_horizonBlendEnd, startD + 0.0001);
-    float px = max(u_horizonBlendPixels, 0.0);
-    float w = max(fwidth(vViewDepth), 1e-6) * px;
-    float effectiveStart = max(startD, endD - w);
-    float blendT = smoothstep(effectiveStart, endD, vViewDepth);
+	// Ground->sky blending near horizon:
+	// Fade both base color and line intensity to avoid a hard seam and reduce distant aliasing.
+	// IMPORTANT: Use *camera-forward distance* so "end" lines up with farDistance selection (not camera absolute view depth).
+	float farD = max(u_farDistance, 0.0);
+	float startClamp = u_horizonBlendStart;
+	float endD = (u_horizonBlendEnd > 0.0) ? min(u_horizonBlendEnd, farD) : farD;
+	endD = max(endD, 0.0001);
+
+	// Keep the transition to just a few pixels, regardless of world distance.
+	float px = max(u_horizonBlendPixels, 0.0);
+	float w = max(fwidth(vForwardDist), 1e-6) * px;
+	float effectiveStart = endD - w;
+	if (startClamp > 0.0)
+	{
+		effectiveStart = max(effectiveStart, startClamp);
+	}
+	float blendT = smoothstep(effectiveStart, endD, vForwardDist);
 
     // Fade lines out slightly faster than the base color to reduce high-frequency shimmer.
     float lineFade = 1.0 - blendT;
@@ -147,10 +159,10 @@ void main()
     color = mix(color, u_minorLineColor, minorAlpha);
     color = mix(color, u_majorLineColor, majorAlpha);
 
-    // Blend the farthest ground color toward the sky gradient (tinted toward major-line magenta),
-    // to soften the horizon seam without affecting the sky pass.
-    vec3 skyColor = mix(u_skyBottomColor, u_skyTopColor, saturate(vScreenY));
-    vec3 targetColor = mix(skyColor, u_majorLineColor.rgb, 0.9);
-    color.rgb = mix(color.rgb, targetColor, blendT);
-    FragColor = vec4(color.rgb, 1.0);
+	// Blend the farthest ground color toward the sky gradient (tinted toward major-line magenta),
+	// to soften the horizon seam without affecting the sky pass.
+	vec3 skyColor = mix(u_skyBottomColor, u_skyTopColor, saturate(vScreenY));
+	vec3 targetColor = mix(skyColor, u_majorLineColor.rgb, 0.65);
+	color.rgb = mix(color.rgb, targetColor, blendT);
+	FragColor = vec4(color.rgb, 1.0);
 }
