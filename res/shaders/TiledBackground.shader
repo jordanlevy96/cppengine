@@ -52,19 +52,27 @@ uniform float u_majorLineWidth;
 uniform vec4 u_minorLineColor;
 uniform vec4 u_majorLineColor;
 
-float lineMask(float dist, float halfWidth)
+float gridLine1D(float coord, float spacing, float halfWidth)
 {
-    if (halfWidth <= 0.0)
+    if (halfWidth <= 0.0 || spacing <= 0.0)
     {
         return 0.0;
     }
 
-    // Anti-alias but clamp to avoid excessive blurring at grazing angles.
-    float aa = fwidth(dist);
-    float aaMax = max(halfWidth * 0.75, 0.0001);
+    // Work in normalized cell space to keep derivatives stable.
+    float x = coord / spacing;
+    float w = halfWidth / spacing;
+
+    // Distance to nearest integer boundary (0 at grid line).
+    float f = fract(x);
+    float d = min(f, 1.0 - f);
+
+    // Anti-alias width based on screen-space derivatives of the *continuous* coordinate.
+    float aa = fwidth(x);
+    float aaMax = max(w * 0.75, 0.0001);
     aa = clamp(aa, 0.0001, aaMax);
 
-    return 1.0 - smoothstep(halfWidth - aa, halfWidth + aa, dist);
+    return 1.0 - smoothstep(w - aa, w + aa, d);
 }
 
 void main()
@@ -84,20 +92,15 @@ void main()
     float minorHalfW = max(u_minorLineWidth, 0.0);
     float majorHalfW = max(u_majorLineWidth, 0.0);
 
-    float mx = mod(vWorldXZ.x, grid);
-    float mz = mod(vWorldXZ.y, grid);
-    float distMinorX = min(mx, grid - mx);
-    float distMinorZ = min(mz, grid - mz);
-    float minorDist = min(distMinorX, distMinorZ);
+    float minorAlpha = max(
+        gridLine1D(vWorldXZ.x, grid, minorHalfW),
+        gridLine1D(vWorldXZ.y, grid, minorHalfW)
+    );
 
-    float Mx = mod(vWorldXZ.x, majorGrid);
-    float Mz = mod(vWorldXZ.y, majorGrid);
-    float distMajorX = min(Mx, majorGrid - Mx);
-    float distMajorZ = min(Mz, majorGrid - Mz);
-    float majorDist = min(distMajorX, distMajorZ);
-
-    float minorAlpha = lineMask(minorDist, minorHalfW);
-    float majorAlpha = lineMask(majorDist, majorHalfW);
+    float majorAlpha = max(
+        gridLine1D(vWorldXZ.x, majorGrid, majorHalfW),
+        gridLine1D(vWorldXZ.y, majorGrid, majorHalfW)
+    );
 
     vec4 color = baseColor;
     color = mix(color, u_minorLineColor, minorAlpha);
