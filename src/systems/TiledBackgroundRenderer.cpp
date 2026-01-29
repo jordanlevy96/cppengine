@@ -39,16 +39,6 @@ namespace
         return std::tan(glm::radians(clamped) * 0.5f);
     }
 
-    float PositiveMod(float x, float m)
-    {
-        float r = std::fmod(x, m);
-        if (r < 0.0f)
-        {
-            r += m;
-        }
-        return r;
-    }
-
     float Clamp01(float x)
     {
         return std::clamp(x, 0.0f, 1.0f);
@@ -894,7 +884,6 @@ void TiledBackgroundRenderer::GenerateTileRGBA8(const TileKey &key, std::vector<
 
     const float tileSize = GetTileWorldSizeForLOD(key.lod);
 
-    const float x0 = key.x * tileSize;
     const float z0 = key.y * tileSize;
 
     for (int y = 0; y < h; y++)
