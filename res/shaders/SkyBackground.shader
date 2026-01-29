@@ -38,13 +38,15 @@ float saturate(float x) { return clamp(x, 0.0, 1.0); }
 
 void main()
 {
+    const float kHorizonTint = 0.65;
+
     float t = saturate(vUV.y);
     vec3 color = mix(u_bottomColor, u_topColor, t);
 
     // Horizon glow (Gaussian-like)
     float h = abs(t - u_horizonY);
     float hg = (u_horizonGlow <= 0.0) ? 0.0 : exp(- (h * h) / max(1e-6, u_horizonGlow * u_horizonGlow));
-    color = mix(color, u_horizonColor, saturate(hg) * 0.35);
+    color = mix(color, u_horizonColor, saturate(hg) * kHorizonTint);
 
     // Sun disc + glow
     float d = length(vUV - u_sunPos);
@@ -55,4 +57,3 @@ void main()
 
     FragColor = vec4(saturate(color.r), saturate(color.g), saturate(color.b), 1.0);
 }
-

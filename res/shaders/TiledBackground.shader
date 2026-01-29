@@ -106,6 +106,8 @@ float gridLine1D(float coord, float spacing, float halfWidth)
 
 void main()
 {
+    const float kHorizonTint = 0.65;
+
     vec4 baseColor = u_fallbackColor;
     if (vHasData < 0.5)
     {
@@ -151,7 +153,7 @@ void main()
 
     float h = abs(t - u_skyHorizonY);
     float hg = (u_skyHorizonGlow <= 0.0) ? 0.0 : exp(- (h * h) / max(1e-6, u_skyHorizonGlow * u_skyHorizonGlow));
-    skyColor = mix(skyColor, u_skyHorizonColor, saturate(hg) * 0.35);
+    skyColor = mix(skyColor, u_skyHorizonColor, saturate(hg) * kHorizonTint);
 
     color.rgb = mix(color.rgb, skyColor, blendT);
 
