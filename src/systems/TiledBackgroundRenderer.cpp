@@ -165,8 +165,11 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
     {
         m_config.lodCount = 1;
     }
-    if (m_config.lodScale < 1.01f)
+    // Current selection/subdivision assumes a quadtree (2x2 children), so lodScale must be 2.0.
+    // If we want arbitrary lodScale later, we need to revisit indexing and subdivision math.
+    if (std::abs(m_config.lodScale - 2.0f) > 0.001f)
     {
+        LOG_WARNING("TiledBackgroundRenderer: lodScale={} is not supported (quadtree requires 2.0); clamping to 2.0", m_config.lodScale);
         m_config.lodScale = 2.0f;
     }
     if (m_config.lodSplitFactor < 0.1f)

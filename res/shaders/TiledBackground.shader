@@ -68,9 +68,14 @@ float gridLine1D(float coord, float spacing, float halfWidth)
     float d = min(f, 1.0 - f);
 
     // Anti-alias width based on screen-space derivatives of the *continuous* coordinate.
-    float aa = fwidth(x);
-    float aaMax = max(w * 0.75, 0.0001);
-    aa = clamp(aa, 0.0001, aaMax);
+    float aa = max(fwidth(x), 0.0001);
+
+    // Keep lines from collapsing into subpixel flicker: enforce a minimum screen-space thickness.
+    // (This also reduces the "every other line looks thicker" aliasing you can get on dense grids.)
+    w = max(w, aa * 0.5);
+
+    // Clamp to half a cell; beyond that we’re effectively averaging multiple lines anyway.
+    aa = min(aa, 0.5);
 
     return 1.0 - smoothstep(w - aa, w + aa, d);
 }

@@ -20,11 +20,12 @@ TiledBackground = {
     -- LOD:
     -- - tileWorldSize is the coarsest tile size at lod=0 (world units per tile edge).
     -- - Each finer LOD subdivides by lodScale (tileSize_lod = tileWorldSize / lodScale^lod).
+    -- - NOTE: current implementation is a quadtree, so lodScale must be 2.0.
     -- - lodSplitFactor controls when a tile is refined: if a tile's center is closer than
     --   (tileSize * lodSplitFactor) along the camera forward axis, it can split.
     tileWorldSize = 1024,
-    lodCount = 32,
-    lodScale = 2.5,
+    lodCount = 16,
+    lodScale = 2.0,
     lodSplitFactor = 6.0,
 
     -- Grid (world units):
@@ -34,7 +35,7 @@ TiledBackground = {
     gridSpacing = 4.0,
     majorEvery = 4,
     minorLineWidth = 0.08,
-    majorLineWidth = 0.24,
+    majorLineWidth = 0.2,
 
     ready = function(self)
         if not BackgroundTiles then
