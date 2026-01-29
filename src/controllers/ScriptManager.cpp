@@ -624,6 +624,7 @@ namespace LuaBindings
             // Horizon blending (ground -> sky): start/end distances in world units.
             setNumber("horizonBlendStart", [&](float v) { c.horizonBlendStart = v; });
             setNumber("horizonBlendEnd", [&](float v) { c.horizonBlendEnd = v; });
+            setNumber("horizonBlendPixels", [&](float v) { c.horizonBlendPixels = v; });
 
             // Back-compat: lineWidth previously drove both minor and major widths (major was ~1.5x).
             setNumber("lineWidth", [&](float v) { legacyLineWidth = v; hadLegacyLineWidth = true; });

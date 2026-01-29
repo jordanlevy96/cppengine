@@ -63,6 +63,7 @@ uniform vec4 u_majorLineColor;
 
 uniform float u_horizonBlendStart;
 uniform float u_horizonBlendEnd;
+uniform float u_horizonBlendPixels;
 
 float saturate(float x) { return clamp(x, 0.0, 1.0); }
 
@@ -125,7 +126,10 @@ void main()
     // Fade both base color and line intensity to avoid a hard seam and reduce distant aliasing.
     float startD = max(u_horizonBlendStart, 0.0);
     float endD = max(u_horizonBlendEnd, startD + 0.0001);
-    float blendT = smoothstep(startD, endD, vViewDepth);
+    float px = max(u_horizonBlendPixels, 0.0);
+    float w = max(fwidth(vViewDepth), 1e-6) * px;
+    float effectiveStart = max(startD, endD - w);
+    float blendT = smoothstep(effectiveStart, endD, vViewDepth);
 
     // Fade lines out slightly faster than the base color to reduce high-frequency shimmer.
     float lineFade = 1.0 - blendT;
