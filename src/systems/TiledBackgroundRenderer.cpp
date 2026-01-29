@@ -20,6 +20,7 @@
 #include "systems/TiledBackgroundRenderer.h"
 
 #include "controllers/Game.h"
+#include "systems/SkyBackgroundRenderer.h"
 #include "util/Logger.h"
 #include "util/Shader.h"
 
@@ -750,6 +751,10 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetFloat("u_horizonBlendEnd", m_config.horizonBlendEnd);
     m_shader->SetFloat("u_horizonBlendPixels", m_config.horizonBlendPixels);
 
+    const SkyBackgroundConfig &sky = SkyBackgroundRenderer::GetInstance().GetConfig();
+    m_shader->SetVec3("u_skyTopColor", sky.topColor);
+    m_shader->SetVec3("u_skyBottomColor", sky.bottomColor);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_tileTextureArray);
     m_shader->SetInt("u_tiles", 0);
@@ -842,40 +847,14 @@ void TiledBackgroundRenderer::Render(Camera *camera, float deltaMs)
 
     // Render behind everything else.
     const GLboolean wasCullEnabled = glIsEnabled(GL_CULL_FACE);
-    const GLboolean wasBlendEnabled = glIsEnabled(GL_BLEND);
-    GLint prevSrcRgb = GL_ONE;
-    GLint prevDstRgb = GL_ZERO;
-    GLint prevSrcA = GL_ONE;
-    GLint prevDstA = GL_ZERO;
-    GLint prevBlendEqRgb = GL_FUNC_ADD;
-    GLint prevBlendEqA = GL_FUNC_ADD;
-    glGetIntegerv(GL_BLEND_SRC_RGB, &prevSrcRgb);
-    glGetIntegerv(GL_BLEND_DST_RGB, &prevDstRgb);
-    glGetIntegerv(GL_BLEND_SRC_ALPHA, &prevSrcA);
-    glGetIntegerv(GL_BLEND_DST_ALPHA, &prevDstA);
-    glGetIntegerv(GL_BLEND_EQUATION_RGB, &prevBlendEqRgb);
-    glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &prevBlendEqA);
     GLboolean wasDepthMask = GL_TRUE;
     glGetBooleanv(GL_DEPTH_WRITEMASK, &wasDepthMask);
 
     glDisable(GL_CULL_FACE);
     glDepthMask(GL_FALSE);
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     DrawTiles(camera, instances);
 
-    if (wasBlendEnabled)
-    {
-        glEnable(GL_BLEND);
-    }
-    else
-    {
-        glDisable(GL_BLEND);
-    }
-    glBlendFuncSeparate(prevSrcRgb, prevDstRgb, prevSrcA, prevDstA);
-    glBlendEquationSeparate(prevBlendEqRgb, prevBlendEqA);
     if (wasCullEnabled)
     {
         glEnable(GL_CULL_FACE);

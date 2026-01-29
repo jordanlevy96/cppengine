@@ -14,7 +14,7 @@ SkyBackground = {
     -- horizonY is vertical position [0..1] (0=bottom, 1=top).
     -- horizonGlow controls the blend half-width.
     horizonY = 0.40,
-    horizonGlow = 0.04,
+    horizonGlow = 0.01,
     horizonColor = { r = 0.95, g = 0.10, b = 0.80 },
 
     -- Sun:

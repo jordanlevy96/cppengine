@@ -14,6 +14,7 @@ flat out float vLayer;
 flat out float vHasData;
 out vec2 vWorldXZ;
 out vec3 vWorldPos;
+out float vScreenY;
 out float vViewDepth;
 
 uniform mat4 view;
@@ -36,6 +37,7 @@ void main()
     vHasData = iHasData;
     vWorldXZ = worldPos.xz;
     vWorldPos = worldPos;
+    vScreenY = clip.y / max(1e-6, clip.w) * 0.5 + 0.5;
     vViewDepth = max(0.0, -viewPos.z);
     gl_Position = clip;
 }
@@ -48,6 +50,7 @@ flat in float vLayer;
 flat in float vHasData;
 in vec2 vWorldXZ;
 in vec3 vWorldPos;
+in float vScreenY;
 in float vViewDepth;
 
 out vec4 FragColor;
@@ -64,6 +67,10 @@ uniform vec4 u_majorLineColor;
 uniform float u_horizonBlendStart;
 uniform float u_horizonBlendEnd;
 uniform float u_horizonBlendPixels;
+
+// Sky gradient colors used as the blend target (sky itself is rendered in a separate pass).
+uniform vec3 u_skyTopColor;
+uniform vec3 u_skyBottomColor;
 
 float saturate(float x) { return clamp(x, 0.0, 1.0); }
 
@@ -140,7 +147,8 @@ void main()
     color = mix(color, u_minorLineColor, minorAlpha);
     color = mix(color, u_majorLineColor, majorAlpha);
 
-    // Let the sky pass show through via alpha fade, which produces a clean "blend" rather than a fuzzy haze.
-    // (Sky is rendered first; ground is drawn after with GL blending enabled.)
-    FragColor = vec4(color.rgb, 1.0 - blendT);
+    // Blend the farthest ground color toward the sky gradient to soften the horizon seam without affecting the sky.
+    vec3 skyColor = mix(u_skyBottomColor, u_skyTopColor, saturate(vScreenY));
+    color.rgb = mix(color.rgb, skyColor, blendT);
+    FragColor = vec4(color.rgb, 1.0);
 }
