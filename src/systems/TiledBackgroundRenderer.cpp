@@ -746,7 +746,6 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetFloat("u_majorLineWidth", m_config.majorLineWidth);
     m_shader->SetVec4("u_minorLineColor", m_config.minorLineColor);
     m_shader->SetVec4("u_majorLineColor", m_config.majorLineColor);
-    m_shader->SetVec3("u_cameraPos", cameraPos);
     m_shader->SetFloat("u_horizonBlendStart", m_config.horizonBlendStart);
     m_shader->SetFloat("u_horizonBlendEnd", m_config.horizonBlendEnd);
 

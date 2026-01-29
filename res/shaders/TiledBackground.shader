@@ -15,6 +15,7 @@ flat out float vHasData;
 out vec2 vWorldXZ;
 out vec3 vWorldPos;
 out float vScreenY;
+out float vViewDepth;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -28,7 +29,8 @@ void main()
         iOriginXZ.y + aLocalXZ.y * iTileWorldSize
     );
 
-    vec4 clip = projection * view * vec4(worldPos, 1.0);
+    vec4 viewPos = view * vec4(worldPos, 1.0);
+    vec4 clip = projection * viewPos;
 
     vUV = aUV;
     vLayer = iLayer;
@@ -36,6 +38,7 @@ void main()
     vWorldXZ = worldPos.xz;
     vWorldPos = worldPos;
     vScreenY = clip.y / max(1e-6, clip.w) * 0.5 + 0.5;
+    vViewDepth = max(0.0, -viewPos.z);
     gl_Position = clip;
 }
 
@@ -48,6 +51,7 @@ flat in float vHasData;
 in vec2 vWorldXZ;
 in vec3 vWorldPos;
 in float vScreenY;
+in float vViewDepth;
 
 out vec4 FragColor;
 
@@ -60,7 +64,6 @@ uniform float u_majorLineWidth;
 uniform vec4 u_minorLineColor;
 uniform vec4 u_majorLineColor;
 
-uniform vec3 u_cameraPos;
 uniform float u_horizonBlendStart;
 uniform float u_horizonBlendEnd;
 
@@ -128,10 +131,9 @@ void main()
 
     // Ground->sky blending near horizon:
     // Fade both base color and line intensity to avoid a hard seam and reduce distant aliasing.
-    float distXZ = length(vWorldPos.xz - u_cameraPos.xz);
     float startD = max(u_horizonBlendStart, 0.0);
     float endD = max(u_horizonBlendEnd, startD + 0.0001);
-    float blendT = smoothstep(startD, endD, distXZ);
+    float blendT = smoothstep(startD, endD, vViewDepth);
 
     // Fade lines out slightly faster than the base color to reduce high-frequency shimmer.
     float lineFade = 1.0 - blendT;
