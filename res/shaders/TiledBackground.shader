@@ -147,8 +147,10 @@ void main()
     color = mix(color, u_minorLineColor, minorAlpha);
     color = mix(color, u_majorLineColor, majorAlpha);
 
-    // Blend the farthest ground color toward the sky gradient to soften the horizon seam without affecting the sky.
+    // Blend the farthest ground color toward the sky gradient (tinted toward major-line magenta),
+    // to soften the horizon seam without affecting the sky pass.
     vec3 skyColor = mix(u_skyBottomColor, u_skyTopColor, saturate(vScreenY));
-    color.rgb = mix(color.rgb, skyColor, blendT);
+    vec3 targetColor = mix(skyColor, u_majorLineColor.rgb, 0.9);
+    color.rgb = mix(color.rgb, targetColor, blendT);
     FragColor = vec4(color.rgb, 1.0);
 }
