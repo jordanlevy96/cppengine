@@ -621,50 +621,9 @@ namespace LuaBindings
             setNumber("minorLineWidth", [&](float v) { c.minorLineWidth = v; hadMinorWidth = true; });
             setNumber("majorLineWidth", [&](float v) { c.majorLineWidth = v; hadMajorWidth = true; });
 
-            auto setVec4 = [&](const char *key, glm::vec4 &out)
-            {
-                sol::object v = cfg[key];
-                if (!v.valid() || !v.is<sol::table>())
-                {
-                    return;
-                }
-
-                sol::table t = v.as<sol::table>();
-                auto getF = [&](const char *k, int idx, float &dst)
-                {
-                    sol::object o = t[k];
-                    if (!o.valid())
-                    {
-                        o = t[idx];
-                    }
-                    if (!o.valid())
-                    {
-                        return;
-                    }
-                    if (o.is<double>())
-                    {
-                        dst = static_cast<float>(o.as<double>());
-                    }
-                    else if (o.is<int>())
-                    {
-                        dst = static_cast<float>(o.as<int>());
-                    }
-                    else if (o.is<float>())
-                    {
-                        dst = o.as<float>();
-                    }
-                };
-
-                getF("r", 1, out.r);
-                getF("g", 2, out.g);
-                getF("b", 3, out.b);
-                getF("a", 4, out.a);
-            };
-
-            // Horizon blending (ground -> sky): start/end distances in world units, and a target horizon color.
+            // Horizon blending (ground -> sky): start/end distances in world units.
             setNumber("horizonBlendStart", [&](float v) { c.horizonBlendStart = v; });
             setNumber("horizonBlendEnd", [&](float v) { c.horizonBlendEnd = v; });
-            setVec4("horizonBlendColor", c.horizonBlendColor);
 
             // Back-compat: lineWidth previously drove both minor and major widths (major was ~1.5x).
             setNumber("lineWidth", [&](float v) { legacyLineWidth = v; hadLegacyLineWidth = true; });

@@ -66,11 +66,10 @@ struct TiledBackgroundConfig
     // Horizon blending (ground -> sky)
     //
     // The grid is very high-contrast up close; at long distance it will alias and/or form a hard seam against the sky.
-    // These parameters fade both the tile color and line intensity toward a target "horizon" color based on distance
-    // from the camera (measured in XZ plane).
+    // These parameters fade both the tile color and line intensity toward the *sky* color based on distance from the
+    // camera (measured in XZ plane). The sky color is derived from SkyBackgroundRenderer's current config each frame.
     float horizonBlendStart = 90.0f; ///< Distance at which ground begins blending toward horizon color (world units)
     float horizonBlendEnd = 160.0f;  ///< Distance at which blending reaches 100% (must be >= horizonBlendStart)
-    glm::vec4 horizonBlendColor = glm::vec4(0.02f, 0.02f, 0.08f, 1.0f); ///< Target color used near horizon (match sky bottom)
 };
 
 /**

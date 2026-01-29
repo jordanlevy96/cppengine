@@ -14,6 +14,7 @@ flat out float vLayer;
 flat out float vHasData;
 out vec2 vWorldXZ;
 out vec3 vWorldPos;
+out float vScreenY;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -27,12 +28,15 @@ void main()
         iOriginXZ.y + aLocalXZ.y * iTileWorldSize
     );
 
+    vec4 clip = projection * view * vec4(worldPos, 1.0);
+
     vUV = aUV;
     vLayer = iLayer;
     vHasData = iHasData;
     vWorldXZ = worldPos.xz;
     vWorldPos = worldPos;
-    gl_Position = projection * view * vec4(worldPos, 1.0);
+    vScreenY = clip.y / max(1e-6, clip.w) * 0.5 + 0.5;
+    gl_Position = clip;
 }
 
 #shader fragment
@@ -43,6 +47,7 @@ flat in float vLayer;
 flat in float vHasData;
 in vec2 vWorldXZ;
 in vec3 vWorldPos;
+in float vScreenY;
 
 out vec4 FragColor;
 
@@ -58,7 +63,13 @@ uniform vec4 u_majorLineColor;
 uniform vec3 u_cameraPos;
 uniform float u_horizonBlendStart;
 uniform float u_horizonBlendEnd;
-uniform vec4 u_horizonBlendColor;
+
+// Sky parameters (mirrors SkyBackground.shader)
+uniform vec3 u_skyTopColor;
+uniform vec3 u_skyBottomColor;
+uniform float u_skyHorizonY;
+uniform float u_skyHorizonGlow;
+uniform vec3 u_skyHorizonColor;
 
 float gridLine1D(float coord, float spacing, float halfWidth)
 {
@@ -131,7 +142,14 @@ void main()
     color = mix(color, u_minorLineColor, minorAlpha);
     color = mix(color, u_majorLineColor, majorAlpha);
 
-    color = mix(color, u_horizonBlendColor, blendT);
+    float t = saturate(vScreenY);
+    vec3 skyColor = mix(u_skyBottomColor, u_skyTopColor, t);
+
+    float h = abs(t - u_skyHorizonY);
+    float hg = (u_skyHorizonGlow <= 0.0) ? 0.0 : exp(- (h * h) / max(1e-6, u_skyHorizonGlow * u_skyHorizonGlow));
+    skyColor = mix(skyColor, u_skyHorizonColor, saturate(hg) * 0.35);
+
+    color.rgb = mix(color.rgb, skyColor, blendT);
 
     FragColor = color;
 }

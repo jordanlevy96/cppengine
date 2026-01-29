@@ -95,6 +95,11 @@ public:
     bool IsEnabled() const { return m_config.enabled; }
 
     /**
+     * @brief Get current configuration snapshot
+     */
+    const SkyBackgroundConfig &GetConfig() const { return m_config; }
+
+    /**
      * @brief Render fullscreen sky (no-op if disabled/uninitialized)
      * @param camera Active camera (unused for now; kept for future fog/sky coupling)
      * @param deltaMs Frame delta in milliseconds
@@ -114,4 +119,3 @@ private:
     std::uint32_t m_vao = 0;
     std::unique_ptr<Shader> m_shader;
 };
-

@@ -20,6 +20,7 @@
 #include "systems/TiledBackgroundRenderer.h"
 
 #include "controllers/Game.h"
+#include "systems/SkyBackgroundRenderer.h"
 #include "util/Logger.h"
 #include "util/Shader.h"
 
@@ -748,7 +749,13 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetVec3("u_cameraPos", cameraPos);
     m_shader->SetFloat("u_horizonBlendStart", m_config.horizonBlendStart);
     m_shader->SetFloat("u_horizonBlendEnd", m_config.horizonBlendEnd);
-    m_shader->SetVec4("u_horizonBlendColor", m_config.horizonBlendColor);
+
+    const SkyBackgroundConfig &sky = SkyBackgroundRenderer::GetInstance().GetConfig();
+    m_shader->SetVec3("u_skyTopColor", sky.topColor);
+    m_shader->SetVec3("u_skyBottomColor", sky.bottomColor);
+    m_shader->SetFloat("u_skyHorizonY", sky.horizonY);
+    m_shader->SetFloat("u_skyHorizonGlow", sky.horizonGlow);
+    m_shader->SetVec3("u_skyHorizonColor", sky.horizonColor);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_tileTextureArray);

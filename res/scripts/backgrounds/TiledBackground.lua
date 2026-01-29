@@ -42,7 +42,6 @@ TiledBackground = {
     -- - Distances are measured in world units (XZ plane distance from camera).
     horizonBlendStart = 90.0,
     horizonBlendEnd = 160.0,
-    horizonBlendColor = { r = 0.02, g = 0.02, b = 0.08, a = 1.0 },
 
     ready = function(self)
         if not BackgroundTiles then
@@ -68,8 +67,7 @@ TiledBackground = {
             majorLineWidth = self.majorLineWidth,
 
             horizonBlendStart = self.horizonBlendStart,
-            horizonBlendEnd = self.horizonBlendEnd,
-            horizonBlendColor = self.horizonBlendColor
+            horizonBlendEnd = self.horizonBlendEnd
         })
 
         BackgroundTiles.Enable(self.enabled)
