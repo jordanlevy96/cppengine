@@ -742,6 +742,11 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetMat4("projection", camera->Projection);
     m_shader->SetFloat("u_planeY", m_config.planeY);
     m_shader->SetVec4("u_fallbackColor", m_config.baseColorA);
+    m_shader->SetFloat("u_gridSpacing", m_config.gridSpacing);
+    m_shader->SetInt("u_majorEvery", m_config.majorEvery);
+    m_shader->SetFloat("u_lineWidth", m_config.lineWidth);
+    m_shader->SetVec4("u_minorLineColor", m_config.minorLineColor);
+    m_shader->SetVec4("u_majorLineColor", m_config.majorLineColor);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_tileTextureArray);
@@ -888,9 +893,6 @@ void TiledBackgroundRenderer::GenerateTileRGBA8(const TileKey &key, std::vector<
     outPixels.resize(static_cast<size_t>(w * h * 4));
 
     const float tileSize = GetTileWorldSizeForLOD(key.lod);
-    const float grid = std::max(0.0001f, m_config.gridSpacing);
-    const float majorGrid = grid * std::max(1, m_config.majorEvery);
-    const float lineW = std::max(0.0f, m_config.lineWidth);
 
     const float x0 = key.x * tileSize;
     const float z0 = key.y * tileSize;
@@ -902,43 +904,9 @@ void TiledBackgroundRenderer::GenerateTileRGBA8(const TileKey &key, std::vector<
 
         for (int x = 0; x < w; x++)
         {
-            const float u = (w == 1) ? 0.0f : (static_cast<float>(x) / static_cast<float>(w - 1));
-            const float worldX = x0 + u * tileSize;
-
-            const float mx = PositiveMod(worldX, grid);
-            const float mz = PositiveMod(worldZ, grid);
-            const float distMinorX = std::min(mx, grid - mx);
-            const float distMinorZ = std::min(mz, grid - mz);
-            const float minorDist = std::min(distMinorX, distMinorZ);
-
-            const float Mx = PositiveMod(worldX, majorGrid);
-            const float Mz = PositiveMod(worldZ, majorGrid);
-            const float distMajorX = std::min(Mx, majorGrid - Mx);
-            const float distMajorZ = std::min(Mz, majorGrid - Mz);
-            const float majorDist = std::min(distMajorX, distMajorZ);
-
             // Base gradient: dark -> brighter with distance along -Z (tuned for Tetris camera).
             const float gradT = Clamp01((-worldZ) * 0.0015f);
-            glm::vec4 color = glm::mix(m_config.baseColorA, m_config.baseColorB, gradT);
-
-            if (minorDist <= lineW)
-            {
-                const float k = 1.0f - Clamp01(minorDist / std::max(0.0001f, lineW));
-                color = glm::mix(color, m_config.minorLineColor, k);
-            }
-
-            if (majorDist <= lineW * 1.5f)
-            {
-                const float k = 1.0f - Clamp01(majorDist / std::max(0.0001f, lineW * 1.5f));
-                color = glm::mix(color, m_config.majorLineColor, k);
-            }
-
-            // Deterministic per-tile variation: subtle hue offset based on key.
-            const float keyHash = std::fmod(std::abs(key.x * 12.9898f + key.y * 78.233f), 1.0f);
-            const float tint = (0.92f + 0.08f * keyHash);
-            color.r *= tint;
-            color.g *= tint;
-            color.b *= tint;
+            const glm::vec4 color = glm::mix(m_config.baseColorA, m_config.baseColorB, gradT);
 
             const int idx = (y * w + x) * 4;
             outPixels[static_cast<size_t>(idx + 0)] = static_cast<std::uint8_t>(std::clamp(color.r, 0.0f, 1.0f) * 255.0f);
