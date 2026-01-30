@@ -135,10 +135,14 @@ void main()
 	// Ground->sky blending near horizon:
 	// Fade both base color and line intensity to avoid a hard seam and reduce distant aliasing.
 	// IMPORTANT: Use *camera-forward distance* so "end" lines up with farDistance selection (not camera absolute view depth).
-	float farD = max(u_farDistance, 0.0);
-	float startClamp = u_horizonBlendStart;
-	float endD = (u_horizonBlendEnd > 0.0) ? min(u_horizonBlendEnd, farD) : farD;
-	endD = max(endD, 0.0001);
+		float farD = max(u_farDistance, 0.0);
+		if (vForwardDist > farD)
+		{
+			discard;
+		}
+		float startClamp = u_horizonBlendStart;
+		float endD = (u_horizonBlendEnd > 0.0) ? min(u_horizonBlendEnd, farD) : farD;
+		endD = max(endD, 0.0001);
 
 	// Keep the transition to just a few pixels, regardless of world distance.
 	float px = max(u_horizonBlendPixels, 0.0);
