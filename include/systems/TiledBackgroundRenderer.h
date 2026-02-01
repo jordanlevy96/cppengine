@@ -63,16 +63,11 @@ struct TiledBackgroundConfig
     glm::vec4 minorLineColor = glm::vec4(0.0f, 0.85f, 1.0f, 1.0f); ///< Cyan
     glm::vec4 majorLineColor = glm::vec4(1.0f, 0.0f, 0.80f, 1.0f); ///< Magenta
 
-    // Horizon blending (ground -> sky)
+    // Horizon line
     //
-    // The grid is very high-contrast up close; at long distance it will alias and/or form a hard seam against the sky.
-    // These parameters fade both the tile color and line intensity toward the *sky* color at the far end of the ground.
-    // This is intentionally "only a few pixels" of blending: the effective start distance is computed as
-    //   start = max(horizonBlendStart, horizonBlendEnd - horizonBlendPixels * fwidth(viewDepth))
-    // so the transition width stays stable in screen-space regardless of camera distance.
-    float horizonBlendStart = 0.0f;   ///< Optional lower bound for fade start (world units in view depth); 0 = auto
-    float horizonBlendEnd = 160.0f;   ///< Distance at which blending reaches 100% (world units in view depth)
-    float horizonBlendPixels = 3.0f;  ///< Approximate fade width in pixels at the horizon (small = crisp)
+    // The simplest synthwave look is: grid extends to the far edge and terminates on a crisp magenta line.
+    // We compute the line in the shader at forward distance ~= farDistance and anti-alias it in screen-space.
+    float horizonLinePixels = 2.0f; ///< Approximate horizon line thickness in pixels (AA included)
 };
 
 /**

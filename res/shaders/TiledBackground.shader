@@ -13,9 +13,9 @@ out vec2 vUV;
 flat out float vLayer;
 flat out float vHasData;
 out vec2 vWorldXZ;
-	out vec3 vWorldPos;
-	out float vScreenY;
-	out float vForwardDist;
+out vec3 vWorldPos;
+out float vScreenY;
+out float vForwardDist;
 
 	uniform mat4 view;
 	uniform mat4 projection;
@@ -66,14 +66,8 @@ uniform float u_majorLineWidth;
 uniform vec4 u_minorLineColor;
 uniform vec4 u_majorLineColor;
 
-	uniform float u_horizonBlendStart;
-	uniform float u_horizonBlendEnd;
-	uniform float u_horizonBlendPixels;
-	uniform float u_farDistance;
-
-// Sky gradient colors used as the blend target (sky itself is rendered in a separate pass).
-uniform vec3 u_skyTopColor;
-uniform vec3 u_skyBottomColor;
+uniform float u_farDistance;
+uniform float u_horizonLinePixels;
 
 float saturate(float x) { return clamp(x, 0.0, 1.0); }
 
@@ -133,40 +127,21 @@ void main()
     );
 
 	// Ground->sky blending near horizon:
-	// Fade both base color and line intensity to avoid a hard seam and reduce distant aliasing.
-	// IMPORTANT: Use *camera-forward distance* so "end" lines up with farDistance selection (not camera absolute view depth).
-		float farD = max(u_farDistance, 0.0);
-		if (vForwardDist > farD)
-		{
-			discard;
-		}
-		float startClamp = u_horizonBlendStart;
-		float endD = (u_horizonBlendEnd > 0.0) ? min(u_horizonBlendEnd, farD) : farD;
-		endD = max(endD, 0.0001);
-
-	// Keep the transition to just a few pixels, regardless of world distance.
-	float px = max(u_horizonBlendPixels, 0.0);
-	float w = max(fwidth(vForwardDist), 1e-6) * px;
-	float effectiveStart = endD - w;
-	if (startClamp > 0.0)
+	// Clip to farDistance so the grid ends cleanly at the horizon.
+	float farD = max(u_farDistance, 0.0);
+	if (vForwardDist > farD)
 	{
-		effectiveStart = max(effectiveStart, startClamp);
+		discard;
 	}
-	float blendT = smoothstep(effectiveStart, endD, vForwardDist);
-
-    // Fade lines out slightly faster than the base color to reduce high-frequency shimmer.
-    float lineFade = 1.0 - blendT;
-    minorAlpha *= lineFade;
-    majorAlpha *= lineFade;
 
     vec4 color = baseColor;
     color = mix(color, u_minorLineColor, minorAlpha);
     color = mix(color, u_majorLineColor, majorAlpha);
 
-	// Blend the farthest ground color toward the sky gradient (tinted toward major-line magenta),
-	// to soften the horizon seam without affecting the sky pass.
-	vec3 skyColor = mix(u_skyBottomColor, u_skyTopColor, saturate(vScreenY));
-	vec3 targetColor = mix(skyColor, u_majorLineColor.rgb, 0.65);
-	color.rgb = mix(color.rgb, targetColor, blendT);
+	// Horizon termination line: force the last visible line to be magenta.
+	float aa = max(fwidth(vForwardDist), 1e-6);
+	float halfW = aa * max(u_horizonLinePixels, 0.0) * 0.5;
+	float horizonAlpha = 1.0 - smoothstep(farD - halfW, farD + halfW, vForwardDist);
+	color = mix(color, u_majorLineColor, horizonAlpha);
 	FragColor = vec4(color.rgb, 1.0);
 }

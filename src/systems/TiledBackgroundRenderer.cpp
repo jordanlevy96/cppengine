@@ -20,7 +20,6 @@
 #include "systems/TiledBackgroundRenderer.h"
 
 #include "controllers/Game.h"
-#include "systems/SkyBackgroundRenderer.h"
 #include "util/Logger.h"
 #include "util/Shader.h"
 
@@ -178,10 +177,7 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
         m_config.lodSplitFactor = 0.1f;
     }
 
-    // Horizon blending must be monotonic.
-    m_config.horizonBlendStart = std::max(0.0f, m_config.horizonBlendStart);
-    m_config.horizonBlendEnd = std::max(m_config.horizonBlendStart, m_config.horizonBlendEnd);
-    m_config.horizonBlendPixels = std::max(0.0f, m_config.horizonBlendPixels);
+    m_config.horizonLinePixels = std::max(0.0f, m_config.horizonLinePixels);
 
     EnsureInitialized();
     RecreateCacheIfNeeded();
@@ -759,16 +755,10 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetFloat("u_majorLineWidth", m_config.majorLineWidth);
     m_shader->SetVec4("u_minorLineColor", m_config.minorLineColor);
     m_shader->SetVec4("u_majorLineColor", m_config.majorLineColor);
-    m_shader->SetFloat("u_horizonBlendStart", m_config.horizonBlendStart);
-    m_shader->SetFloat("u_horizonBlendEnd", m_config.horizonBlendEnd);
-    m_shader->SetFloat("u_horizonBlendPixels", m_config.horizonBlendPixels);
     m_shader->SetFloat("u_farDistance", m_config.farDistance);
+    m_shader->SetFloat("u_horizonLinePixels", m_config.horizonLinePixels);
     m_shader->SetVec2("u_cameraPosXZ", glm::vec2(cameraPos.x, cameraPos.z));
     m_shader->SetVec2("u_cameraForwardXZ", glm::vec2(forward.x, forward.z));
-
-    const SkyBackgroundConfig &sky = SkyBackgroundRenderer::GetInstance().GetConfig();
-    m_shader->SetVec3("u_skyTopColor", sky.topColor);
-    m_shader->SetVec3("u_skyBottomColor", sky.bottomColor);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_tileTextureArray);

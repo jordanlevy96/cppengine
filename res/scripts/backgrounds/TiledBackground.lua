@@ -37,13 +37,10 @@ TiledBackground = {
     minorLineWidth = 0.08,
     majorLineWidth = 0.2,
 
-    -- Horizon blending (ground -> sky):
-    -- - Fades the *ground* into the already-rendered sky to avoid a hard seam.
-    -- - horizonBlendEnd is in view-depth units (approximately "forward distance").
-    -- - horizonBlendPixels clamps the transition to just a few pixels (no sky blur).
-    horizonBlendStart = 0.0,
-    horizonBlendEnd = 160.0,
-    horizonBlendPixels = 3.0,
+    -- Horizon termination line:
+    -- - Grid is rendered out to farDistance and ends on a magenta line.
+    -- - horizonLinePixels is the approximate thickness in pixels (AA included).
+    horizonLinePixels = 2.0,
 
     ready = function(self)
         if not BackgroundTiles then
@@ -68,9 +65,7 @@ TiledBackground = {
             minorLineWidth = self.minorLineWidth,
             majorLineWidth = self.majorLineWidth,
 
-            horizonBlendStart = self.horizonBlendStart,
-            horizonBlendEnd = self.horizonBlendEnd,
-            horizonBlendPixels = self.horizonBlendPixels
+            horizonLinePixels = self.horizonLinePixels
         })
 
         BackgroundTiles.Enable(self.enabled)
