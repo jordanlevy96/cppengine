@@ -36,6 +36,11 @@ scene:
         - type: "LuaScript"
           script: "backgrounds/SkyBackground.lua"
 
+    - name: "MountainsBackground"
+      components:
+        - type: "LuaScript"
+          script: "backgrounds/MountainsBackground.lua"
+
     - name: "TiledBackground"
       components:
         - type: "LuaScript"

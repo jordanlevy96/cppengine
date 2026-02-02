@@ -25,6 +25,7 @@
 
 #include "controllers/Game.h"
 #include "controllers/EngineCore.h"
+#include "systems/BackgroundMountainsRenderer.h"
 #include "systems/HierarchySystem.h"
 #include "systems/RenderSystem.h"
 #include "systems/ScriptSystem.h"
@@ -209,6 +210,9 @@ void Game::Render()
 
     // 0.25 Sky background (optional)
     SkyBackgroundRenderer::GetInstance().Render(cam, static_cast<float>(delta));
+
+    // 0.35 Mountains (optional)
+    BackgroundMountainsRenderer::GetInstance().Render(cam, static_cast<float>(delta));
 
     // 0.5 Procedural tiled background (optional)
     TiledBackgroundRenderer::GetInstance().Render(cam, static_cast<float>(delta));
