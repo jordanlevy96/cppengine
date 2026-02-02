@@ -52,11 +52,20 @@ TiledBackground = {
     -- Mountains (distant terrain beyond the horizon):
     -- - mountainExtraDistance extends rendering beyond farDistance so displaced terrain is visible.
     -- - mountainHeight controls peak amplitude (world units above planeY).
-    -- - mountainNoiseScale converts world units -> noise space (smaller = broader mountains).
-    -- - mountainDetail blends in higher-frequency variation [0..1].
+    -- - mountainNoiseScale converts world units -> noise space (smaller = broader features, larger = busier noise).
+    --   Useful ranges:
+    --     0.003 - 0.006 : broad "range" shapes (more realistic from a distance)
+    --     0.008 - 0.014 : busier ridges / more waves
+    -- - mountainDetail (0..1) controls ruggedness:
+    --     0.0 : smooth rolling hills
+    --     0.5 : ridged peaks with some smoothing (good default)
+    --     1.0 : sharp ridges / crags (can look noisy if noiseScale is too large)
     -- - mountainFadeDistance controls how quickly mountains rise after the horizon (world units).
+    --   If you see a "wall" at the horizon, increase this; if mountains feel too flat, decrease it.
     mountainExtraDistance = 260.0,
     mountainHeight = 28.0,
+    -- Start here for more natural-looking ranges: reduce noiseScale and optionally increase height.
+    -- Example: { mountainNoiseScale = 0.005, mountainHeight = 40.0, mountainDetail = 0.6 }
     mountainNoiseScale = 0.012,
     mountainDetail = 0.55,
     mountainFadeDistance = 24.0,

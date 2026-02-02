@@ -111,6 +111,33 @@ namespace
         }
         return v;
     }
+
+    float RidgedFbm2D(float x, float y, int octaves)
+    {
+        // Ridged multifractal style noise (good for mountain-like silhouettes).
+        // Produces sharper peaks than plain FBM.
+        float v = 0.0f;
+        float a = 0.5f;
+        float f = 1.0f;
+        float weight = 1.0f;
+
+        for (int i = 0; i < octaves; i++)
+        {
+            float n = ValueNoise2D(x * f, y * f);
+            // Map [0..1] to ridges: peak at 0.5, valleys at 0 and 1.
+            float ridge = 1.0f - std::abs(2.0f * n - 1.0f);
+            ridge = ridge * ridge; // sharpen
+
+            ridge *= weight;
+            weight = std::clamp(ridge * 2.0f, 0.0f, 1.0f);
+
+            v += ridge * a;
+            f *= 2.0f;
+            a *= 0.5f;
+        }
+
+        return v;
+    }
 }
 
 TiledBackgroundRenderer::~TiledBackgroundRenderer() = default;
@@ -1134,7 +1161,7 @@ void TiledBackgroundRenderer::GenerateTileHeightR16(const TileKey &key, std::vec
     const float z0 = static_cast<float>(key.y) * tileSize;
 
     const float scale = m_config.mountainNoiseScale;
-    const float detail = std::clamp(m_config.mountainDetail, 0.0f, 1.0f);
+    const float ruggedness = std::clamp(m_config.mountainDetail, 0.0f, 1.0f);
 
     for (int y = 0; y < h; y++)
     {
@@ -1149,13 +1176,21 @@ void TiledBackgroundRenderer::GenerateTileHeightR16(const TileKey &key, std::vec
             const float nx = worldX * scale;
             const float nz = worldZ * scale;
 
-            const float n0 = Fbm2D(nx, nz, 5);
-            const float n1 = Fbm2D(nx * 3.0f + 12.3f, nz * 3.0f + 4.7f, 5);
-            const float n = Lerp(n0, n1, detail);
+            // Mountain "shape" is driven by two components:
+            // - a low-frequency range mask (broad massing)
+            // - a high-frequency ridge field (peaks / crags)
+            //
+            // mountainDetail (ruggedness) blends between smooth hills (0) and sharp ridges (1).
+            const float rangeMask = std::pow(Clamp01(Fbm2D(nx * 0.25f, nz * 0.25f, 3)), 1.35f);
 
-            // Emphasize peaks a bit so the silhouette reads from a distance.
-            const float shaped = std::pow(Clamp01(n), 1.6f);
-            const float height01 = Clamp01(shaped);
+            const float smooth = Fbm2D(nx, nz, 4);
+            const float ridged = RidgedFbm2D(nx * 1.15f + 12.3f, nz * 1.15f + 4.7f, 5);
+
+            float n = Lerp(smooth, ridged, ruggedness);
+            n *= (0.35f + 0.65f * rangeMask);
+
+            // Final shaping: emphasize peaks while keeping valleys near the horizon flatter.
+            const float height01 = Clamp01(std::pow(Clamp01(n), 1.85f));
 
             outPixels[static_cast<size_t>(y * w + x)] = static_cast<std::uint16_t>(std::lround(height01 * 65535.0f));
         }
