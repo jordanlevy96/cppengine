@@ -16,6 +16,7 @@
 #include "systems/ReactiveUI.h"
 #include "systems/LuaUIState.h"
 #include "util/Config.h"
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -182,5 +183,8 @@ private:
     bool m_htmlRendererInitialized = false;
 
     // Input handler ID for UI click forwarding
-    size_t m_uiClickHandlerId = 0;
+    size_t m_uiClickHandlerId = std::numeric_limits<size_t>::max();
+    size_t m_uiMouseButtonHandlerId = std::numeric_limits<size_t>::max();
+    size_t m_uiCursorHandlerId = std::numeric_limits<size_t>::max();
+    size_t m_uiResizeHandlerId = std::numeric_limits<size_t>::max();
 };

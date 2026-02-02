@@ -223,14 +223,21 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
 
     sol::table methods = methodsObj.as<sol::table>();
     sol::object handlerObj = methods[handlerName];
-    if (!handlerObj.is<sol::function>())
+    if (!handlerObj.valid() || handlerObj.get_type() == sol::type::nil)
     {
         LOG_ERROR("[ReactiveUI] {} event dispatch failed: Handler '{}' not found in methods table (elem: '{}')",
                   eventType, handlerName, eventData.elemId);
         return;
     }
 
-    sol::function handler = handlerObj.as<sol::function>();
+    if (handlerObj.get_type() != sol::type::function)
+    {
+        LOG_ERROR("[ReactiveUI] {} event dispatch failed: Handler '{}' is not a function (type: {}) (elem: '{}')",
+                  eventType, handlerName, static_cast<int>(handlerObj.get_type()), eventData.elemId);
+        return;
+    }
+
+    sol::protected_function handler = handlerObj.as<sol::protected_function>();
     sol::table stateTable = m_luaState->GetStateTable();
 
     // Call handler with appropriate arguments
@@ -275,7 +282,7 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
                 }
                 else
                 {
-                    // Not a direct property, try to evaluate as Lua expression with state table as environment
+                    // Not a direct property, try to evaluate as Lua chunk with state table as environment
                     std::string luaCode = "return " + args[0];
                     sol::state &lua = ScriptManager::GetInstance().GetLuaState();
 
@@ -283,8 +290,11 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
                     sol::load_result loadResult = lua.load(luaCode);
                     if (loadResult.valid())
                     {
-                        sol::protected_function func = loadResult();
-                        // Set state table as environment so expressions like "uiEditor.newTemplateName" work
+                        // NOTE: loadResult is already a callable chunk; executing it returns the expression result.
+                        // Do NOT call loadResult() here expecting a function return value.
+                        sol::protected_function func = loadResult;
+
+                        // Set state table as environment so expressions like "data.uiEditor.newTemplateName" work
                         sol::environment env(lua, sol::create, stateTable);
                         sol::set_environment(env, func);
                         
@@ -336,7 +346,12 @@ void ReactiveUI::DispatchEvent(const std::string &eventType,
             return;
         }
 
-        // Handler executed successfully
+        // Handler executed successfully. Mark state dirty so the next GetRenderedHTML() re-evaluates the template.
+        // Special-case noop handlers used for event consumption only.
+        if (handlerName != "noop")
+        {
+            m_luaState->MarkDirty();
+        }
     }
     catch (const sol::error &e)
     {

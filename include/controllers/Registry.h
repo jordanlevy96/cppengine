@@ -31,7 +31,7 @@
 typedef size_t EntityID;
 
 /// Null entity ID constant (used for invalid/unselected entities)
-static const EntityID ENTITY_NULL = 0;
+static const EntityID ENTITY_NULL = static_cast<EntityID>(-1);
 
 /**
  * @brief Cache-friendly sparse set for component storage

@@ -84,12 +84,12 @@ void ExpressionCache::LogStatsIfNeeded()
 {
     uint64_t totalOps = m_cacheHits + m_cacheMisses;
 
-    // Log every 100 operations
-    if (totalOps > 0 && totalOps % 100 == 0)
+    // Log periodically (debug-only): avoid spamming logs on hot paths.
+    if (totalOps > 0 && totalOps % 1000 == 0)
     {
         float hitRate = totalOps > 0 ? (static_cast<float>(m_cacheHits) / totalOps) * 100.0f : 0.0f;
-        LOG_INFO("[ExpressionCache] Stats: {} hits, {} misses ({:.1f}% hit rate), {} cached expressions",
-                 m_cacheHits, m_cacheMisses, hitRate, m_expressions.size());
+        LOG_DEBUG("[ExpressionCache] Stats: {} hits, {} misses ({:.1f}% hit rate), {} cached expressions",
+                  m_cacheHits, m_cacheMisses, hitRate, m_expressions.size());
 
         // Warn if hit rate is low after warm-up period
         if (totalOps > 200 && hitRate < 80.0f)
@@ -123,7 +123,15 @@ sol::protected_function ExpressionCache::CompileExpression(const std::string& ex
         return sol::protected_function();
     }
 
-    return result.get<sol::protected_function>();
+    sol::object obj = result.get<sol::object>();
+    if (!obj.valid() || obj.get_type() != sol::type::function)
+    {
+        LOG_ERROR("[ExpressionCache] Execution result for '{}' was not a function (type: {})",
+                  expression, static_cast<int>(obj.get_type()));
+        return sol::protected_function();
+    }
+
+    return obj.as<sol::protected_function>();
 }
 
 std::set<std::string> ExpressionCache::AnalyzeDependencies(const std::string& expression)

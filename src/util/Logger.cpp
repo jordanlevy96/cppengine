@@ -4,6 +4,7 @@
 #include "quill/sinks/ConsoleSink.h"
 #include "quill/sinks/FileSink.h"
 #include <algorithm>
+#include <cstdlib>
 #include <cctype>
 
 namespace imhotep
@@ -107,6 +108,19 @@ namespace imhotep
 
         m_logger->set_log_level(ParseLogLevel(IMHOTEP_LOG_LEVEL_STR));
 
+        // During normal termination, Quill stops its backend via an internal atexit handler.
+        // That can run before C++ static destructors, meaning destructors that log can hang while
+        // trying to enqueue into a stopped backend. To prevent this, disable logging *before* Quill
+        // stops by registering a later atexit handler (runs earlier in reverse-order execution).
+        std::atexit([]()
+                    {
+                        quill::Logger *logger = imhotep::Logger::GetInstance().GetLogger();
+                        if (logger)
+                        {
+                            logger->set_log_level(quill::LogLevel::None);
+                        }
+                    });
+
         m_initialized = true;
         return true;
     }
@@ -120,6 +134,10 @@ namespace imhotep
     {
         if (!m_initialized)
             return;
+        if (m_logger)
+        {
+            m_logger->set_log_level(quill::LogLevel::None);
+        }
         quill::Backend::stop();
         m_initialized = false;
     }

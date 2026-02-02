@@ -27,6 +27,7 @@
 #include "util/Logger.h"
 #include "controllers/ScriptManager.h"
 #include <sstream>
+#include <vector>
 
 LuaUIState::LuaUIState()
     : m_lua(nullptr), m_isDirty(true), m_isReady(false)
@@ -80,6 +81,152 @@ bool LuaUIState::LoadStateFile(const std::string &path)
         }
 
         m_stateTable = result[0];
+
+        // Back-compat: allow templates/expressions to reference `data` fields without the `data.` prefix.
+        // This is done by setting a metatable on the root state table that forwards missing lookups and
+        // writes to the `data` table (while preserving any existing metatable behavior).
+        try
+        {
+            sol::object dataObj = m_stateTable.raw_get<sol::object>("data");
+            if (dataObj.valid() && dataObj.is<sol::table>())
+            {
+                sol::object metaObj = m_stateTable[sol::metatable_key];
+                sol::table meta = (metaObj.valid() && metaObj.is<sol::table>()) ? metaObj.as<sol::table>() : m_lua->create_table();
+
+                sol::object prevIndexObj = meta.raw_get<sol::object>("__index");
+                sol::object prevNewIndexObj = meta.raw_get<sol::object>("__newindex");
+
+                meta.set_function("__index", [prevIndexObj](sol::table t, sol::object key) -> sol::object
+                {
+                    sol::object dataInnerObj = t.raw_get<sol::object>("data");
+                    if (dataInnerObj.valid() && dataInnerObj.is<sol::table>())
+                    {
+                        sol::table dataTable = dataInnerObj.as<sol::table>();
+
+                        if (key.is<std::string>())
+                        {
+                            const std::string k = key.as<std::string>();
+                            sol::object v = dataTable.raw_get<sol::object>(k);
+                            if (v.valid() && v.get_type() != sol::type::lua_nil)
+                            {
+                                return v;
+                            }
+                        }
+                        else if (key.is<int>())
+                        {
+                            int k = key.as<int>();
+                            sol::object v = dataTable.raw_get<sol::object>(k);
+                            if (v.valid() && v.get_type() != sol::type::lua_nil)
+                            {
+                                return v;
+                            }
+                        }
+                    }
+
+                    if (prevIndexObj.valid() && prevIndexObj.get_type() != sol::type::lua_nil)
+                    {
+                        if (prevIndexObj.get_type() == sol::type::table)
+                        {
+                            sol::table prevIndexTable = prevIndexObj.as<sol::table>();
+                            if (key.is<std::string>())
+                            {
+                                return prevIndexTable[key.as<std::string>()];
+                            }
+                            if (key.is<int>())
+                            {
+                                return prevIndexTable[key.as<int>()];
+                            }
+                        }
+                        else if (prevIndexObj.get_type() == sol::type::function)
+                        {
+                            sol::protected_function prevIndexFn = prevIndexObj.as<sol::protected_function>();
+                            sol::protected_function_result r = prevIndexFn(t, key);
+                            if (r.valid())
+                            {
+                                return r.get<sol::object>();
+                            }
+                        }
+                    }
+
+                    return sol::nil;
+                });
+
+                meta.set_function("__newindex", [prevNewIndexObj](sol::table t, sol::object key, sol::object value)
+                {
+                    bool wrote = false;
+                    if (key.is<std::string>())
+                    {
+                        const std::string k = key.as<std::string>();
+                        if (k != "data" && k != "methods" && k != "computed")
+                        {
+                            sol::object dataInnerObj = t.raw_get<sol::object>("data");
+                            if (dataInnerObj.valid() && dataInnerObj.is<sol::table>())
+                            {
+                                sol::table dataTable = dataInnerObj.as<sol::table>();
+                                dataTable[k] = value;
+                                wrote = true;
+                            }
+                        }
+                    }
+                    else if (key.is<int>())
+                    {
+                        sol::object dataInnerObj = t.raw_get<sol::object>("data");
+                        if (dataInnerObj.valid() && dataInnerObj.is<sol::table>())
+                        {
+                            sol::table dataTable = dataInnerObj.as<sol::table>();
+                            dataTable[key.as<int>()] = value;
+                            wrote = true;
+                        }
+                    }
+
+                    if (wrote)
+                    {
+                        return;
+                    }
+
+                    if (prevNewIndexObj.valid() && prevNewIndexObj.get_type() != sol::type::lua_nil)
+                    {
+                        if (prevNewIndexObj.get_type() == sol::type::function)
+                        {
+                            sol::protected_function prevNewIndexFn = prevNewIndexObj.as<sol::protected_function>();
+                            prevNewIndexFn(t, key, value);
+                            return;
+                        }
+                        if (prevNewIndexObj.get_type() == sol::type::table)
+                        {
+                            sol::table prevNewIndexTable = prevNewIndexObj.as<sol::table>();
+                            if (key.is<std::string>())
+                            {
+                                prevNewIndexTable[key.as<std::string>()] = value;
+                                return;
+                            }
+                            if (key.is<int>())
+                            {
+                                prevNewIndexTable[key.as<int>()] = value;
+                                return;
+                            }
+                        }
+                    }
+
+                    // Default: raw set on the state table (avoid recursion into __newindex).
+                    if (key.is<std::string>())
+                    {
+                        t.raw_set(key.as<std::string>(), value);
+                    }
+                    else if (key.is<int>())
+                    {
+                        t.raw_set(key.as<int>(), value);
+                    }
+                });
+
+                m_stateTable[sol::metatable_key] = meta;
+            }
+        }
+        catch (const std::exception &e)
+        {
+            LOG_ERROR("[LuaUIState] Failed to set data fallback metatable: {}", e.what());
+        }
+
         m_isReady = true;
         m_isDirty = true;
 
@@ -193,9 +340,6 @@ std::string LuaUIState::EvaluateAsString(const std::string &expression)
     }
 
     // Fallback to uncached evaluation (should rarely happen)
-    static bool loggedViewportImage = false;
-    bool isViewportImage = (expression == "viewportImage");
-
     try
     {
         std::string luaCode = "return function() return " + expression + " end";
@@ -225,13 +369,7 @@ std::string LuaUIState::EvaluateAsString(const std::string &expression)
 
         if (obj.is<std::string>())
         {
-            std::string value = obj.as<std::string>();
-            if (isViewportImage && !loggedViewportImage)
-            {
-                LOG_INFO("[LuaUIState] Successfully evaluated 'viewportImage': {} bytes", value.size());
-                loggedViewportImage = true;
-            }
-            return value;
+            return obj.as<std::string>();
         }
         else if (obj.is<int>())
         {
@@ -247,10 +385,6 @@ std::string LuaUIState::EvaluateAsString(const std::string &expression)
         }
         else if (!obj.valid() || obj.get_type() == sol::type::lua_nil)
         {
-            if (isViewportImage)
-            {
-                LOG_ERROR("[LuaUIState] 'viewportImage' evaluates to nil!");
-            }
             return "";
         }
 
@@ -270,16 +404,28 @@ sol::object LuaUIState::NavigatePath(const std::string &path)
         return sol::nil;
     }
 
-    // Split path by dots and navigate through tables
-    std::istringstream iss(path);
-    std::string key;
-    sol::object current = m_stateTable;
+    // Split path by dots and navigate through tables.
+    // Important: a leaf value being nil is not always an error (e.g., "data.selectedEntityId" when nothing is selected).
+    // Only treat missing intermediate keys as errors.
+    std::vector<std::string> parts;
+    parts.reserve(4);
 
-    while (std::getline(iss, key, '.'))
     {
+        std::istringstream iss(path);
+        std::string key;
+        while (std::getline(iss, key, '.'))
+        {
+            parts.push_back(key);
+        }
+    }
+
+    sol::object current = m_stateTable;
+    for (size_t i = 0; i < parts.size(); i++)
+    {
+        const std::string &key = parts[i];
+
         if (!current.is<sol::table>())
         {
-            // Can't navigate further, not a table
             return sol::nil;
         }
 
@@ -288,8 +434,10 @@ sol::object LuaUIState::NavigatePath(const std::string &path)
 
         if (!current.valid() || current.get_type() == sol::type::lua_nil)
         {
-            // Key doesn't exist
-            LOG_ERROR("[LuaUIState] Key not found: {} in path: {}", key, path);
+            if (i + 1 < parts.size())
+            {
+                LOG_ERROR("[LuaUIState] Key not found: {} in path: {}", key, path);
+            }
             return sol::nil;
         }
     }

@@ -2,53 +2,142 @@
 <html>
 <head>
     <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background: #1e1e1e;
+            background: rgba(0, 0, 0, 0);
             color: #cccccc;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
         }
 
         .menu-bar {
-            height: 30px;
+            flex: 0 0 auto;
             background: #252526;
-            padding: 8px;
+            padding: 0.35em 0.5em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+
+        .menu-left {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .menu-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .menu-item {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .menu-item.active {
+            color: #4ec9b0;
         }
 
         .content {
-            margin-top: 10px;
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .scene-tree {
-            float: left;
-            width: 250px;
+            width: 240px;
             background: #252526;
-            padding: 10px;
-            min-height: 600px;
+            padding: 0.75em;
+            height: 100%;
+            overflow-y: auto;
+            box-sizing: border-box;
         }
 
         .viewport {
-            float: left;
-            width: 800px;
-            background: #2d2d30;
-            padding: 10px;
+            flex: 1;
+            background: rgba(0, 0, 0, 0);
+            padding: 0;
+            height: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: flex;
+            align-items: stretch;
+            justify-content: stretch;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .viewport-host {
+            flex: 1;
+            width: 100%;
+            height: 100%;
         }
 
         .inspector {
-            float: left;
-            width: 250px;
+            width: 260px;
             background: #252526;
-            padding: 10px;
-            min-height: 600px;
+            padding: 0.75em;
+            height: 100%;
+            overflow-y: auto;
+            box-sizing: border-box;
         }
 
         .ui-editor {
-            float: left;
-            width: 500px;
+            width: 100%;
             background: #252526;
-            padding: 10px;
-            min-height: 600px;
+            padding: 0.75em;
+            height: 100%;
             overflow-y: auto;
+            box-sizing: border-box;
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+
+        .main-row {
+            display: flex;
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .splitter {
+            width: 6px;
+            background: #1e1e1e;
+            cursor: col-resize;
+            user-select: none;
+        }
+
+        .splitter:hover {
+            background: #3e3e3e;
+        }
+
+        .resize-overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0);
+            cursor: col-resize;
+        }
+
+        .app {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
         .ui-editor-header {
@@ -70,7 +159,7 @@
         }
 
         .ui-editor-tab {
-            padding: 6px 12px;
+            padding: 0.35em 0.7em;
             background: #1e1e1e;
             border: 1px solid #3e3e3e;
             cursor: pointer;
@@ -94,43 +183,78 @@
             background: #1177bb;
         }
 
-        /* v-table styles for inspector */
-        .inspector-table {
-            width: 100%;
-            margin-top: 10px;
+        .inspector-group {
+            margin-top: 0.75em;
         }
 
-        .inspector-table th {
-            text-align: left;
-            padding: 4px;
-            background: #2d2d30;
-            border-bottom: 1px solid #3e3e3e;
-            font-size: 11px;
-            color: #9cdcfe;
+	        .inspector-group-title {
+	            font-weight: bold;
+	            margin-bottom: 0.5em;
+	        }
+
+	        .inspector-table {
+	            width: 100%;
+	            border-collapse: collapse;
+	            table-layout: fixed;
+	            margin-top: 0.4em;
+	        }
+
+	        .inspector-table td {
+	            padding: 0.2em 0.15em;
+	            vertical-align: middle;
+	        }
+
+	        .inspector-row-label {
+	            width: 5.5em;
+	            color: #9cdcfe;
+	            user-select: none;
+	            padding-left: 0;
+	        }
+
+	        .inspector-input {
+	            width: 100%;
+	            padding: 0.4em 0.5em;
+	            background: #1e1e1e;
+	            color: #cccccc;
+	            border: 1px solid #3e3e3e;
+	            font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+	            font-size: 1em;
+	            box-sizing: border-box;
+	            display: block;
+	            user-select: none;
+	            position: relative;
+	            overflow: hidden;
+	            white-space: nowrap;
+	            min-height: 1.8em;
+	            cursor: text;
+	        }
+
+        .inspector-input.focused {
+            border-color: #4ec9b0;
         }
 
-        .inspector-table td {
-            padding: 4px;
-            border-bottom: 1px solid #2d2d30;
-            font-size: 12px;
+        .input-cursor {
+            color: #4ec9b0;
+            animation: blink 1s step-end infinite;
+            font-weight: normal;
         }
 
-        .inspector-table tr:hover {
-            background: #2a2a2a;
+        @keyframes blink {
+            50% { opacity: 0; }
         }
 
-        .ui-editor-code {
-            width: 100%;
-            height: 300px;
-            padding: 8px;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border: 1px solid #3e3e3e;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            resize: vertical;
-            box-sizing: border-box;
-        }
+	        .ui-editor-code {
+	            width: 100%;
+	            height: 300px;
+	            padding: 8px;
+	            background: #1e1e1e;
+	            color: #d4d4d4;
+	            border: 1px solid #3e3e3e;
+	            font-family: 'Courier New', monospace;
+	            font-size: 0.85em;
+	            resize: vertical;
+	            box-sizing: border-box;
+	        }
 
         .ui-editor-buttons {
             margin-top: 10px;
@@ -168,11 +292,11 @@
             overflow-y: auto;
         }
 
-        .ui-editor-error {
-            color: #f48771;
-            margin-top: 5px;
-            font-size: 12px;
-        }
+	        .ui-editor-error {
+	            color: #f48771;
+	            margin-top: 5px;
+	            font-size: 0.85em;
+	        }
 
         .ui-editor-new-template {
             margin-top: 10px;
@@ -190,14 +314,14 @@
             margin-right: 5px;
         }
 
-        h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-        }
+	        h3 {
+	            margin: 0 0 0.6em 0;
+	            font-size: 1em;
+	        }
 
         .entity-item {
-            padding: 4px;
-            margin-bottom: 2px;
+            padding: 0.25em;
+            margin-bottom: 0.15em;
             background: #1e1e1e;
             cursor: pointer;
             user-select: none;
@@ -210,141 +334,153 @@
             border-left-color: #4ec9b0;
         }
 
-        .entity-item.selected {
-            background: #0e639c;
-            color: #ffffff;
-            border-left-color: #4ec9b0;
-        }
+	        .entity-item.selected {
+	            background: #0e639c;
+	            color: #ffffff;
+	            border-left-color: #4ec9b0;
+	        }
 
-        .entity-item.hovering {
-            background: #2a2a2a;
-            transform: translateX(4px);
-        }
-
-        .entity-tooltip {
-            position: absolute;
-            background: #252526;
-            border: 1px solid #4ec9b0;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            color: #4ec9b0;
-            pointer-events: none;
-            margin-left: 260px;
-            margin-top: -30px;
-            white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        }
-    </style>
+	    </style>
 </head>
-<body>
-    <div class="menu-bar">
-        File | Edit | View | Tools
-    </div>
-
-    <div class="content">
-        <div class="scene-tree">
-            <h3>Scene Hierarchy</h3>
-            <div v-for="entity in entities"
-                 v-bind:class="'entity-item' .. (selectedEntityId == entity.id and ' selected' or '') .. (hoveredEntityId == entity.id and ' hovering' or '')"
-                 @click="selectEntity(entity.id)"
-                 @mouseenter="onEntityHoverEnter(entity.id, entity.name)"
-                 @mouseleave="onEntityHoverLeave">
-                {{ entity.name }}
+<body style="font-size: {{ data.fontSize }}px;">
+    <div class="app">
+        <div class="menu-bar">
+            <div class="menu-left">
+                <span>File</span> | <span>Edit</span> | <span class="menu-item" @click="toggleView" v-bind:class="data.activeView == 'ui' and 'active' or ''">View</span> | <span>Tools</span>
             </div>
-            <div v-if="showEntityTooltip" class="entity-tooltip">
-                {{ tooltipText }}
+            <div class="menu-right">
+                <span class="menu-item" @click="decreaseFont">A-</span>
+                <span class="menu-item" @click="increaseFont">A+</span>
+                <span>{{ data.fontSize }}px</span>
             </div>
         </div>
+
+	        <div class="content">
+	            <div v-if="data.activeView == 'scene'" class="main-row">
+	            <div class="scene-tree" style="width: {{ data.layout.leftWidth }}px;">
+	            <h3>Scene Hierarchy</h3>
+	            <div v-for="entity in data.entities"
+	                 v-bind:class="'entity-item' .. (data.selectedEntityId == entity.id and ' selected' or '')"
+	                 @click="selectEntity(entity.id)">
+	                {{ entity.name }}
+	            </div>
+	        </div>
+
+        <div class="splitter"
+             @mousedown="beginResizeLeft($event)"
+             @mouseup="endResize"></div>
 
         <div class="viewport">
-            <img src="{{ viewportImage }}" width="1580" height="1185" />
+            <div class="viewport-host" @click="onViewportClick($event)"></div>
         </div>
 
-        <div class="inspector">
-            <h3>Inspector</h3>
-            <div v-if="selectedEntityId">
-                <div><strong>{{ selectedEntityName }}</strong></div>
+        <div class="splitter"
+             @mousedown="beginResizeInspector($event)"
+             @mouseup="endResize"></div>
 
-                <div style="margin-top: 10px;">
-                    <div><strong>Transform</strong></div>
-                    <table v-table="transformTable" class="inspector-table"></table>
-                </div>
+	        <div class="inspector" style="width: {{ data.layout.inspectorWidth }}px;">
+	            <h3>Inspector</h3>
+	            <div v-if="data.selectedEntityId ~= nil">
+	                <div><strong>{{ data.selectedEntityName }}</strong></div>
+	
+	                <div class="inspector-group">
+	                    <div class="inspector-group-title">Transform</div>
+	                    <table class="inspector-table">
+	                        <tr>
+	                            <td class="inspector-row-label">Position</td>
+	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posX'}" @click="focusInput('data.inspector.posX')"><span v-if="data.focusedField == 'data.inspector.posX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posX'">{{ data.inspector.posX }}</span></div></td>
+	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posY'}" @click="focusInput('data.inspector.posY')"><span v-if="data.focusedField == 'data.inspector.posY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posY'">{{ data.inspector.posY }}</span></div></td>
+	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posZ'}" @click="focusInput('data.inspector.posZ')"><span v-if="data.focusedField == 'data.inspector.posZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posZ'">{{ data.inspector.posZ }}</span></div></td>
+	                        </tr>
+	                        <tr>
+	                            <td class="inspector-row-label">Rotation</td>
+	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotX'}" @click="focusInput('data.inspector.rotX')"><span v-if="data.focusedField == 'data.inspector.rotX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotX'">{{ data.inspector.rotX }}</span></div></td>
+	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotY'}" @click="focusInput('data.inspector.rotY')"><span v-if="data.focusedField == 'data.inspector.rotY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotY'">{{ data.inspector.rotY }}</span></div></td>
+	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotZ'}" @click="focusInput('data.inspector.rotZ')"><span v-if="data.focusedField == 'data.inspector.rotZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotZ'">{{ data.inspector.rotZ }}</span></div></td>
+	                        </tr>
+	                        <tr>
+	                            <td class="inspector-row-label">Scale</td>
+	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleX'}" @click="focusInput('data.inspector.scaleX')"><span v-if="data.focusedField == 'data.inspector.scaleX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleX'">{{ data.inspector.scaleX }}</span></div></td>
+	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleY'}" @click="focusInput('data.inspector.scaleY')"><span v-if="data.focusedField == 'data.inspector.scaleY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleY'">{{ data.inspector.scaleY }}</span></div></td>
+	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleZ'}" @click="focusInput('data.inspector.scaleZ')"><span v-if="data.focusedField == 'data.inspector.scaleZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleZ'">{{ data.inspector.scaleZ }}</span></div></td>
+	                        </tr>
+	                    </table>
+	                </div>
+	            </div>
+	            <div v-if="data.selectedEntityId == nil">
+	                No selection
+	            </div>
+	        </div>
             </div>
-            <div v-else>
-                No selection
-            </div>
-        </div>
 
-        <div class="ui-editor">
+        <div v-if="data.activeView == 'ui'" class="ui-editor">
             <div class="ui-editor-header">
                 <h3>UI Editor</h3>
-                <select class="ui-editor-selector" v-model="uiEditor.currentTemplate" @change="loadTemplate(uiEditor.currentTemplate)">
+                <select class="ui-editor-selector" v-model="data.uiEditor.currentTemplate" @change="loadTemplate">
                     <option value="">-- Select Template --</option>
-                    <option v-for="tpl in uiEditor.templates" v-bind:value="tpl.name">{{ tpl.name }}</option>
+                    <option v-for="tpl in data.uiEditor.templates" v-bind:value="tpl.name">{{ tpl.name }}</option>
                 </select>
             </div>
 
-            <div v-if="uiEditor.currentTemplate">
+            <div v-if="data.uiEditor.currentTemplate">
                 <div class="ui-editor-tabs">
                     <div class="ui-editor-tab"
-                         :class="{active: uiEditor.activeTab == 'html'}"
-                         @click="switchTab('html')"
-                         @mouseenter="onTabHover('html')"
-                         @mouseleave="onTabLeave">HTML</div>
+                         :class="{active: data.uiEditor.activeTab == 'html'}"
+                         @click="switchTab('html')">HTML</div>
                     <div class="ui-editor-tab"
-                         :class="{active: uiEditor.activeTab == 'css'}"
-                         @click="switchTab('css')"
-                         @mouseenter="onTabHover('css')"
-                         @mouseleave="onTabLeave">CSS</div>
+                         :class="{active: data.uiEditor.activeTab == 'css'}"
+                         @click="switchTab('css')">CSS</div>
                     <div class="ui-editor-tab"
-                         :class="{active: uiEditor.activeTab == 'lua'}"
-                         @click="switchTab('lua')"
-                         @mouseenter="onTabHover('lua')"
-                         @mouseleave="onTabLeave">Lua</div>
+                         :class="{active: data.uiEditor.activeTab == 'lua'}"
+                         @click="switchTab('lua')">Lua</div>
                 </div>
 
-                <textarea v-if="uiEditor.activeTab == 'html'" class="ui-editor-code" v-model="uiEditor.htmlCode" @input="onCodeChange"></textarea>
-                <textarea v-if="uiEditor.activeTab == 'css'" class="ui-editor-code" v-model="uiEditor.cssCode" @input="onCodeChange"></textarea>
-                <textarea v-if="uiEditor.activeTab == 'lua'" class="ui-editor-code" v-model="uiEditor.luaCode" @input="onCodeChange"></textarea>
+                <textarea v-if="data.uiEditor.activeTab == 'html'" class="ui-editor-code" v-model="data.uiEditor.htmlCode" @input="onCodeChange"></textarea>
+                <textarea v-if="data.uiEditor.activeTab == 'css'" class="ui-editor-code" v-model="data.uiEditor.cssCode" @input="onCodeChange"></textarea>
+                <textarea v-if="data.uiEditor.activeTab == 'lua'" class="ui-editor-code" v-model="data.uiEditor.luaCode" @input="onCodeChange"></textarea>
 
                 <div class="ui-editor-buttons">
                     <button class="ui-editor-button"
-                            :class="{pressing: pressedButton == 'save'}"
+                            :class="{pressing: data.pressedButton == 'save'}"
                             @click="saveTemplate"
                             @mousedown="onButtonPress('save')"
                             @mouseup="onButtonRelease">Save</button>
                     <button class="ui-editor-button"
-                            :class="{pressing: pressedButton == 'preview'}"
+                            :class="{pressing: data.pressedButton == 'preview'}"
                             @click="previewTemplate"
                             @mousedown="onButtonPress('preview')"
                             @mouseup="onButtonRelease">Preview</button>
                 </div>
 
-                <div v-if="uiEditor.errorMessage" class="ui-editor-error">
-                    {{ uiEditor.errorMessage }}
+                <div v-if="data.uiEditor.errorMessage" class="ui-editor-error">
+                    {{ data.uiEditor.errorMessage }}
                 </div>
 
                 <div class="ui-editor-preview">
                     <h4>Live Preview</h4>
-                    <div v-html="uiEditor.previewHTML"></div>
+                    <div v-html="data.uiEditor.previewHTML"></div>
                 </div>
             </div>
-            <div v-else>
-                <p>Select a template from the dropdown above to edit, or create a new one below.</p>
-                
+            <div v-if="not data.uiEditor.currentTemplate">
                 <div class="ui-editor-new-template">
                     <h4>Create New Template</h4>
-                    <input type="text" v-model="uiEditor.newTemplateName" @click="focusInput('uiEditor.newTemplateName')" placeholder="Template name (e.g., 'my_ui')" />
+                    <input type="text" v-model="data.uiEditor.newTemplateName" @click="focusInput('data.uiEditor.newTemplateName')" placeholder="Template name" />
                     <button class="ui-editor-button"
-                            :class="{pressing: pressedButton == 'create'}"
-                            @click="createTemplate(uiEditor.newTemplateName)"
+                            :class="{pressing: data.pressedButton == 'create'}"
+                            @click="createTemplate"
                             @mousedown="onButtonPress('create')"
                             @mouseup="onButtonRelease">Create</button>
-                    <p style="font-size: 11px; color: #888; margin-top: 5px;">Enter a name without extension (e.g., 'my_ui' creates my_ui.html, my_ui.css, my_ui.lua)</p>
                 </div>
             </div>
         </div>
+        </div>
+
+        <div v-if="data.resizing.active"
+             class="resize-overlay"
+             @mousemove="onMouseMove($event)"
+             @mouseup="endResize"
+             @mouseleave="endResize"
+             @click="noop"></div>
     </div>
 </body>
 </html>

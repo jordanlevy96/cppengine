@@ -663,6 +663,7 @@ std::string TemplateParser::SerializeElementForIteration(GumboNode *node, LuaUIS
         // First substitute iteration variables in the expression
         std::string processedExpr = ProcessIterationInterpolations(vBindClassExpr, itemVar, item);
         std::string dynamicClasses = ProcessBindClass(processedExpr, state);
+
         if (!dynamicClasses.empty())
         {
             if (!finalClass.empty())
@@ -843,6 +844,11 @@ std::string TemplateParser::ProcessIterationInterpolations(const std::string &te
 
 std::string TemplateParser::ProcessInterpolations(const std::string &text, LuaUIState &state)
 {
+    if (text.find("{{") == std::string::npos)
+    {
+        return text;
+    }
+
     // Static regex - compiled once, reused for all calls (Phase 1 optimization)
     static const std::regex interpolationRegex(R"(\{\{\s*(.+?)\s*\}\})");
 
