@@ -17,11 +17,20 @@ out vec3 vWorldPos;
 out float vScreenY;
 out float vForwardDist;
 
-	uniform mat4 view;
-	uniform mat4 projection;
-	uniform float u_planeY;
-	uniform vec2 u_cameraPosXZ;
-	uniform vec2 u_cameraForwardXZ;
+uniform mat4 view;
+uniform mat4 projection;
+uniform float u_planeY;
+
+uniform vec2 u_cameraPosXZ;
+uniform vec2 u_cameraForwardXZ;
+
+uniform sampler2DArray u_heights;
+uniform float u_farDistance;
+uniform float u_mountainExtraDistance;
+uniform float u_mountainHeight;
+uniform float u_mountainFadeDistance;
+
+float saturate(float x) { return clamp(x, 0.0, 1.0); }
 
 void main()
 {
@@ -31,17 +40,33 @@ void main()
         iOriginXZ.y + aLocalXZ.y * iTileWorldSize
     );
 
+    float forwardDist = dot(worldPos.xz - u_cameraPosXZ, u_cameraForwardXZ);
+
+    // Displace vertices beyond the horizon (u_farDistance) to form distant mountains.
+    float mountainT = 0.0;
+    if (u_mountainExtraDistance > 0.0 && u_mountainHeight > 0.0)
+    {
+        float fadeLen = max(u_mountainFadeDistance, 0.0001);
+        mountainT = saturate((forwardDist - u_farDistance) / fadeLen);
+    }
+
+    if (mountainT > 0.0 && iHasData > 0.5)
+    {
+        float h01 = texture(u_heights, vec3(aUV, iLayer)).r;
+        worldPos.y += h01 * u_mountainHeight * mountainT;
+    }
+
     vec4 viewPos = view * vec4(worldPos, 1.0);
     vec4 clip = projection * viewPos;
 
     vUV = aUV;
     vLayer = iLayer;
     vHasData = iHasData;
-	vWorldXZ = worldPos.xz;
-	vWorldPos = worldPos;
-	vScreenY = clip.y / max(1e-6, clip.w) * 0.5 + 0.5;
-	vForwardDist = dot(worldPos.xz - u_cameraPosXZ, u_cameraForwardXZ);
-	gl_Position = clip;
+    vWorldXZ = worldPos.xz;
+    vWorldPos = worldPos;
+    vScreenY = clip.y / max(1e-6, clip.w) * 0.5 + 0.5;
+    vForwardDist = forwardDist;
+    gl_Position = clip;
 }
 
 #shader fragment
@@ -51,13 +76,14 @@ in vec2 vUV;
 flat in float vLayer;
 flat in float vHasData;
 in vec2 vWorldXZ;
-	in vec3 vWorldPos;
-	in float vScreenY;
-	in float vForwardDist;
+in vec3 vWorldPos;
+in float vScreenY;
+in float vForwardDist;
 
 out vec4 FragColor;
 
 uniform sampler2DArray u_tiles;
+uniform float u_mountainExtraDistance;
 uniform vec4 u_fallbackColor;
 uniform float u_gridSpacing;
 uniform int u_majorEvery;
@@ -126,23 +152,25 @@ void main()
         gridLine1D(vWorldXZ.y, majorGrid, majorHalfW)
     );
 
-	// Ground->sky blending near horizon:
-	// Clip to farDistance so the grid ends cleanly at the horizon.
-	float farD = max(u_farDistance, 0.0);
-	if (vForwardDist > farD)
-	{
-		discard;
-	}
+    // Clip to a maximum distance so the background does not extend infinitely.
+    // The flat grid ends at u_farDistance; mountains (if enabled) can extend beyond it.
+    float farD = max(u_farDistance, 0.0);
+    float maxD = farD + max(u_mountainExtraDistance, 0.0);
+    if (vForwardDist > maxD)
+    {
+        discard;
+    }
 
     vec4 color = baseColor;
     color = mix(color, u_minorLineColor, minorAlpha);
     color = mix(color, u_majorLineColor, majorAlpha);
 
-		// Horizon termination line: force the last visible line to be magenta.
-		float aa = max(fwidth(vForwardDist), 1e-6);
-		float halfW = aa * max(u_horizonLinePixels, 0.0) * 0.5;
-		float d = abs(vForwardDist - farD);
-		float horizonAlpha = 1.0 - smoothstep(halfW, halfW + aa, d);
-		color = mix(color, u_majorLineColor, horizonAlpha);
-		FragColor = vec4(color.rgb, 1.0);
-	}
+    // Horizon termination line: force the last visible line to be magenta.
+    float aa = max(fwidth(vForwardDist), 1e-6);
+    float halfW = aa * max(u_horizonLinePixels, 0.0) * 0.5;
+    float d = abs(vForwardDist - farD);
+    float horizonAlpha = 1.0 - smoothstep(halfW, halfW + aa, d);
+    color = mix(color, u_majorLineColor, horizonAlpha);
+
+    FragColor = vec4(color.rgb, 1.0);
+}

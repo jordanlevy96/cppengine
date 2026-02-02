@@ -8,7 +8,7 @@
  * - Shutdown() - Destroy GL resources (line ~85)
  * - Configure() - Update renderer config (line ~95)
  * - SetEnabled() - Toggle rendering (line ~105)
- * - Render() - Select tiles, upload budget, draw instanced quads (line ~120)
+ * - Render() - Select tiles, upload budget, draw instanced tile grids (line ~120)
  *
  * Purpose:
  * - Implements the "render tiles + GPU cache" half of docs/TERRAIN_IMPLEMENTATION.md,
@@ -40,10 +40,11 @@ struct TiledBackgroundConfig
 {
     bool enabled = false;         ///< Master toggle (renderer no-ops when disabled)
     float planeY = 0.0f;          ///< World Y coordinate for the ground plane
-    float farDistance = 600.0f;   ///< How far forward to cover (world units)
+    float farDistance = 600.0f;   ///< Horizon distance for the ground grid (world units, along camera forward)
     float widthMultiplier = 1.2f; ///< Expands computed view width for safety
 
     int tileResolution = 256;   ///< Tile texture size (pixels, square)
+    int heightResolution = 64;  ///< Height texture size (pixels, square; used for mountains/displacement)
     int cacheSlots = 96;        ///< Max tiles resident on GPU (texture array layers)
     int maxUploadsPerFrame = 2; ///< Budget for new tile uploads per frame
 
@@ -51,6 +52,8 @@ struct TiledBackgroundConfig
     int lodCount = 4;            ///< Number of LOD levels (lod=0..lodCount-1)
     float lodScale = 2.0f;       ///< Tile size multiplier per LOD (typically 2.0)
     float lodSplitFactor = 6.0f; ///< Subdivide when dist < tileSize*factor
+
+    int meshResolution = 32;     ///< Tile mesh resolution (segments per tile edge; higher = smoother mountains)
 
     // Vaporwave grid parameters (world-space)
     float gridSpacing = 4.0f;     ///< Minor grid spacing (world units between cyan lines)
@@ -68,6 +71,16 @@ struct TiledBackgroundConfig
     // The simplest synthwave look is: grid extends to the far edge and terminates on a crisp magenta line.
     // We compute the line in the shader at forward distance ~= farDistance and anti-alias it in screen-space.
     float horizonLinePixels = 2.0f; ///< Approximate horizon line thickness in pixels (AA included)
+
+    // Mountains (terrain displacement beyond the horizon)
+    //
+    // Mountains are rendered by extending tile selection beyond farDistance and displacing vertices in the shader using
+    // a height texture layer. This follows the "elevation layer" concept in docs/TERRAIN_IMPLEMENTATION.md.
+    float mountainExtraDistance = 0.0f; ///< Extra distance beyond farDistance to render displaced terrain (world units)
+    float mountainHeight = 26.0f;       ///< Peak height above planeY (world units)
+    float mountainNoiseScale = 0.012f;  ///< Procedural noise scale (world units -> noise space)
+    float mountainDetail = 0.55f;       ///< Secondary noise strength [0..1]
+    float mountainFadeDistance = 24.0f; ///< How quickly mountains rise after the horizon (world units)
 };
 
 /**
@@ -176,6 +189,7 @@ private:
 
     void UploadPendingTiles();
     void GenerateTileRGBA8(const TileKey &key, std::vector<std::uint8_t> &outPixels) const;
+    void GenerateTileHeightR16(const TileKey &key, std::vector<std::uint16_t> &outPixels) const;
 
     float GetTileWorldSizeForLOD(int lod) const;
 
@@ -194,9 +208,11 @@ private:
 
     bool m_initialized = false;
     bool m_cacheDirty = true;
+    bool m_meshDirty = true;
 
     std::uint64_t m_frameIndex = 0;
     std::uint32_t m_tileTextureArray = 0;
+    std::uint32_t m_heightTextureArray = 0;
 
     Stats m_lastStats{};
     std::uint64_t m_lastStatsLogFrame = 0;
@@ -209,6 +225,7 @@ private:
     std::uint32_t m_vao = 0;
     std::uint32_t m_vbo = 0;
     std::uint32_t m_instanceVbo = 0;
+    int m_tileVertexCount = 0;
     int m_instanceCapacity = 0;
     std::unique_ptr<Shader> m_shader;
 

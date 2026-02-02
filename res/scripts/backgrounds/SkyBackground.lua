@@ -26,14 +26,16 @@ SkyBackground = {
     sunColor = { r = 1.00, g = 0.55, b = 0.15 },
 
     -- Mountains (distant silhouette)
-    mountainsEnabled = true,
+    -- NOTE: For the synthwave background, we prefer the tiled terrain mountains (with grid lines),
+    -- so the sky silhouette mountains are disabled by default.
+    mountainsEnabled = false,
     mountainsOccludeSun = true,
     mountainColor = { r = 0.08, g = 0.02, b = 0.12 },
     mountainBaseY = 0.36,
     mountainHeight = 0.10,
     mountainScale = 2.2,
     mountainDetail = 0.55,
-    mountainScrollSpeed = 0.01,
+    mountainScrollSpeed = 0.0,
     mountainEdgePixels = 1.5,
 
     ready = function(self)

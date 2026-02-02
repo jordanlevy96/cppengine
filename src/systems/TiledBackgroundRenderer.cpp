@@ -52,6 +52,65 @@ namespace
         }
         return std::clamp(lod, 0, lodCount - 1);
     }
+
+    std::uint32_t Hash2D(std::int32_t x, std::int32_t y)
+    {
+        // Deterministic integer hash (FNV-1a style). Good enough for background noise.
+        std::uint32_t h = 2166136261u;
+        h = (h ^ static_cast<std::uint32_t>(x)) * 16777619u;
+        h = (h ^ static_cast<std::uint32_t>(y)) * 16777619u;
+        return h;
+    }
+
+    float Hash01(std::int32_t x, std::int32_t y)
+    {
+        // 24-bit mantissa for stable [0..1) float conversion.
+        const std::uint32_t h = Hash2D(x, y);
+        return static_cast<float>(h & 0x00FFFFFFu) / static_cast<float>(0x01000000u);
+    }
+
+    float Fade(float t)
+    {
+        // Smoothstep polynomial used in classic value noise.
+        return t * t * (3.0f - 2.0f * t);
+    }
+
+    float Lerp(float a, float b, float t)
+    {
+        return a + (b - a) * t;
+    }
+
+    float ValueNoise2D(float x, float y)
+    {
+        const std::int32_t xi = static_cast<std::int32_t>(std::floor(x));
+        const std::int32_t yi = static_cast<std::int32_t>(std::floor(y));
+        const float xf = x - static_cast<float>(xi);
+        const float yf = y - static_cast<float>(yi);
+
+        const float a = Hash01(xi, yi);
+        const float b = Hash01(xi + 1, yi);
+        const float c = Hash01(xi, yi + 1);
+        const float d = Hash01(xi + 1, yi + 1);
+
+        const float u = Fade(xf);
+        const float v = Fade(yf);
+
+        return Lerp(Lerp(a, b, u), Lerp(c, d, u), v);
+    }
+
+    float Fbm2D(float x, float y, int octaves)
+    {
+        float v = 0.0f;
+        float a = 0.5f;
+        float f = 1.0f;
+        for (int i = 0; i < octaves; i++)
+        {
+            v += a * ValueNoise2D(x * f, y * f);
+            f *= 2.0f;
+            a *= 0.5f;
+        }
+        return v;
+    }
 }
 
 TiledBackgroundRenderer::~TiledBackgroundRenderer() = default;
@@ -114,6 +173,12 @@ void TiledBackgroundRenderer::Shutdown()
         m_tileTextureArray = 0;
     }
 
+    if (m_heightTextureArray != 0)
+    {
+        glDeleteTextures(1, &m_heightTextureArray);
+        m_heightTextureArray = 0;
+    }
+
     if (m_instanceVbo != 0)
     {
         glDeleteBuffers(1, &m_instanceVbo);
@@ -143,11 +208,16 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
 {
     m_config = config;
     m_cacheDirty = true;
+    m_meshDirty = true;
     m_warnedTileOverflow = false;
 
     if (m_config.tileResolution < 4)
     {
         m_config.tileResolution = 4;
+    }
+    if (m_config.heightResolution < 1)
+    {
+        m_config.heightResolution = 1;
     }
     if (m_config.cacheSlots < 1)
     {
@@ -177,10 +247,22 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
         m_config.lodSplitFactor = 0.1f;
     }
 
+    if (m_config.meshResolution < 1)
+    {
+        m_config.meshResolution = 1;
+    }
+
     m_config.horizonLinePixels = std::max(0.0f, m_config.horizonLinePixels);
+
+    m_config.mountainExtraDistance = std::max(0.0f, m_config.mountainExtraDistance);
+    m_config.mountainHeight = std::max(0.0f, m_config.mountainHeight);
+    m_config.mountainNoiseScale = std::max(0.0f, m_config.mountainNoiseScale);
+    m_config.mountainDetail = std::clamp(m_config.mountainDetail, 0.0f, 1.0f);
+    m_config.mountainFadeDistance = std::max(0.0f, m_config.mountainFadeDistance);
 
     EnsureInitialized();
     RecreateCacheIfNeeded();
+    EnsureDrawResources();
 }
 
 void TiledBackgroundRenderer::SetEnabled(bool enabled)
@@ -216,6 +298,12 @@ void TiledBackgroundRenderer::RecreateCacheIfNeeded()
         m_tileTextureArray = 0;
     }
 
+    if (m_heightTextureArray != 0)
+    {
+        glDeleteTextures(1, &m_heightTextureArray);
+        m_heightTextureArray = 0;
+    }
+
     glGenTextures(1, &m_tileTextureArray);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_tileTextureArray);
 
@@ -236,6 +324,30 @@ void TiledBackgroundRenderer::RecreateCacheIfNeeded()
                  0,
                  GL_RGBA,
                  GL_UNSIGNED_BYTE,
+                 nullptr);
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+
+    // Height tile cache (R16, normalized): used for vertex displacement / "elevation layer".
+    glGenTextures(1, &m_heightTextureArray);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_heightTextureArray);
+
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    glTexImage3D(GL_TEXTURE_2D_ARRAY,
+                 0,
+                 GL_R16,
+                 m_config.heightResolution,
+                 m_config.heightResolution,
+                 m_config.cacheSlots,
+                 0,
+                 GL_RED,
+                 GL_UNSIGNED_SHORT,
                  nullptr);
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
@@ -274,7 +386,8 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
 
     const float aspect = camera->Projection[1][1] != 0.0f ? (camera->Projection[1][1] / camera->Projection[0][0]) : 1.0f;
     const float tanHalfFov = SafeTanHalfFovRadians(camera->fov);
-    const float baseHalfWidth = m_config.farDistance * tanHalfFov * aspect * m_config.widthMultiplier;
+    const float maxDistance = std::max(0.0f, m_config.farDistance + m_config.mountainExtraDistance);
+    const float baseHalfWidth = maxDistance * tanHalfFov * aspect * m_config.widthMultiplier;
 
     const glm::vec2 originXZ(camPos.x, camPos.z);
     const glm::vec2 fwdXZ(forward.x, forward.z);
@@ -283,8 +396,8 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
     const glm::vec2 corners[4] = {
         originXZ + rightXZ * (-baseHalfWidth),
         originXZ + rightXZ * (baseHalfWidth),
-        originXZ + fwdXZ * (m_config.farDistance) + rightXZ * (-baseHalfWidth),
-        originXZ + fwdXZ * (m_config.farDistance) + rightXZ * (baseHalfWidth)};
+        originXZ + fwdXZ * (maxDistance) + rightXZ * (-baseHalfWidth),
+        originXZ + fwdXZ * (maxDistance) + rightXZ * (baseHalfWidth)};
 
     float minX = std::numeric_limits<float>::infinity();
     float maxX = -std::numeric_limits<float>::infinity();
@@ -620,8 +733,14 @@ void TiledBackgroundRenderer::UploadPendingTiles()
     std::vector<std::uint8_t> pixels;
     pixels.reserve(static_cast<size_t>(m_config.tileResolution * m_config.tileResolution * 4));
 
-    glBindTexture(GL_TEXTURE_2D_ARRAY, m_tileTextureArray);
+    GLint previousActiveTexture = GL_TEXTURE0;
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &previousActiveTexture);
+    glActiveTexture(GL_TEXTURE0);
+
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    std::vector<std::uint16_t> heights;
+    heights.reserve(static_cast<size_t>(m_config.heightResolution * m_config.heightResolution));
 
     for (int i = 0; i < budget; i++)
     {
@@ -638,6 +757,7 @@ void TiledBackgroundRenderer::UploadPendingTiles()
 
         GenerateTileRGBA8(key, pixels);
 
+        glBindTexture(GL_TEXTURE_2D_ARRAY, m_tileTextureArray);
         glTexSubImage3D(GL_TEXTURE_2D_ARRAY,
                         0,
                         0,
@@ -650,6 +770,21 @@ void TiledBackgroundRenderer::UploadPendingTiles()
                         GL_UNSIGNED_BYTE,
                         pixels.data());
 
+        GenerateTileHeightR16(key, heights);
+
+        glBindTexture(GL_TEXTURE_2D_ARRAY, m_heightTextureArray);
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY,
+                        0,
+                        0,
+                        0,
+                        slot,
+                        m_config.heightResolution,
+                        m_config.heightResolution,
+                        1,
+                        GL_RED,
+                        GL_UNSIGNED_SHORT,
+                        heights.data());
+
         if (slot >= 0 && slot < static_cast<int>(m_slots.size()))
         {
             m_slots[slot].uploaded = true;
@@ -659,71 +794,112 @@ void TiledBackgroundRenderer::UploadPendingTiles()
     }
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    glActiveTexture(previousActiveTexture);
 }
 
 void TiledBackgroundRenderer::EnsureDrawResources()
 {
-    if (m_vao != 0)
+    if (m_vao == 0)
+    {
+        glGenVertexArrays(1, &m_vao);
+        glGenBuffers(1, &m_vbo);
+        glGenBuffers(1, &m_instanceVbo);
+
+        glBindVertexArray(m_vao);
+
+        // Vertex buffer is populated below (mesh build). Vertex format: localXZ (vec2), uv (vec2).
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+
+        // location 0: local pos (x,z)
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void *)0);
+        glEnableVertexAttribArray(0);
+
+        // location 1: uv
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void *)(sizeof(float) * 2));
+        glEnableVertexAttribArray(1);
+
+        // Instance data: originXZ (vec2) + layer (float) + hasData (float) + tileWorldSize (float)
+        glBindBuffer(GL_ARRAY_BUFFER, m_instanceVbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(TileInstance) * 1, nullptr, GL_DYNAMIC_DRAW);
+
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, originXZ));
+        glEnableVertexAttribArray(2);
+        glVertexAttribDivisor(2, 1);
+
+        glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, layer));
+        glEnableVertexAttribArray(3);
+        glVertexAttribDivisor(3, 1);
+
+        glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, hasData));
+        glEnableVertexAttribArray(4);
+        glVertexAttribDivisor(4, 1);
+
+        glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, tileWorldSize));
+        glEnableVertexAttribArray(5);
+        glVertexAttribDivisor(5, 1);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+
+        m_instanceCapacity = 1;
+    }
+
+    if (!m_meshDirty)
     {
         return;
     }
 
-    // Unit quad in XZ plane with UVs (two triangles). Vertex format: pos2, uv2.
-    const float quad[] = {
-        // x, z, u, v
-        0.0f, 0.0f, 0.0f, 0.0f,
-        1.0f, 0.0f, 1.0f, 0.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-        0.0f, 0.0f, 0.0f, 0.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-        0.0f, 1.0f, 0.0f, 1.0f};
+    // Generate a tessellated unit tile mesh in XZ with UVs.
+    // Higher resolution improves the smoothness of displaced (mountain) regions.
+    const int seg = std::max(1, m_config.meshResolution);
+    const float invSeg = 1.0f / static_cast<float>(seg);
 
-    glGenVertexArrays(1, &m_vao);
-    glGenBuffers(1, &m_vbo);
-    glGenBuffers(1, &m_instanceVbo);
+    std::vector<float> verts;
+    verts.reserve(static_cast<size_t>(seg * seg * 6 * 4));
 
-    glBindVertexArray(m_vao);
+    auto push = [&](float x, float z)
+    {
+        // localXZ
+        verts.push_back(x);
+        verts.push_back(z);
+        // uv
+        verts.push_back(x);
+        verts.push_back(z);
+    };
+
+    for (int y = 0; y < seg; y++)
+    {
+        const float z0 = static_cast<float>(y) * invSeg;
+        const float z1 = static_cast<float>(y + 1) * invSeg;
+        for (int x = 0; x < seg; x++)
+        {
+            const float x0 = static_cast<float>(x) * invSeg;
+            const float x1 = static_cast<float>(x + 1) * invSeg;
+
+            // Tri 1
+            push(x0, z0);
+            push(x1, z0);
+            push(x1, z1);
+            // Tri 2
+            push(x0, z0);
+            push(x1, z1);
+            push(x0, z1);
+        }
+    }
+
+    m_tileVertexCount = static_cast<int>(verts.size() / 4);
 
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
-
-    // location 0: local pos (x,z)
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void *)0);
-    glEnableVertexAttribArray(0);
-
-    // location 1: uv
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void *)(sizeof(float) * 2));
-    glEnableVertexAttribArray(1);
-
-    // Instance data: originXZ (vec2) + layer (float) + hasData (float) + tileWorldSize (float)
-    glBindBuffer(GL_ARRAY_BUFFER, m_instanceVbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(TileInstance) * 1, nullptr, GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, originXZ));
-    glEnableVertexAttribArray(2);
-    glVertexAttribDivisor(2, 1);
-
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, layer));
-    glEnableVertexAttribArray(3);
-    glVertexAttribDivisor(3, 1);
-
-    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, hasData));
-    glEnableVertexAttribArray(4);
-    glVertexAttribDivisor(4, 1);
-
-    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, tileWorldSize));
-    glEnableVertexAttribArray(5);
-    glVertexAttribDivisor(5, 1);
-
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verts.size(), verts.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
 
-    m_instanceCapacity = 1;
+    m_meshDirty = false;
 }
 
 void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileInstance> &instances) const
 {
-    if (instances.empty() || !m_shader)
+    if (instances.empty() || !m_shader || m_vao == 0 || m_tileVertexCount <= 0)
     {
         return;
     }
@@ -756,6 +932,9 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetVec4("u_minorLineColor", m_config.minorLineColor);
     m_shader->SetVec4("u_majorLineColor", m_config.majorLineColor);
     m_shader->SetFloat("u_farDistance", m_config.farDistance);
+    m_shader->SetFloat("u_mountainExtraDistance", m_config.mountainExtraDistance);
+    m_shader->SetFloat("u_mountainHeight", m_config.mountainHeight);
+    m_shader->SetFloat("u_mountainFadeDistance", m_config.mountainFadeDistance);
     m_shader->SetFloat("u_horizonLinePixels", m_config.horizonLinePixels);
     m_shader->SetVec2("u_cameraPosXZ", glm::vec2(cameraPos.x, cameraPos.z));
     m_shader->SetVec2("u_cameraForwardXZ", glm::vec2(forward.x, forward.z));
@@ -764,10 +943,17 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_tileTextureArray);
     m_shader->SetInt("u_tiles", 0);
 
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_heightTextureArray);
+    m_shader->SetInt("u_heights", 1);
+
     glBindVertexArray(m_vao);
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, static_cast<GLsizei>(instances.size()));
+    glDrawArraysInstanced(GL_TRIANGLES, 0, m_tileVertexCount, static_cast<GLsizei>(instances.size()));
     glBindVertexArray(0);
 
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     glUseProgram(0);
 }
@@ -792,6 +978,7 @@ void TiledBackgroundRenderer::Render(Camera *camera, float deltaMs)
     }
 
     RecreateCacheIfNeeded();
+    EnsureDrawResources();
 
     m_frameIndex++;
     m_lastStats = Stats{};
@@ -924,6 +1111,53 @@ void TiledBackgroundRenderer::GenerateTileRGBA8(const TileKey &key, std::vector<
             outPixels[static_cast<size_t>(idx + 1)] = static_cast<std::uint8_t>(std::clamp(color.g, 0.0f, 1.0f) * 255.0f);
             outPixels[static_cast<size_t>(idx + 2)] = static_cast<std::uint8_t>(std::clamp(color.b, 0.0f, 1.0f) * 255.0f);
             outPixels[static_cast<size_t>(idx + 3)] = static_cast<std::uint8_t>(std::clamp(color.a, 0.0f, 1.0f) * 255.0f);
+        }
+    }
+}
+
+void TiledBackgroundRenderer::GenerateTileHeightR16(const TileKey &key, std::vector<std::uint16_t> &outPixels) const
+{
+    const int w = m_config.heightResolution;
+    const int h = m_config.heightResolution;
+
+    outPixels.resize(static_cast<size_t>(w * h));
+
+    // If noiseScale is zero, treat as flat.
+    if (m_config.mountainNoiseScale <= 0.0f)
+    {
+        std::fill(outPixels.begin(), outPixels.end(), 0);
+        return;
+    }
+
+    const float tileSize = GetTileWorldSizeForLOD(key.lod);
+    const float x0 = static_cast<float>(key.x) * tileSize;
+    const float z0 = static_cast<float>(key.y) * tileSize;
+
+    const float scale = m_config.mountainNoiseScale;
+    const float detail = std::clamp(m_config.mountainDetail, 0.0f, 1.0f);
+
+    for (int y = 0; y < h; y++)
+    {
+        const float v = (h == 1) ? 0.0f : (static_cast<float>(y) / static_cast<float>(h - 1));
+        const float worldZ = z0 + v * tileSize;
+
+        for (int x = 0; x < w; x++)
+        {
+            const float u = (w == 1) ? 0.0f : (static_cast<float>(x) / static_cast<float>(w - 1));
+            const float worldX = x0 + u * tileSize;
+
+            const float nx = worldX * scale;
+            const float nz = worldZ * scale;
+
+            const float n0 = Fbm2D(nx, nz, 5);
+            const float n1 = Fbm2D(nx * 3.0f + 12.3f, nz * 3.0f + 4.7f, 5);
+            const float n = Lerp(n0, n1, detail);
+
+            // Emphasize peaks a bit so the silhouette reads from a distance.
+            const float shaped = std::pow(Clamp01(n), 1.6f);
+            const float height01 = Clamp01(shaped);
+
+            outPixels[static_cast<size_t>(y * w + x)] = static_cast<std::uint16_t>(std::lround(height01 * 65535.0f));
         }
     }
 }

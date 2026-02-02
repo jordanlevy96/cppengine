@@ -38,7 +38,6 @@
 #include "util/TransformUtils.h"
 #include "systems/ReactiveUI.h"
 #include "systems/HTMLRendererMT.h"
-#include "systems/BackgroundMountainsRenderer.h"
 #include "systems/TiledBackgroundRenderer.h"
 #include "systems/SkyBackgroundRenderer.h"
 
@@ -604,12 +603,15 @@ namespace LuaBindings
             setNumber("farDistance", [&](float v) { c.farDistance = v; });
             setNumber("widthMultiplier", [&](float v) { c.widthMultiplier = v; });
             setInt("tileResolution", [&](int v) { c.tileResolution = v; });
+            setInt("heightResolution", [&](int v) { c.heightResolution = v; });
             setInt("cacheSlots", [&](int v) { c.cacheSlots = v; });
             setInt("maxUploadsPerFrame", [&](int v) { c.maxUploadsPerFrame = v; });
             setNumber("tileWorldSize", [&](float v) { c.tileWorldSize = v; });
             setInt("lodCount", [&](int v) { c.lodCount = v; });
             setNumber("lodScale", [&](float v) { c.lodScale = v; });
             setNumber("lodSplitFactor", [&](float v) { c.lodSplitFactor = v; });
+
+            setInt("meshResolution", [&](int v) { c.meshResolution = v; });
 
             setNumber("gridSpacing", [&](float v) { c.gridSpacing = v; });
             setInt("majorEvery", [&](int v) { c.majorEvery = v; });
@@ -624,6 +626,13 @@ namespace LuaBindings
 
             // Horizon termination line (magenta): thickness in pixels.
             setNumber("horizonLinePixels", [&](float v) { c.horizonLinePixels = v; });
+
+            // Mountains (distant elevation beyond horizon).
+            setNumber("mountainExtraDistance", [&](float v) { c.mountainExtraDistance = v; });
+            setNumber("mountainHeight", [&](float v) { c.mountainHeight = v; });
+            setNumber("mountainNoiseScale", [&](float v) { c.mountainNoiseScale = v; });
+            setNumber("mountainDetail", [&](float v) { c.mountainDetail = v; });
+            setNumber("mountainFadeDistance", [&](float v) { c.mountainFadeDistance = v; });
 
             // Back-compat: lineWidth previously drove both minor and major widths (major was ~1.5x).
             setNumber("lineWidth", [&](float v) { legacyLineWidth = v; hadLegacyLineWidth = true; });
@@ -643,160 +652,6 @@ namespace LuaBindings
         };
 
         lua["BackgroundTiles"] = backgroundTiles;
-
-        // ====================================================================
-        // Background mountains renderer (procedural heightfield with grid)
-        // ====================================================================
-
-        sol::table backgroundMountains = lua.create_table();
-
-        backgroundMountains["Enable"] = [](bool enabled)
-        { BackgroundMountainsRenderer::GetInstance().SetEnabled(enabled); };
-
-        backgroundMountains["Configure"] = [](sol::table cfg)
-        {
-            BackgroundMountainsConfig c{};
-
-            auto setNumber = [&](const char *key, auto setter)
-            {
-                sol::object v = cfg[key];
-                if (!v.valid())
-                {
-                    return;
-                }
-                if (v.is<double>())
-                {
-                    setter(static_cast<float>(v.as<double>()));
-                }
-                else if (v.is<int>())
-                {
-                    setter(static_cast<float>(v.as<int>()));
-                }
-                else if (v.is<float>())
-                {
-                    setter(v.as<float>());
-                }
-                else if (v.is<std::string>())
-                {
-                    try
-                    {
-                        setter(std::stof(v.as<std::string>()));
-                    }
-                    catch (...)
-                    {
-                    }
-                }
-            };
-
-            auto setInt = [&](const char *key, auto setter)
-            {
-                sol::object v = cfg[key];
-                if (!v.valid())
-                {
-                    return;
-                }
-                if (v.is<int>())
-                {
-                    setter(v.as<int>());
-                }
-                else if (v.is<double>())
-                {
-                    setter(static_cast<int>(v.as<double>()));
-                }
-                else if (v.is<std::string>())
-                {
-                    try
-                    {
-                        setter(std::stoi(v.as<std::string>()));
-                    }
-                    catch (...)
-                    {
-                    }
-                }
-            };
-
-            auto setBool = [&](const char *key, auto setter)
-            {
-                sol::object v = cfg[key];
-                if (!v.valid())
-                {
-                    return;
-                }
-                if (v.is<bool>())
-                {
-                    setter(v.as<bool>());
-                }
-                else if (v.is<int>())
-                {
-                    setter(v.as<int>() != 0);
-                }
-            };
-
-            auto setVec4 = [&](const char *key, glm::vec4 &out)
-            {
-                sol::object v = cfg[key];
-                if (!v.valid() || !v.is<sol::table>())
-                {
-                    return;
-                }
-
-                sol::table t = v.as<sol::table>();
-                auto getF = [&](const char *k, int idx, float &dst)
-                {
-                    sol::object o = t[k];
-                    if (!o.valid())
-                    {
-                        o = t[idx];
-                    }
-                    if (!o.valid())
-                    {
-                        return;
-                    }
-                    if (o.is<double>())
-                    {
-                        dst = static_cast<float>(o.as<double>());
-                    }
-                    else if (o.is<int>())
-                    {
-                        dst = static_cast<float>(o.as<int>());
-                    }
-                    else if (o.is<float>())
-                    {
-                        dst = o.as<float>();
-                    }
-                };
-
-                getF("r", 1, out.r);
-                getF("g", 2, out.g);
-                getF("b", 3, out.b);
-                getF("a", 4, out.a);
-            };
-
-            setBool("enabled", [&](bool v) { c.enabled = v; });
-
-            setNumber("startDistance", [&](float v) { c.startDistance = v; });
-            setNumber("depth", [&](float v) { c.depth = v; });
-            setNumber("widthMultiplier", [&](float v) { c.widthMultiplier = v; });
-
-            setNumber("baseY", [&](float v) { c.baseY = v; });
-            setNumber("height", [&](float v) { c.height = v; });
-            setNumber("noiseScale", [&](float v) { c.noiseScale = v; });
-            setNumber("detail", [&](float v) { c.detail = v; });
-            setNumber("scrollSpeed", [&](float v) { c.scrollSpeed = v; });
-
-            setNumber("gridSpacing", [&](float v) { c.gridSpacing = v; });
-            setInt("majorEvery", [&](int v) { c.majorEvery = v; });
-            setNumber("minorLineWidth", [&](float v) { c.minorLineWidth = v; });
-            setNumber("majorLineWidth", [&](float v) { c.majorLineWidth = v; });
-
-            setVec4("fillColor", c.fillColor);
-            setVec4("minorLineColor", c.minorLineColor);
-            setVec4("majorLineColor", c.majorLineColor);
-
-            BackgroundMountainsRenderer::GetInstance().Configure(c);
-        };
-
-        lua["BackgroundMountains"] = backgroundMountains;
 
     // ====================================================================
     // Sky background renderer (fullscreen gradient + sun)

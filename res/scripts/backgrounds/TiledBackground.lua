@@ -12,8 +12,10 @@ TiledBackground = {
 
     -- GPU tile cache:
     -- - tileResolution affects only the *base gradient* (grid lines are procedural in the shader).
+    -- - heightResolution controls the resolution of the elevation layer (R16) used to form mountains.
     -- - cacheSlots controls how many tiles can be resident at once (more = less churn).
     tileResolution = 256,
+    heightResolution = 64,
     cacheSlots = 128,
     maxUploadsPerFrame = 8,
 
@@ -27,6 +29,11 @@ TiledBackground = {
     lodCount = 16,
     lodScale = 2.0,
     lodSplitFactor = 6.0,
+
+    -- Tile mesh:
+    -- - meshResolution is the number of segments per tile edge (higher = smoother mountain silhouettes).
+    -- - Vertex count per instance is ~ (meshResolution^2 * 2 triangles).
+    meshResolution = 32,
 
     -- Grid (world units):
     -- - gridSpacing is distance between minor (cyan) lines.
@@ -42,6 +49,18 @@ TiledBackground = {
     -- - horizonLinePixels is the approximate thickness in pixels (AA included).
     horizonLinePixels = 2.0,
 
+    -- Mountains (distant terrain beyond the horizon):
+    -- - mountainExtraDistance extends rendering beyond farDistance so displaced terrain is visible.
+    -- - mountainHeight controls peak amplitude (world units above planeY).
+    -- - mountainNoiseScale converts world units -> noise space (smaller = broader mountains).
+    -- - mountainDetail blends in higher-frequency variation [0..1].
+    -- - mountainFadeDistance controls how quickly mountains rise after the horizon (world units).
+    mountainExtraDistance = 260.0,
+    mountainHeight = 28.0,
+    mountainNoiseScale = 0.012,
+    mountainDetail = 0.55,
+    mountainFadeDistance = 24.0,
+
     ready = function(self)
         if not BackgroundTiles then
             log_error("[TiledBackground] BackgroundTiles API not found")
@@ -54,18 +73,28 @@ TiledBackground = {
             farDistance = self.farDistance,
             widthMultiplier = self.widthMultiplier,
             tileResolution = self.tileResolution,
+            heightResolution = self.heightResolution,
             cacheSlots = self.cacheSlots,
             maxUploadsPerFrame = self.maxUploadsPerFrame,
             tileWorldSize = self.tileWorldSize,
             lodCount = self.lodCount,
             lodScale = self.lodScale,
             lodSplitFactor = self.lodSplitFactor,
+
+            meshResolution = self.meshResolution,
+
             gridSpacing = self.gridSpacing,
             majorEvery = self.majorEvery,
             minorLineWidth = self.minorLineWidth,
             majorLineWidth = self.majorLineWidth,
 
-            horizonLinePixels = self.horizonLinePixels
+            horizonLinePixels = self.horizonLinePixels,
+
+            mountainExtraDistance = self.mountainExtraDistance,
+            mountainHeight = self.mountainHeight,
+            mountainNoiseScale = self.mountainNoiseScale,
+            mountainDetail = self.mountainDetail,
+            mountainFadeDistance = self.mountainFadeDistance
         })
 
         BackgroundTiles.Enable(self.enabled)
