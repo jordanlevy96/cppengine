@@ -83,6 +83,13 @@ void SkyBackgroundRenderer::Configure(const SkyBackgroundConfig &config)
     m_config.sunRadius = std::max(0.0f, m_config.sunRadius);
     m_config.sunGlow = std::max(0.0f, m_config.sunGlow);
 
+    m_config.mountainBaseY = std::clamp(m_config.mountainBaseY, 0.0f, 1.0f);
+    m_config.mountainHeight = std::max(0.0f, m_config.mountainHeight);
+    m_config.mountainScale = std::max(0.0f, m_config.mountainScale);
+    m_config.mountainDetail = std::clamp(m_config.mountainDetail, 0.0f, 1.0f);
+    m_config.mountainScrollSpeed = std::max(0.0f, m_config.mountainScrollSpeed);
+    m_config.mountainEdgePixels = std::max(0.0f, m_config.mountainEdgePixels);
+
     EnsureInitialized();
 }
 
@@ -121,7 +128,7 @@ void SkyBackgroundRenderer::DrawFullscreen() const
 void SkyBackgroundRenderer::Render(Camera *camera, float deltaMs)
 {
     (void)camera;
-    (void)deltaMs;
+    m_timeSeconds += std::max(0.0f, deltaMs) * 0.001f;
 
     if (!m_config.enabled)
     {
@@ -142,6 +149,10 @@ void SkyBackgroundRenderer::Render(Camera *camera, float deltaMs)
     glDepthMask(GL_FALSE);
     glDisable(GL_CULL_FACE);
 
+    GLint vp[4] = {0, 0, 1, 1};
+    glGetIntegerv(GL_VIEWPORT, vp);
+    const float aspect = (vp[3] > 0) ? (static_cast<float>(vp[2]) / static_cast<float>(vp[3])) : 1.0f;
+
     m_shader->Use();
     m_shader->SetVec3("u_topColor", m_config.topColor);
     m_shader->SetVec3("u_bottomColor", m_config.bottomColor);
@@ -152,6 +163,18 @@ void SkyBackgroundRenderer::Render(Camera *camera, float deltaMs)
     m_shader->SetFloat("u_sunRadius", m_config.sunRadius);
     m_shader->SetFloat("u_sunGlow", m_config.sunGlow);
     m_shader->SetVec3("u_sunColor", m_config.sunColor);
+    m_shader->SetFloat("u_time", m_timeSeconds);
+    m_shader->SetFloat("u_aspect", aspect);
+
+    m_shader->SetInt("u_mountainsEnabled", m_config.mountainsEnabled ? 1 : 0);
+    m_shader->SetInt("u_mountainsOccludeSun", m_config.mountainsOccludeSun ? 1 : 0);
+    m_shader->SetVec3("u_mountainColor", m_config.mountainColor);
+    m_shader->SetFloat("u_mountainBaseY", m_config.mountainBaseY);
+    m_shader->SetFloat("u_mountainHeight", m_config.mountainHeight);
+    m_shader->SetFloat("u_mountainScale", m_config.mountainScale);
+    m_shader->SetFloat("u_mountainDetail", m_config.mountainDetail);
+    m_shader->SetFloat("u_mountainScrollSpeed", m_config.mountainScrollSpeed);
+    m_shader->SetFloat("u_mountainEdgePixels", m_config.mountainEdgePixels);
 
     DrawFullscreen();
 
@@ -175,4 +198,3 @@ void SkyBackgroundRenderer::Render(Camera *camera, float deltaMs)
         glDisable(GL_CULL_FACE);
     }
 }
-

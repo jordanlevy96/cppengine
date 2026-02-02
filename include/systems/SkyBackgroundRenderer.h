@@ -45,6 +45,20 @@ struct SkyBackgroundConfig
     float sunRadius = 0.06f;     ///< Sun disc radius in UV space
     float sunGlow = 0.14f;       ///< Sun glow radius multiplier
     glm::vec3 sunColor = glm::vec3(1.00f, 0.55f, 0.15f); ///< Sun tint (linear)
+
+    // Mountains (horizon silhouette)
+    //
+    // This is a sky-layer feature intended to approximate distant terrain: a 2D silhouette on the horizon that can
+    // optionally occlude the sun. It is procedural and can be animated via a scroll speed.
+    bool mountainsEnabled = true;       ///< Enable mountain silhouette rendering
+    bool mountainsOccludeSun = true;    ///< If true, mountains occlude sun disc/glow (sun appears behind mountains)
+    glm::vec3 mountainColor = glm::vec3(0.08f, 0.02f, 0.12f); ///< Mountain fill color (linear)
+    float mountainBaseY = 0.36f;        ///< Baseline horizon height in [0..1] (0=bottom, 1=top)
+    float mountainHeight = 0.10f;       ///< Height above base in [0..1]
+    float mountainScale = 2.2f;         ///< Noise frequency (higher = more peaks)
+    float mountainDetail = 0.55f;       ///< Secondary detail strength [0..1]
+    float mountainScrollSpeed = 0.01f;  ///< Horizontal scroll speed (UV units per second)
+    float mountainEdgePixels = 1.5f;    ///< Edge softness in pixels (AA, not blur)
 };
 
 /**
@@ -118,4 +132,6 @@ private:
 
     std::uint32_t m_vao = 0;
     std::unique_ptr<Shader> m_shader;
+
+    float m_timeSeconds = 0.0f;
 };

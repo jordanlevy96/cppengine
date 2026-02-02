@@ -25,6 +25,17 @@ SkyBackground = {
     sunGlow = 0.14,
     sunColor = { r = 1.00, g = 0.55, b = 0.15 },
 
+    -- Mountains (distant silhouette)
+    mountainsEnabled = true,
+    mountainsOccludeSun = true,
+    mountainColor = { r = 0.08, g = 0.02, b = 0.12 },
+    mountainBaseY = 0.36,
+    mountainHeight = 0.10,
+    mountainScale = 2.2,
+    mountainDetail = 0.55,
+    mountainScrollSpeed = 0.01,
+    mountainEdgePixels = 1.5,
+
     ready = function(self)
         if not BackgroundSky then
             log_error("[SkyBackground] BackgroundSky API not found")
@@ -41,7 +52,17 @@ SkyBackground = {
             sunPos = self.sunPos,
             sunRadius = self.sunRadius,
             sunGlow = self.sunGlow,
-            sunColor = self.sunColor
+            sunColor = self.sunColor,
+
+            mountainsEnabled = self.mountainsEnabled,
+            mountainsOccludeSun = self.mountainsOccludeSun,
+            mountainColor = self.mountainColor,
+            mountainBaseY = self.mountainBaseY,
+            mountainHeight = self.mountainHeight,
+            mountainScale = self.mountainScale,
+            mountainDetail = self.mountainDetail,
+            mountainScrollSpeed = self.mountainScrollSpeed,
+            mountainEdgePixels = self.mountainEdgePixels
         })
 
         BackgroundSky.Enable(self.enabled)

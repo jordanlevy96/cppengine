@@ -793,6 +793,16 @@ namespace LuaBindings
             setNumber("sunGlow", [&](float v) { c.sunGlow = v; });
             setVec3("sunColor", c.sunColor);
 
+            setBool("mountainsEnabled", [&](bool v) { c.mountainsEnabled = v; });
+            setBool("mountainsOccludeSun", [&](bool v) { c.mountainsOccludeSun = v; });
+            setVec3("mountainColor", c.mountainColor);
+            setNumber("mountainBaseY", [&](float v) { c.mountainBaseY = v; });
+            setNumber("mountainHeight", [&](float v) { c.mountainHeight = v; });
+            setNumber("mountainScale", [&](float v) { c.mountainScale = v; });
+            setNumber("mountainDetail", [&](float v) { c.mountainDetail = v; });
+            setNumber("mountainScrollSpeed", [&](float v) { c.mountainScrollSpeed = v; });
+            setNumber("mountainEdgePixels", [&](float v) { c.mountainEdgePixels = v; });
+
             SkyBackgroundRenderer::GetInstance().Configure(c);
         };
 
