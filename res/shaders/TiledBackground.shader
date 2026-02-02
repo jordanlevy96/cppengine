@@ -63,7 +63,8 @@ void main()
     float mountainT = 0.0;
     if (u_mountainExtraDistance > 0.0 && u_mountainHeight > 0.0)
     {
-        float fadeLen = max(u_mountainFadeDistance, 0.0001);
+        // Clamp fade length so a small mountainExtraDistance can still reach full amplitude.
+        float fadeLen = max(min(u_mountainFadeDistance, u_mountainExtraDistance), 0.0001);
         mountainT = saturate((forwardDist - u_farDistance) / fadeLen);
     }
 
@@ -189,12 +190,16 @@ void main()
     color = mix(color, u_minorLineColor, minorAlpha);
     color = mix(color, u_majorLineColor, majorAlpha);
 
-    // Horizon termination line: force the last visible line to be magenta.
-    float aa = max(fwidth(vForwardDist), 1e-6);
-    float halfW = aa * max(u_horizonLinePixels, 0.0) * 0.5;
-    float d = abs(vForwardDist - farD);
-    float horizonAlpha = 1.0 - smoothstep(halfW, halfW + aa, d);
-    color = mix(color, u_majorLineColor, horizonAlpha);
+    // Horizon termination line: force the last visible line (flat grid only) to be magenta.
+    // When mountains are enabled, drawing this across displaced geometry reads as a "slab".
+    if (vForwardDist <= farD)
+    {
+        float aa = max(fwidth(vForwardDist), 1e-6);
+        float halfW = aa * max(u_horizonLinePixels, 0.0) * 0.5;
+        float d = abs(vForwardDist - farD);
+        float horizonAlpha = 1.0 - smoothstep(halfW, halfW + aa, d);
+        color = mix(color, u_majorLineColor, horizonAlpha);
+    }
 
     FragColor = vec4(color.rgb, 1.0);
 }

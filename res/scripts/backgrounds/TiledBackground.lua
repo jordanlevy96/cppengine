@@ -33,7 +33,7 @@ TiledBackground = {
     -- Tile mesh:
     -- - meshResolution is the number of segments per tile edge (higher = smoother mountain silhouettes).
     -- - Vertex count per instance is ~ (meshResolution^2 * 2 triangles).
-    meshResolution = 32,
+    meshResolution = 48,
 
     -- Grid (world units):
     -- - gridSpacing is distance between minor (cyan) lines.
@@ -62,13 +62,14 @@ TiledBackground = {
     --     1.0 : sharp ridges / crags (can look noisy if noiseScale is too large)
     -- - mountainFadeDistance controls how quickly mountains rise after the horizon (world units).
     --   If you see a "wall" at the horizon, increase this; if mountains feel too flat, decrease it.
-    mountainExtraDistance = 40.0,
-    mountainHeight = 300.0,
-    -- Start here for more natural-looking ranges: reduce noiseScale and optionally increase height.
-    -- Example: { mountainNoiseScale = 0.005, mountainHeight = 40.0, mountainDetail = 0.6 }
-    mountainNoiseScale = 0.3,
-    mountainDetail = 0.35,
-    mountainFadeDistance = 120.0,
+    -- Baseline tuning (good starting point):
+    -- - Keep mountainExtraDistance reasonably large so you see an actual mountain surface, not just a thin horizon band.
+    -- - Keep mountainFadeDistance <= mountainExtraDistance for a clean rise after the horizon.
+    mountainExtraDistance = 650.0,
+    mountainHeight = 60.0,
+    mountainNoiseScale = 0.005,
+    mountainDetail = 0.65,
+    mountainFadeDistance = 70.0,
 
     -- Mountain composition (optional):
     -- Bias the generated height tiles so there are two dominant ranges (left/right) with a flatter center valley.
@@ -76,7 +77,7 @@ TiledBackground = {
     mountainSideStrength = 1.0,   -- 0 disables, 1 full effect
     mountainSideOffsetX = 650.0,  -- +/- X offset of the left/right range peaks (world units)
     mountainSideWidthX = 520.0,   -- controls how broad each range is (world units)
-    mountainSideBase = 0.18,      -- baseline amplitude multiplier in the valley [0..1]
+    mountainSideBase = 0.08,      -- baseline amplitude multiplier in the valley [0..1]
 
     ready = function(self)
         if not BackgroundTiles then
