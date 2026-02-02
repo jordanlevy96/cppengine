@@ -138,10 +138,11 @@ void main()
     color = mix(color, u_minorLineColor, minorAlpha);
     color = mix(color, u_majorLineColor, majorAlpha);
 
-	// Horizon termination line: force the last visible line to be magenta.
-	float aa = max(fwidth(vForwardDist), 1e-6);
-	float halfW = aa * max(u_horizonLinePixels, 0.0) * 0.5;
-	float horizonAlpha = 1.0 - smoothstep(farD - halfW, farD + halfW, vForwardDist);
-	color = mix(color, u_majorLineColor, horizonAlpha);
-	FragColor = vec4(color.rgb, 1.0);
-}
+		// Horizon termination line: force the last visible line to be magenta.
+		float aa = max(fwidth(vForwardDist), 1e-6);
+		float halfW = aa * max(u_horizonLinePixels, 0.0) * 0.5;
+		float d = abs(vForwardDist - farD);
+		float horizonAlpha = 1.0 - smoothstep(halfW, halfW + aa, d);
+		color = mix(color, u_majorLineColor, horizonAlpha);
+		FragColor = vec4(color.rgb, 1.0);
+	}
