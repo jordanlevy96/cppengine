@@ -30,7 +30,7 @@ float hash21(vec2 p)
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
 }
 
-float noise2(vec2 p)
+float noise2d(vec2 p)
 {
     vec2 i = floor(p);
     vec2 f = fract(p);
@@ -51,7 +51,7 @@ float fbm2(vec2 p)
     float f = 1.0;
     for (int i = 0; i < 5; i++)
     {
-        v += a * noise2(p * f);
+        v += a * noise2d(p * f);
         f *= 2.0;
         a *= 0.5;
     }
@@ -143,4 +143,3 @@ void main()
     color = mix(color, u_majorLineColor, majorAlpha);
     FragColor = color;
 }
-
