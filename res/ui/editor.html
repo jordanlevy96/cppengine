@@ -183,54 +183,154 @@
             background: #1177bb;
         }
 
-        .inspector-group {
-            margin-top: 0.75em;
+        /* Inspector - Godot-style design */
+        .inspector-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5em 0.6em;
+            background: linear-gradient(180deg, #3d3d3d 0%, #2d2d2d 100%);
+            border: 1px solid #1a1a1a;
+            border-radius: 3px;
+            margin-bottom: 0.5em;
         }
 
-	        .inspector-group-title {
-	            font-weight: bold;
-	            margin-bottom: 0.5em;
-	        }
+        .inspector-header-name {
+            font-weight: 600;
+            color: #e0e0e0;
+        }
 
-	        .inspector-table {
-	            width: 100%;
-	            border-collapse: collapse;
-	            table-layout: fixed;
-	            margin-top: 0.4em;
-	        }
+        .inspector-header-id {
+            font-size: 0.8em;
+            color: #888;
+            font-family: 'SF Mono', monospace;
+        }
 
-	        .inspector-table td {
-	            padding: 0.2em 0.15em;
-	            vertical-align: middle;
-	        }
+        .inspector-section {
+            margin-bottom: 0.4em;
+            border: 1px solid #1a1a1a;
+            border-radius: 3px;
+            overflow: hidden;
+        }
 
-	        .inspector-row-label {
-	            width: 5.5em;
-	            color: #9cdcfe;
-	            user-select: none;
-	            padding-left: 0;
-	        }
+        .inspector-section-header {
+            display: flex;
+            align-items: center;
+            padding: 0.4em 0.5em;
+            background: linear-gradient(180deg, #383838 0%, #2a2a2a 100%);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s;
+        }
 
-	        .inspector-input {
-	            width: 100%;
-	            padding: 0.4em 0.5em;
-	            background: #1e1e1e;
-	            color: #cccccc;
-	            border: 1px solid #3e3e3e;
-	            font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
-	            font-size: 1em;
-	            box-sizing: border-box;
-	            display: block;
-	            user-select: none;
-	            position: relative;
-	            overflow: hidden;
-	            white-space: nowrap;
-	            min-height: 1.8em;
-	            cursor: text;
-	        }
+        .inspector-section-header:hover {
+            background: linear-gradient(180deg, #404040 0%, #323232 100%);
+        }
+
+        .inspector-section-icon {
+            width: 1em;
+            margin-right: 0.4em;
+            color: #888;
+            font-size: 0.8em;
+        }
+
+        .inspector-section-title {
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #b0b0b0;
+        }
+
+        .inspector-section-content {
+            padding: 0.5em;
+            background: #252525;
+        }
+
+        .inspector-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.35em;
+            min-height: 1.6em;
+        }
+
+        .inspector-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .inspector-row-label {
+            width: 70px;
+            flex-shrink: 0;
+            font-size: 0.85em;
+            color: #9cdcfe;
+            user-select: none;
+        }
+
+        .inspector-row-values {
+            display: flex;
+            flex: 1;
+            gap: 3px;
+        }
+
+        .inspector-field {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .inspector-field-label {
+            width: 14px;
+            flex-shrink: 0;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-align: center;
+            padding: 0.3em 0;
+            border-radius: 2px 0 0 2px;
+            user-select: none;
+        }
+
+        .inspector-field-label.x {
+            background: #8b3a3a;
+            color: #ffaaaa;
+        }
+
+        .inspector-field-label.y {
+            background: #3a6b3a;
+            color: #aaffaa;
+        }
+
+        .inspector-field-label.z {
+            background: #3a3a8b;
+            color: #aaaaff;
+        }
+
+        .inspector-input {
+            flex: 1;
+            padding: 0.3em 0.4em;
+            background: #1a1a1a;
+            color: #cccccc;
+            border: 1px solid #333;
+            border-left: none;
+            border-radius: 0 2px 2px 0;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.85em;
+            box-sizing: border-box;
+            user-select: none;
+            white-space: nowrap;
+            overflow: hidden;
+            min-width: 0;
+            cursor: text;
+            transition: all 0.15s;
+        }
+
+        .inspector-input:hover {
+            background: #222;
+            border-color: #444;
+        }
 
         .inspector-input.focused {
+            background: #1e2a1e;
             border-color: #4ec9b0;
+            color: #fff;
         }
 
         .input-cursor {
@@ -241,6 +341,13 @@
 
         @keyframes blink {
             50% { opacity: 0; }
+        }
+
+        .inspector-empty {
+            color: #666;
+            font-style: italic;
+            padding: 1em;
+            text-align: center;
         }
 
 	        .ui-editor-code {
@@ -314,31 +421,41 @@
             margin-right: 5px;
         }
 
-	        h3 {
-	            margin: 0 0 0.6em 0;
-	            font-size: 1em;
-	        }
+        h3 {
+            margin: 0 0 0.6em 0;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
 
         .entity-item {
-            padding: 0.25em;
-            margin-bottom: 0.15em;
+            padding: 0.35em 0.5em;
+            margin-bottom: 2px;
             background: #1e1e1e;
             cursor: pointer;
             user-select: none;
-            transition: all 0.2s;
+            transition: all 0.12s;
             border-left: 3px solid transparent;
+            border-radius: 2px;
+            font-size: 0.9em;
         }
 
         .entity-item:hover {
-            background: #2a2a2a;
+            background: #2d2d2d;
             border-left-color: #4ec9b0;
         }
 
-	        .entity-item.selected {
-	            background: #0e639c;
-	            color: #ffffff;
-	            border-left-color: #4ec9b0;
-	        }
+        .entity-item.selected {
+            background: linear-gradient(90deg, #1a5a8a 0%, #0e4a7a 100%);
+            color: #ffffff;
+            border-left-color: #4ec9b0;
+        }
+
+        .entity-item.selected:hover {
+            background: linear-gradient(90deg, #1f6a9a 0%, #105a8a 100%);
+        }
 
 	    </style>
 </head>
@@ -378,39 +495,78 @@
              @mousedown="beginResizeInspector($event)"
              @mouseup="endResize"></div>
 
-	        <div class="inspector" style="width: {{ data.layout.inspectorWidth }}px;">
-	            <h3>Inspector</h3>
-	            <div v-if="data.selectedEntityId ~= nil">
-	                <div><strong>{{ data.selectedEntityName }}</strong></div>
-	
-	                <div class="inspector-group">
-	                    <div class="inspector-group-title">Transform</div>
-	                    <table class="inspector-table">
-	                        <tr>
-	                            <td class="inspector-row-label">Position</td>
-	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posX'}" @click="focusInput('data.inspector.posX')"><span v-if="data.focusedField == 'data.inspector.posX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posX'">{{ data.inspector.posX }}</span></div></td>
-	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posY'}" @click="focusInput('data.inspector.posY')"><span v-if="data.focusedField == 'data.inspector.posY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posY'">{{ data.inspector.posY }}</span></div></td>
-	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posZ'}" @click="focusInput('data.inspector.posZ')"><span v-if="data.focusedField == 'data.inspector.posZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posZ'">{{ data.inspector.posZ }}</span></div></td>
-	                        </tr>
-	                        <tr>
-	                            <td class="inspector-row-label">Rotation</td>
-	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotX'}" @click="focusInput('data.inspector.rotX')"><span v-if="data.focusedField == 'data.inspector.rotX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotX'">{{ data.inspector.rotX }}</span></div></td>
-	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotY'}" @click="focusInput('data.inspector.rotY')"><span v-if="data.focusedField == 'data.inspector.rotY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotY'">{{ data.inspector.rotY }}</span></div></td>
-	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotZ'}" @click="focusInput('data.inspector.rotZ')"><span v-if="data.focusedField == 'data.inspector.rotZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotZ'">{{ data.inspector.rotZ }}</span></div></td>
-	                        </tr>
-	                        <tr>
-	                            <td class="inspector-row-label">Scale</td>
-	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleX'}" @click="focusInput('data.inspector.scaleX')"><span v-if="data.focusedField == 'data.inspector.scaleX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleX'">{{ data.inspector.scaleX }}</span></div></td>
-	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleY'}" @click="focusInput('data.inspector.scaleY')"><span v-if="data.focusedField == 'data.inspector.scaleY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleY'">{{ data.inspector.scaleY }}</span></div></td>
-	                            <td><div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleZ'}" @click="focusInput('data.inspector.scaleZ')"><span v-if="data.focusedField == 'data.inspector.scaleZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleZ'">{{ data.inspector.scaleZ }}</span></div></td>
-	                        </tr>
-	                    </table>
-	                </div>
-	            </div>
-	            <div v-if="data.selectedEntityId == nil">
-	                No selection
-	            </div>
-	        </div>
+        <div class="inspector" style="width: {{ data.layout.inspectorWidth }}px;">
+            <h3>Inspector</h3>
+            <div v-if="data.selectedEntityId ~= nil">
+                <div class="inspector-header">
+                    <span class="inspector-header-name">{{ data.selectedEntityName }}</span>
+                    <span class="inspector-header-id">#{{ data.selectedEntityId }}</span>
+                </div>
+
+                <div class="inspector-section">
+                    <div class="inspector-section-header">
+                        <span class="inspector-section-icon">▼</span>
+                        <span class="inspector-section-title">Transform</span>
+                    </div>
+                    <div class="inspector-section-content">
+                        <div class="inspector-row">
+                            <span class="inspector-row-label">Position</span>
+                            <div class="inspector-row-values">
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label x">X</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posX'}" @click="focusInput('data.inspector.posX')"><span v-if="data.focusedField == 'data.inspector.posX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posX'">{{ data.inspector.posX }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label y">Y</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posY'}" @click="focusInput('data.inspector.posY')"><span v-if="data.focusedField == 'data.inspector.posY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posY'">{{ data.inspector.posY }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label z">Z</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posZ'}" @click="focusInput('data.inspector.posZ')"><span v-if="data.focusedField == 'data.inspector.posZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posZ'">{{ data.inspector.posZ }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="inspector-row">
+                            <span class="inspector-row-label">Rotation</span>
+                            <div class="inspector-row-values">
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label x">X</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotX'}" @click="focusInput('data.inspector.rotX')"><span v-if="data.focusedField == 'data.inspector.rotX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotX'">{{ data.inspector.rotX }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label y">Y</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotY'}" @click="focusInput('data.inspector.rotY')"><span v-if="data.focusedField == 'data.inspector.rotY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotY'">{{ data.inspector.rotY }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label z">Z</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotZ'}" @click="focusInput('data.inspector.rotZ')"><span v-if="data.focusedField == 'data.inspector.rotZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotZ'">{{ data.inspector.rotZ }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="inspector-row">
+                            <span class="inspector-row-label">Scale</span>
+                            <div class="inspector-row-values">
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label x">X</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleX'}" @click="focusInput('data.inspector.scaleX')"><span v-if="data.focusedField == 'data.inspector.scaleX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleX'">{{ data.inspector.scaleX }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label y">Y</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleY'}" @click="focusInput('data.inspector.scaleY')"><span v-if="data.focusedField == 'data.inspector.scaleY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleY'">{{ data.inspector.scaleY }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label z">Z</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleZ'}" @click="focusInput('data.inspector.scaleZ')"><span v-if="data.focusedField == 'data.inspector.scaleZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleZ'">{{ data.inspector.scaleZ }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div v-if="data.selectedEntityId == nil" class="inspector-empty">
+                Select an entity to inspect
+            </div>
+        </div>
             </div>
 
         <div v-if="data.activeView == 'ui'" class="ui-editor">

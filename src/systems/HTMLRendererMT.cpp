@@ -968,7 +968,7 @@ void HTMLRendererMT::SetupGL()
 void HTMLRendererMT::LoadHTML(const std::string &html)
 {
     auto start = std::chrono::high_resolution_clock::now();
-    LOG_INFO("[HTMLRendererMT] LoadHTML called ({} bytes)", html.size());
+    LOG_TRACE_L2("[HTMLRendererMT] LoadHTML called ({} bytes)", html.size());
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -979,7 +979,7 @@ void HTMLRendererMT::LoadHTML(const std::string &html)
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    LOG_INFO("[HTMLRendererMT] LoadHTML signaled render thread ({}ms)", duration);
+    LOG_TRACE_L2("[HTMLRendererMT] LoadHTML signaled render thread ({}ms)", duration);
 }
 
 void HTMLRendererMT::UpdateHTML(const std::string &html)
@@ -998,7 +998,7 @@ void HTMLRendererMT::Render()
         std::lock_guard<std::mutex> lock(m_bufferMutex);
         if (m_frontBuffer.frameNumber != m_lastFrameNumber)
         {
-            LOG_INFO("[HTMLRendererMT] Uploading new frame {} (was {})", m_frontBuffer.frameNumber, m_lastFrameNumber);
+            LOG_TRACE_L2("[HTMLRendererMT] Uploading new frame {} (was {})", m_frontBuffer.frameNumber, m_lastFrameNumber);
             UpdateTextureFromPixelBuffer();
             m_lastFrameNumber = m_frontBuffer.frameNumber;
         }
@@ -1214,7 +1214,7 @@ void HTMLRendererMT::RenderThreadLoop()
             needsRender = false;
             auto totalEnd = std::chrono::high_resolution_clock::now();
             auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(totalEnd - renderStart).count();
-            LOG_INFO("[RenderThread] Render complete, frame {} (render: {}ms, total: {}ms)", newFrameNumber, renderDuration, totalDuration);
+            LOG_TRACE_L2("[RenderThread] Render complete, frame {} (render: {}ms, total: {}ms)", newFrameNumber, renderDuration, totalDuration);
         }
     }
 

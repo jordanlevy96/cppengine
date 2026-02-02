@@ -609,7 +609,6 @@ void Editor::Render()
 
         if (wasDirty)
         {
-            LOG_INFO("[Editor] State was dirty, calling UpdateHTML");
             m_htmlRenderer->UpdateHTML(renderedHTML);
         }
     }
