@@ -81,6 +81,16 @@ struct TiledBackgroundConfig
     float mountainNoiseScale = 0.012f;  ///< Procedural noise scale (world units -> noise space)
     float mountainDetail = 0.55f;       ///< Secondary noise strength [0..1]
     float mountainFadeDistance = 24.0f; ///< How quickly mountains rise after the horizon (world units)
+
+    // Mountain "composition" (optional)
+    //
+    // For the synthwave background, it can be useful to bias the height field so there are two dominant mountain ranges
+    // (left and right) with a flatter valley in the center. This is implemented as a world-X mask applied during height
+    // tile generation, so it remains world-centric and deterministic.
+    float mountainSideStrength = 0.0f; ///< [0..1] 0=disable, 1=full side-range mask
+    float mountainSideOffsetX = 650.0f; ///< World X offset for left/right range peaks (+/- offset)
+    float mountainSideWidthX = 520.0f;  ///< Gaussian width for side ranges (larger = broader ranges)
+    float mountainSideBase = 0.18f;     ///< Baseline amplitude multiplier in the valley [0..1]
 };
 
 /**
@@ -179,6 +189,7 @@ private:
         float layer = 0.0f;                   ///< texture array layer index (float for attrib)
         float hasData = 0.0f;                 ///< 1.0 if this layer contains valid tile data, else 0.0
         float tileWorldSize = 0.0f;           ///< world size for this tile instance
+        float skirtMask = 0.0f;               ///< bitmask of edges needing skirts (0=west,1=east,2=south,3=north)
     };
 
     bool EnsureInitialized();

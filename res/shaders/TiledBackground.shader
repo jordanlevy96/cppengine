@@ -2,12 +2,13 @@
 #version 330 core
 
 layout (location = 0) in vec2 aLocalXZ;   // [0..1] quad in XZ
-layout (location = 1) in vec2 aUV;
+layout (location = 1) in vec4 aUVSkirtEdge; // (u,v,skirtFlag,edgeId)
 
 layout (location = 2) in vec2 iOriginXZ;  // world-space origin (x,z)
 layout (location = 3) in float iLayer;    // texture array layer index
 layout (location = 4) in float iHasData;  // 1.0 if valid, else 0.0
 layout (location = 5) in float iTileWorldSize;
+layout (location = 6) in float iSkirtMask; // edge bitmask (0=west,1=east,2=south,3=north)
 
 out vec2 vUV;
 flat out float vLayer;
@@ -16,6 +17,7 @@ out vec2 vWorldXZ;
 out vec3 vWorldPos;
 out float vScreenY;
 out float vForwardDist;
+out float vSkirt;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -29,14 +31,29 @@ uniform float u_farDistance;
 uniform float u_mountainExtraDistance;
 uniform float u_mountainHeight;
 uniform float u_mountainFadeDistance;
+uniform float u_skirtDepth;
 
 float saturate(float x) { return clamp(x, 0.0, 1.0); }
 
 void main()
 {
+    vec2 uv = aUVSkirtEdge.xy;
+    float skirtFlag = aUVSkirtEdge.z;
+    float edgeId = aUVSkirtEdge.w;
+
+    float edgeEnabled = 1.0;
+    if (edgeId >= 0.0)
+    {
+        int mask = int(iSkirtMask + 0.5);
+        int eid = int(edgeId + 0.5);
+        edgeEnabled = ((mask & (1 << eid)) != 0) ? 1.0 : 0.0;
+    }
+
+    float skirt = skirtFlag * edgeEnabled;
+
     vec3 worldPos = vec3(
         iOriginXZ.x + aLocalXZ.x * iTileWorldSize,
-        u_planeY,
+        u_planeY - skirt * u_skirtDepth,
         iOriginXZ.y + aLocalXZ.y * iTileWorldSize
     );
 
@@ -52,20 +69,21 @@ void main()
 
     if (mountainT > 0.0 && iHasData > 0.5)
     {
-        float h01 = texture(u_heights, vec3(aUV, iLayer)).r;
+        float h01 = texture(u_heights, vec3(uv, iLayer)).r;
         worldPos.y += h01 * u_mountainHeight * mountainT;
     }
 
     vec4 viewPos = view * vec4(worldPos, 1.0);
     vec4 clip = projection * viewPos;
 
-    vUV = aUV;
+    vUV = uv;
     vLayer = iLayer;
     vHasData = iHasData;
     vWorldXZ = worldPos.xz;
     vWorldPos = worldPos;
     vScreenY = clip.y / max(1e-6, clip.w) * 0.5 + 0.5;
     vForwardDist = forwardDist;
+    vSkirt = skirt;
     gl_Position = clip;
 }
 
@@ -79,6 +97,7 @@ in vec2 vWorldXZ;
 in vec3 vWorldPos;
 in float vScreenY;
 in float vForwardDist;
+in float vSkirt;
 
 out vec4 FragColor;
 
@@ -151,6 +170,11 @@ void main()
         gridLine1D(vWorldXZ.x, majorGrid, majorHalfW),
         gridLine1D(vWorldXZ.y, majorGrid, majorHalfW)
     );
+
+    // Fade grid lines on skirts so any seam fill reads as "solid shadow" instead of vertical grid walls.
+    float skirtFade = 1.0 - saturate(vSkirt);
+    minorAlpha *= skirtFade;
+    majorAlpha *= skirtFade;
 
     // Clip to a maximum distance so the background does not extend infinitely.
     // The flat grid ends at u_farDistance; mountains (if enabled) can extend beyond it.

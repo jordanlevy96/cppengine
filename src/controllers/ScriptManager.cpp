@@ -634,6 +634,12 @@ namespace LuaBindings
             setNumber("mountainDetail", [&](float v) { c.mountainDetail = v; });
             setNumber("mountainFadeDistance", [&](float v) { c.mountainFadeDistance = v; });
 
+            // Mountain composition (optional side ranges).
+            setNumber("mountainSideStrength", [&](float v) { c.mountainSideStrength = v; });
+            setNumber("mountainSideOffsetX", [&](float v) { c.mountainSideOffsetX = v; });
+            setNumber("mountainSideWidthX", [&](float v) { c.mountainSideWidthX = v; });
+            setNumber("mountainSideBase", [&](float v) { c.mountainSideBase = v; });
+
             // Back-compat: lineWidth previously drove both minor and major widths (major was ~1.5x).
             setNumber("lineWidth", [&](float v) { legacyLineWidth = v; hadLegacyLineWidth = true; });
             if (hadLegacyLineWidth)

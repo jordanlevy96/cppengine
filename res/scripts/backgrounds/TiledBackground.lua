@@ -62,13 +62,21 @@ TiledBackground = {
     --     1.0 : sharp ridges / crags (can look noisy if noiseScale is too large)
     -- - mountainFadeDistance controls how quickly mountains rise after the horizon (world units).
     --   If you see a "wall" at the horizon, increase this; if mountains feel too flat, decrease it.
-    mountainExtraDistance = 260.0,
-    mountainHeight = 28.0,
+    mountainExtraDistance = 40.0,
+    mountainHeight = 300.0,
     -- Start here for more natural-looking ranges: reduce noiseScale and optionally increase height.
     -- Example: { mountainNoiseScale = 0.005, mountainHeight = 40.0, mountainDetail = 0.6 }
-    mountainNoiseScale = 0.012,
-    mountainDetail = 0.55,
-    mountainFadeDistance = 24.0,
+    mountainNoiseScale = 0.3,
+    mountainDetail = 0.35,
+    mountainFadeDistance = 120.0,
+
+    -- Mountain composition (optional):
+    -- Bias the generated height tiles so there are two dominant ranges (left/right) with a flatter center valley.
+    -- This mask is applied in the CPU tile generator (world-X), so it's deterministic and stable per tile key.
+    mountainSideStrength = 1.0,   -- 0 disables, 1 full effect
+    mountainSideOffsetX = 650.0,  -- +/- X offset of the left/right range peaks (world units)
+    mountainSideWidthX = 520.0,   -- controls how broad each range is (world units)
+    mountainSideBase = 0.18,      -- baseline amplitude multiplier in the valley [0..1]
 
     ready = function(self)
         if not BackgroundTiles then
@@ -103,7 +111,12 @@ TiledBackground = {
             mountainHeight = self.mountainHeight,
             mountainNoiseScale = self.mountainNoiseScale,
             mountainDetail = self.mountainDetail,
-            mountainFadeDistance = self.mountainFadeDistance
+            mountainFadeDistance = self.mountainFadeDistance,
+
+            mountainSideStrength = self.mountainSideStrength,
+            mountainSideOffsetX = self.mountainSideOffsetX,
+            mountainSideWidthX = self.mountainSideWidthX,
+            mountainSideBase = self.mountainSideBase
         })
 
         BackgroundTiles.Enable(self.enabled)

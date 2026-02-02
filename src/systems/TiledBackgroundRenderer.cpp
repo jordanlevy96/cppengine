@@ -30,6 +30,7 @@
 #include <cmath>
 #include <limits>
 #include <queue>
+#include <unordered_set>
 
 namespace
 {
@@ -286,6 +287,11 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
     m_config.mountainNoiseScale = std::max(0.0f, m_config.mountainNoiseScale);
     m_config.mountainDetail = std::clamp(m_config.mountainDetail, 0.0f, 1.0f);
     m_config.mountainFadeDistance = std::max(0.0f, m_config.mountainFadeDistance);
+
+    m_config.mountainSideStrength = std::clamp(m_config.mountainSideStrength, 0.0f, 1.0f);
+    m_config.mountainSideOffsetX = std::max(0.0f, m_config.mountainSideOffsetX);
+    m_config.mountainSideWidthX = std::max(0.0001f, m_config.mountainSideWidthX);
+    m_config.mountainSideBase = std::clamp(m_config.mountainSideBase, 0.0f, 1.0f);
 
     EnsureInitialized();
     RecreateCacheIfNeeded();
@@ -834,16 +840,19 @@ void TiledBackgroundRenderer::EnsureDrawResources()
 
         glBindVertexArray(m_vao);
 
-        // Vertex buffer is populated below (mesh build). Vertex format: localXZ (vec2), uv (vec2).
+        // Vertex buffer is populated below (mesh build).
+        // Vertex format:
+        // - localXZ (vec2): unit tile coordinates in XZ
+        // - uvSkirtEdge (vec4): (u,v,skirtFlag,edgeId)
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
         glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
 
         // location 0: local pos (x,z)
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void *)0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void *)0);
         glEnableVertexAttribArray(0);
 
-        // location 1: uv
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void *)(sizeof(float) * 2));
+        // location 1: (u,v,skirtFlag,edgeId)
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void *)(sizeof(float) * 2));
         glEnableVertexAttribArray(1);
 
         // Instance data: originXZ (vec2) + layer (float) + hasData (float) + tileWorldSize (float)
@@ -866,6 +875,10 @@ void TiledBackgroundRenderer::EnsureDrawResources()
         glEnableVertexAttribArray(5);
         glVertexAttribDivisor(5, 1);
 
+        glVertexAttribPointer(6, 1, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void *)offsetof(TileInstance, skirtMask));
+        glEnableVertexAttribArray(6);
+        glVertexAttribDivisor(6, 1);
+
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
@@ -877,15 +890,15 @@ void TiledBackgroundRenderer::EnsureDrawResources()
         return;
     }
 
-    // Generate a tessellated unit tile mesh in XZ with UVs.
+    // Generate a tessellated unit tile mesh in XZ plus optional skirts.
     // Higher resolution improves the smoothness of displaced (mountain) regions.
     const int seg = std::max(1, m_config.meshResolution);
     const float invSeg = 1.0f / static_cast<float>(seg);
 
     std::vector<float> verts;
-    verts.reserve(static_cast<size_t>(seg * seg * 6 * 4));
+    verts.reserve(static_cast<size_t>(seg * seg * 6 * 6));
 
-    auto push = [&](float x, float z)
+    auto push = [&](float x, float z, float skirtFlag, float edgeId)
     {
         // localXZ
         verts.push_back(x);
@@ -893,7 +906,58 @@ void TiledBackgroundRenderer::EnsureDrawResources()
         // uv
         verts.push_back(x);
         verts.push_back(z);
+        // skirtFlag (0=surface/top, 1=skirt bottom)
+        verts.push_back(skirtFlag);
+        // edgeId (-1=surface, 0=west,1=east,2=south,3=north)
+        verts.push_back(edgeId);
     };
+
+    // Skirts are emitted first so the main surface can overwrite them (depth writes are disabled for this pass).
+    // They are enabled per-tile via iSkirtMask; disabled skirts collapse into degenerate triangles.
+    const float surface = 0.0f;
+    const float skirt = 1.0f;
+    const float west = 0.0f;
+    const float east = 1.0f;
+    const float south = 2.0f;
+    const float north = 3.0f;
+
+    for (int i = 0; i < seg; i++)
+    {
+        const float t0 = static_cast<float>(i) * invSeg;
+        const float t1 = static_cast<float>(i + 1) * invSeg;
+
+        // West edge (x=0): z in [t0..t1]
+        push(0.0f, t0, surface, west);
+        push(0.0f, t1, surface, west);
+        push(0.0f, t1, skirt, west);
+        push(0.0f, t0, surface, west);
+        push(0.0f, t1, skirt, west);
+        push(0.0f, t0, skirt, west);
+
+        // East edge (x=1)
+        push(1.0f, t0, surface, east);
+        push(1.0f, t1, surface, east);
+        push(1.0f, t1, skirt, east);
+        push(1.0f, t0, surface, east);
+        push(1.0f, t1, skirt, east);
+        push(1.0f, t0, skirt, east);
+
+        // South edge (z=0): x in [t0..t1]
+        push(t0, 0.0f, surface, south);
+        push(t1, 0.0f, surface, south);
+        push(t1, 0.0f, skirt, south);
+        push(t0, 0.0f, surface, south);
+        push(t1, 0.0f, skirt, south);
+        push(t0, 0.0f, skirt, south);
+
+        // North edge (z=1)
+        push(t0, 1.0f, surface, north);
+        push(t1, 1.0f, surface, north);
+        push(t1, 1.0f, skirt, north);
+        push(t0, 1.0f, surface, north);
+        push(t1, 1.0f, skirt, north);
+        push(t0, 1.0f, skirt, north);
+    }
 
     for (int y = 0; y < seg; y++)
     {
@@ -905,17 +969,17 @@ void TiledBackgroundRenderer::EnsureDrawResources()
             const float x1 = static_cast<float>(x + 1) * invSeg;
 
             // Tri 1
-            push(x0, z0);
-            push(x1, z0);
-            push(x1, z1);
+            push(x0, z0, 0.0f, -1.0f);
+            push(x1, z0, 0.0f, -1.0f);
+            push(x1, z1, 0.0f, -1.0f);
             // Tri 2
-            push(x0, z0);
-            push(x1, z1);
-            push(x0, z1);
+            push(x0, z0, 0.0f, -1.0f);
+            push(x1, z1, 0.0f, -1.0f);
+            push(x0, z1, 0.0f, -1.0f);
         }
     }
 
-    m_tileVertexCount = static_cast<int>(verts.size() / 4);
+    m_tileVertexCount = static_cast<int>(verts.size() / 6);
 
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verts.size(), verts.data(), GL_STATIC_DRAW);
@@ -962,6 +1026,7 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetFloat("u_mountainExtraDistance", m_config.mountainExtraDistance);
     m_shader->SetFloat("u_mountainHeight", m_config.mountainHeight);
     m_shader->SetFloat("u_mountainFadeDistance", m_config.mountainFadeDistance);
+    m_shader->SetFloat("u_skirtDepth", 8.0f);
     m_shader->SetFloat("u_horizonLinePixels", m_config.horizonLinePixels);
     m_shader->SetVec2("u_cameraPosXZ", glm::vec2(cameraPos.x, cameraPos.z));
     m_shader->SetVec2("u_cameraForwardXZ", glm::vec2(forward.x, forward.z));
@@ -1014,6 +1079,18 @@ void TiledBackgroundRenderer::Render(Camera *camera, float deltaMs)
     std::vector<TileKey> visibleKeys;
     SelectVisibleTiles(camera, visibleKeys);
 
+    std::unordered_set<std::uint64_t> keySet;
+    keySet.reserve(visibleKeys.size() * 2);
+    for (const TileKey &k : visibleKeys)
+    {
+        keySet.insert(PackKey(k));
+    }
+
+    auto containsKey = [&](int lod, int x, int y) -> bool
+    {
+        return keySet.find(PackKey(TileKey{lod, x, y})) != keySet.end();
+    };
+
     std::vector<TileInstance> instances;
     instances.reserve(visibleKeys.size());
 
@@ -1026,13 +1103,61 @@ void TiledBackgroundRenderer::Render(Camera *camera, float deltaMs)
             m_pendingUploads.push_back(key);
         }
 
+        // Skirts: enable only on edges where this (coarser) tile borders finer tiles.
+        // This hides T-junction cracks at LOD boundaries without adding visible walls between same-LOD neighbors.
+        int skirtMask = 0;
+        const int lod = key.lod;
+        if (lod + 1 < m_config.lodCount)
+        {
+            const int finerLod = lod + 1;
+            const int fx0 = key.x * 2;
+            const int fy0 = key.y * 2;
+
+            // West (-X)
+            if (!containsKey(lod, key.x - 1, key.y))
+            {
+                if (containsKey(finerLod, fx0 - 1, fy0) || containsKey(finerLod, fx0 - 1, fy0 + 1))
+                {
+                    skirtMask |= (1 << 0);
+                }
+            }
+
+            // East (+X)
+            if (!containsKey(lod, key.x + 1, key.y))
+            {
+                if (containsKey(finerLod, fx0 + 2, fy0) || containsKey(finerLod, fx0 + 2, fy0 + 1))
+                {
+                    skirtMask |= (1 << 1);
+                }
+            }
+
+            // South (-Z)
+            if (!containsKey(lod, key.x, key.y - 1))
+            {
+                if (containsKey(finerLod, fx0, fy0 - 1) || containsKey(finerLod, fx0 + 1, fy0 - 1))
+                {
+                    skirtMask |= (1 << 2);
+                }
+            }
+
+            // North (+Z)
+            if (!containsKey(lod, key.x, key.y + 1))
+            {
+                if (containsKey(finerLod, fx0, fy0 + 2) || containsKey(finerLod, fx0 + 1, fy0 + 2))
+                {
+                    skirtMask |= (1 << 3);
+                }
+            }
+        }
+
         const float tileSize = GetTileWorldSizeForLOD(key.lod);
         const glm::vec2 originXZ(key.x * tileSize, key.y * tileSize);
         instances.push_back(TileInstance{
             .originXZ = originXZ,
             .layer = static_cast<float>(slot),
             .hasData = 0.0f,
-            .tileWorldSize = tileSize});
+            .tileWorldSize = tileSize,
+            .skirtMask = static_cast<float>(skirtMask)});
     }
 
     UploadPendingTiles();
@@ -1190,7 +1315,27 @@ void TiledBackgroundRenderer::GenerateTileHeightR16(const TileKey &key, std::vec
             n *= (0.35f + 0.65f * rangeMask);
 
             // Final shaping: emphasize peaks while keeping valleys near the horizon flatter.
-            const float height01 = Clamp01(std::pow(Clamp01(n), 1.85f));
+            float height01 = Clamp01(std::pow(Clamp01(n), 1.85f));
+
+            // Optional composition: bias towards two dominant ranges (left/right) with a center valley.
+            // This is applied in world space so it stays stable per tile key.
+            if (m_config.mountainSideStrength > 0.0f)
+            {
+                const float strength = std::clamp(m_config.mountainSideStrength, 0.0f, 1.0f);
+                const float offset = std::max(0.0f, m_config.mountainSideOffsetX);
+                const float width = std::max(0.0001f, m_config.mountainSideWidthX);
+                const float base = std::clamp(m_config.mountainSideBase, 0.0f, 1.0f);
+
+                const float dxL = (worldX + offset) / width;
+                const float dxR = (worldX - offset) / width;
+                const float left = std::exp(-(dxL * dxL));
+                const float right = std::exp(-(dxR * dxR));
+                const float peaks = std::clamp(std::max(left, right), 0.0f, 1.0f);
+
+                const float mask = Lerp(base, 1.0f, peaks);
+                height01 *= Lerp(1.0f, mask, strength);
+                height01 = Clamp01(height01);
+            }
 
             outPixels[static_cast<size_t>(y * w + x)] = static_cast<std::uint16_t>(std::lround(height01 * 65535.0f));
         }
