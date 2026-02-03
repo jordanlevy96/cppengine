@@ -285,8 +285,11 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
     m_config.mountainExtraDistance = std::max(0.0f, m_config.mountainExtraDistance);
     m_config.mountainHeight = std::max(0.0f, m_config.mountainHeight);
     m_config.mountainNoiseScale = std::max(0.0f, m_config.mountainNoiseScale);
+    m_config.mountainFeatureSize = std::max(0.0f, m_config.mountainFeatureSize);
     m_config.mountainDetail = std::clamp(m_config.mountainDetail, 0.0f, 1.0f);
     m_config.mountainFadeDistance = std::max(0.0f, m_config.mountainFadeDistance);
+    m_config.mountainRiseExponent = std::clamp(m_config.mountainRiseExponent, 0.10f, 4.0f);
+    m_config.skirtDepth = std::max(0.0f, m_config.skirtDepth);
 
     m_config.mountainSideStrength = std::clamp(m_config.mountainSideStrength, 0.0f, 1.0f);
     m_config.mountainSideOffsetX = std::max(0.0f, m_config.mountainSideOffsetX);
@@ -296,6 +299,17 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
     EnsureInitialized();
     RecreateCacheIfNeeded();
     EnsureDrawResources();
+
+    const float derivedNoiseScale = (m_config.mountainFeatureSize > 0.0f) ? (1.0f / m_config.mountainFeatureSize) : m_config.mountainNoiseScale;
+    LOG_INFO("BackgroundTiles: far={} extra={} height={} featureSize={} noiseScale={} fade={} riseExp={} skirtDepth={}",
+             m_config.farDistance,
+             m_config.mountainExtraDistance,
+             m_config.mountainHeight,
+             m_config.mountainFeatureSize,
+             derivedNoiseScale,
+             m_config.mountainFadeDistance,
+             m_config.mountainRiseExponent,
+             m_config.skirtDepth);
 }
 
 void TiledBackgroundRenderer::SetEnabled(bool enabled)
@@ -1026,7 +1040,8 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetFloat("u_mountainExtraDistance", m_config.mountainExtraDistance);
     m_shader->SetFloat("u_mountainHeight", m_config.mountainHeight);
     m_shader->SetFloat("u_mountainFadeDistance", m_config.mountainFadeDistance);
-    m_shader->SetFloat("u_skirtDepth", 0.5f);
+    m_shader->SetFloat("u_mountainRiseExponent", m_config.mountainRiseExponent);
+    m_shader->SetFloat("u_skirtDepth", m_config.skirtDepth);
     m_shader->SetFloat("u_horizonLinePixels", m_config.horizonLinePixels);
     m_shader->SetVec2("u_cameraPosXZ", glm::vec2(cameraPos.x, cameraPos.z));
     m_shader->SetVec2("u_cameraForwardXZ", glm::vec2(forward.x, forward.z));
@@ -1275,7 +1290,8 @@ void TiledBackgroundRenderer::GenerateTileHeightR16(const TileKey &key, std::vec
     outPixels.resize(static_cast<size_t>(w * h));
 
     // If noiseScale is zero, treat as flat.
-    if (m_config.mountainNoiseScale <= 0.0f)
+    const float scale = (m_config.mountainFeatureSize > 0.0f) ? (1.0f / m_config.mountainFeatureSize) : m_config.mountainNoiseScale;
+    if (scale <= 0.0f)
     {
         std::fill(outPixels.begin(), outPixels.end(), 0);
         return;
@@ -1285,7 +1301,6 @@ void TiledBackgroundRenderer::GenerateTileHeightR16(const TileKey &key, std::vec
     const float x0 = static_cast<float>(key.x) * tileSize;
     const float z0 = static_cast<float>(key.y) * tileSize;
 
-    const float scale = m_config.mountainNoiseScale;
     const float ruggedness = std::clamp(m_config.mountainDetail, 0.0f, 1.0f);
 
     for (int y = 0; y < h; y++)

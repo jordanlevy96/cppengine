@@ -31,6 +31,7 @@ uniform float u_farDistance;
 uniform float u_mountainExtraDistance;
 uniform float u_mountainHeight;
 uniform float u_mountainFadeDistance;
+uniform float u_mountainRiseExponent;
 uniform float u_skirtDepth;
 
 float saturate(float x) { return clamp(x, 0.0, 1.0); }
@@ -69,7 +70,8 @@ void main()
         // Shape the rise curve so mountains read earlier near the horizon. Linear ramps can look like a flat "band"
         // behind the horizon unless fadeLen is very small.
         // (Exponent < 1.0 => faster rise near the horizon.)
-        mountainT = pow(max(mountainT, 0.0), 0.65);
+        float exp = max(u_mountainRiseExponent, 0.0001);
+        mountainT = pow(max(mountainT, 0.0), exp);
     }
 
     // Skirts are only needed where we have displacement (mountainT > 0). On the flat grid, the extra skirt triangles

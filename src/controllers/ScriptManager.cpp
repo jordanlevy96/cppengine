@@ -631,8 +631,11 @@ namespace LuaBindings
             setNumber("mountainExtraDistance", [&](float v) { c.mountainExtraDistance = v; });
             setNumber("mountainHeight", [&](float v) { c.mountainHeight = v; });
             setNumber("mountainNoiseScale", [&](float v) { c.mountainNoiseScale = v; });
+            setNumber("mountainFeatureSize", [&](float v) { c.mountainFeatureSize = v; });
             setNumber("mountainDetail", [&](float v) { c.mountainDetail = v; });
             setNumber("mountainFadeDistance", [&](float v) { c.mountainFadeDistance = v; });
+            setNumber("mountainRiseExponent", [&](float v) { c.mountainRiseExponent = v; });
+            setNumber("skirtDepth", [&](float v) { c.skirtDepth = v; });
 
             // Mountain composition (optional side ranges).
             setNumber("mountainSideStrength", [&](float v) { c.mountainSideStrength = v; });

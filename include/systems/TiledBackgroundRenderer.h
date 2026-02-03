@@ -78,9 +78,12 @@ struct TiledBackgroundConfig
     // a height texture layer. This follows the "elevation layer" concept in docs/TERRAIN_IMPLEMENTATION.md.
     float mountainExtraDistance = 0.0f; ///< Extra distance beyond farDistance to render displaced terrain (world units)
     float mountainHeight = 26.0f;       ///< Peak height above planeY (world units)
-    float mountainNoiseScale = 0.012f;  ///< Procedural noise scale (world units -> noise space)
+    float mountainNoiseScale = 0.012f;  ///< Procedural noise scale (world units -> noise space); prefer mountainFeatureSize for tuning
+    float mountainFeatureSize = 0.0f;   ///< If >0, overrides mountainNoiseScale via (noiseScale = 1 / mountainFeatureSize)
     float mountainDetail = 0.55f;       ///< Secondary noise strength [0..1]
     float mountainFadeDistance = 24.0f; ///< How quickly mountains rise after the horizon (world units)
+    float mountainRiseExponent = 0.65f; ///< Exponent shaping the rise curve (>0). Lower = rises sooner near horizon
+    float skirtDepth = 0.5f;            ///< Skirt drop depth (world units) to hide LOD cracks in displaced regions
 
     // Mountain "composition" (optional)
     //

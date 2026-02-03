@@ -52,32 +52,42 @@ TiledBackground = {
     -- Mountains (distant terrain beyond the horizon):
     -- - mountainExtraDistance extends rendering beyond farDistance so displaced terrain is visible.
     -- - mountainHeight controls peak amplitude (world units above planeY).
-    -- - mountainNoiseScale converts world units -> noise space (smaller = broader features, larger = busier noise).
-    --   Useful ranges:
-    --     0.003 - 0.006 : broad "range" shapes (more realistic from a distance)
-    --     0.008 - 0.014 : busier ridges / more waves
+    -- - mountainFeatureSize is the easier way to think about noise frequency (world units):
+    --     Bigger => broader, smoother ranges (fewer peaks across the horizon).
+    --     Smaller => more peaks / "noisy" terrain.
+    --   Internally: noiseScale ~= 1 / mountainFeatureSize.
+    -- - mountainNoiseScale is a legacy/low-level override (world units -> noise space). If mountainFeatureSize > 0,
+    --   mountainNoiseScale is ignored.
     -- - mountainDetail (0..1) controls ruggedness:
     --     0.0 : smooth rolling hills
     --     0.5 : ridged peaks with some smoothing (good default)
-    --     1.0 : sharp ridges / crags (can look noisy if noiseScale is too large)
+    --     1.0 : sharp ridges / crags (can look noisy if featureSize is too small)
     -- - mountainFadeDistance controls how quickly mountains rise after the horizon (world units).
     --   If you see a "wall" at the horizon, increase this; if mountains feel too flat, decrease it.
+    -- - mountainRiseExponent shapes the rise curve after the horizon:
+    --     < 1.0 => rises sooner (mountains "read" earlier near the horizon)
+    --     > 1.0 => rises later (flatter band near the horizon)
+    -- - skirtDepth is a small downward drop on coarse tile edges to hide LOD cracks in displaced regions.
+    --   Keep this small (0.25 - 1.0) to avoid visible bands.
     -- Baseline tuning (good starting point):
     -- - Keep mountainExtraDistance reasonably large so you see an actual mountain surface, not just a thin horizon band.
     -- - Keep mountainFadeDistance <= mountainExtraDistance for a clean rise after the horizon.
     mountainExtraDistance = 650.0,
-    mountainHeight = 60.0,
-    mountainNoiseScale = 0.005,
+    mountainHeight = 120.0,
+    mountainFeatureSize = 240.0,
+    mountainNoiseScale = 0.0, -- legacy override (ignored when mountainFeatureSize > 0)
     mountainDetail = 0.65,
-    mountainFadeDistance = 70.0,
+    mountainFadeDistance = 45.0,
+    mountainRiseExponent = 0.65,
+    skirtDepth = 0.5,
 
     -- Mountain composition (optional):
     -- Bias the generated height tiles so there are two dominant ranges (left/right) with a flatter center valley.
     -- This mask is applied in the CPU tile generator (world-X), so it's deterministic and stable per tile key.
     mountainSideStrength = 1.0,   -- 0 disables, 1 full effect
-    mountainSideOffsetX = 80.0,   -- half-width of the center "valley" in world units (mountains rise beyond this |X|)
-    mountainSideWidthX = 80.0,    -- softness around the valley boundary (world units)
-    mountainSideBase = 0.18,      -- baseline amplitude multiplier at the valley center [0..1]
+    mountainSideOffsetX = 60.0,   -- half-width of the center "valley" in world units (mountains rise beyond this |X|)
+    mountainSideWidthX = 40.0,    -- softness around the valley boundary (world units)
+    mountainSideBase = 0.02,      -- baseline mountain amplitude at valley center [0..1]
 
     ready = function(self)
         if not BackgroundTiles then
@@ -110,9 +120,12 @@ TiledBackground = {
 
             mountainExtraDistance = self.mountainExtraDistance,
             mountainHeight = self.mountainHeight,
+            mountainFeatureSize = self.mountainFeatureSize,
             mountainNoiseScale = self.mountainNoiseScale,
             mountainDetail = self.mountainDetail,
             mountainFadeDistance = self.mountainFadeDistance,
+            mountainRiseExponent = self.mountainRiseExponent,
+            skirtDepth = self.skirtDepth,
 
             mountainSideStrength = self.mountainSideStrength,
             mountainSideOffsetX = self.mountainSideOffsetX,
