@@ -1322,17 +1322,21 @@ void TiledBackgroundRenderer::GenerateTileHeightR16(const TileKey &key, std::vec
             if (m_config.mountainSideStrength > 0.0f)
             {
                 const float strength = std::clamp(m_config.mountainSideStrength, 0.0f, 1.0f);
-                const float offset = std::max(0.0f, m_config.mountainSideOffsetX);
-                const float width = std::max(0.0001f, m_config.mountainSideWidthX);
+                const float valleyHalfWidth = std::max(0.0f, m_config.mountainSideOffsetX);
+                const float falloffWidth = std::max(0.0001f, m_config.mountainSideWidthX);
                 const float base = std::clamp(m_config.mountainSideBase, 0.0f, 1.0f);
 
-                const float dxL = (worldX + offset) / width;
-                const float dxR = (worldX - offset) / width;
-                const float left = std::exp(-(dxL * dxL));
-                const float right = std::exp(-(dxR * dxR));
-                const float peaks = std::clamp(std::max(left, right), 0.0f, 1.0f);
+                // World-X valley mask:
+                // - Inside |X| <= valleyHalfWidth, reduce amplitude to "base"
+                // - Over falloffWidth, smoothly transition to full amplitude (1.0)
+                //
+                // This yields two broad mountain masses (left/right) that are visible near the horizon, without requiring
+                // huge offsets that may land outside the camera frustum at u_farDistance.
+                const float absX = std::abs(worldX);
+                const float uMask = Clamp01((absX - valleyHalfWidth) / falloffWidth);
+                const float t = Fade(uMask); // smoothstep(0..1)
 
-                const float mask = Lerp(base, 1.0f, peaks);
+                const float mask = Lerp(base, 1.0f, t);
                 height01 *= Lerp(1.0f, mask, strength);
                 height01 = Clamp01(height01);
             }

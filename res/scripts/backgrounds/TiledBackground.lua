@@ -75,8 +75,8 @@ TiledBackground = {
     -- Bias the generated height tiles so there are two dominant ranges (left/right) with a flatter center valley.
     -- This mask is applied in the CPU tile generator (world-X), so it's deterministic and stable per tile key.
     mountainSideStrength = 1.0,   -- 0 disables, 1 full effect
-    mountainSideOffsetX = 650.0,  -- +/- X offset of the left/right range peaks (world units)
-    mountainSideWidthX = 520.0,   -- controls how broad each range is (world units)
+    mountainSideOffsetX = 80.0,   -- half-width of the center "valley" in world units (mountains rise beyond this |X|)
+    mountainSideWidthX = 80.0,    -- transition width from valley -> mountains (world units)
     mountainSideBase = 0.08,      -- baseline amplitude multiplier in the valley [0..1]
 
     ready = function(self)
