@@ -50,10 +50,9 @@ void main()
     }
 
     float skirt = skirtFlag * edgeEnabled;
-
     vec3 worldPos = vec3(
         iOriginXZ.x + aLocalXZ.x * iTileWorldSize,
-        u_planeY - skirt * u_skirtDepth,
+        u_planeY,
         iOriginXZ.y + aLocalXZ.y * iTileWorldSize
     );
 
@@ -67,6 +66,10 @@ void main()
         float fadeLen = max(min(u_mountainFadeDistance, u_mountainExtraDistance), 0.0001);
         mountainT = saturate((forwardDist - u_farDistance) / fadeLen);
     }
+
+    // Skirts are only needed where we have displacement (mountainT > 0). On the flat grid, the extra skirt triangles
+    // can become a visible "band" at LOD boundaries, so we scale the skirt depth by mountainT.
+    worldPos.y -= skirt * u_skirtDepth * mountainT;
 
     if (mountainT > 0.0 && iHasData > 0.5)
     {
