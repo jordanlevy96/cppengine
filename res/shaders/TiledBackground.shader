@@ -87,7 +87,7 @@ void main()
     vWorldPos = worldPos;
     vScreenY = clip.y / max(1e-6, clip.w) * 0.5 + 0.5;
     vForwardDist = forwardDist;
-    vSkirt = skirt;
+    vSkirt = skirt * mountainT;
     gl_Position = clip;
 }
 
