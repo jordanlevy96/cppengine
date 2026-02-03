@@ -65,6 +65,11 @@ void main()
         // Clamp fade length so a small mountainExtraDistance can still reach full amplitude.
         float fadeLen = max(min(u_mountainFadeDistance, u_mountainExtraDistance), 0.0001);
         mountainT = saturate((forwardDist - u_farDistance) / fadeLen);
+
+        // Shape the rise curve so mountains read earlier near the horizon. Linear ramps can look like a flat "band"
+        // behind the horizon unless fadeLen is very small.
+        // (Exponent < 1.0 => faster rise near the horizon.)
+        mountainT = pow(max(mountainT, 0.0), 0.65);
     }
 
     // Skirts are only needed where we have displacement (mountainT > 0). On the flat grid, the extra skirt triangles

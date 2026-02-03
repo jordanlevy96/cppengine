@@ -1026,7 +1026,7 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetFloat("u_mountainExtraDistance", m_config.mountainExtraDistance);
     m_shader->SetFloat("u_mountainHeight", m_config.mountainHeight);
     m_shader->SetFloat("u_mountainFadeDistance", m_config.mountainFadeDistance);
-    m_shader->SetFloat("u_skirtDepth", 8.0f);
+    m_shader->SetFloat("u_skirtDepth", 0.5f);
     m_shader->SetFloat("u_horizonLinePixels", m_config.horizonLinePixels);
     m_shader->SetVec2("u_cameraPosXZ", glm::vec2(cameraPos.x, cameraPos.z));
     m_shader->SetVec2("u_cameraForwardXZ", glm::vec2(forward.x, forward.z));
