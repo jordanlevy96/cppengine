@@ -89,8 +89,8 @@ struct TiledBackgroundConfig
     // tile generation, so it remains world-centric and deterministic.
     float mountainSideStrength = 0.0f; ///< [0..1] 0=disable, 1=full side-range mask
     float mountainSideOffsetX = 80.0f; ///< Half-width of center valley (world units); mountains rise beyond this |X|
-    float mountainSideWidthX = 80.0f;   ///< Transition width from valley -> mountains (world units)
-    float mountainSideBase = 0.08f;     ///< Baseline amplitude multiplier in the valley [0..1]
+    float mountainSideWidthX = 80.0f;   ///< Softness around the valley boundary (world units)
+    float mountainSideBase = 0.18f;     ///< Baseline amplitude multiplier at the valley center [0..1]
 };
 
 /**

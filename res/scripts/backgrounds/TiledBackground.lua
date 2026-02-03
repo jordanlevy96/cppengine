@@ -76,8 +76,8 @@ TiledBackground = {
     -- This mask is applied in the CPU tile generator (world-X), so it's deterministic and stable per tile key.
     mountainSideStrength = 1.0,   -- 0 disables, 1 full effect
     mountainSideOffsetX = 80.0,   -- half-width of the center "valley" in world units (mountains rise beyond this |X|)
-    mountainSideWidthX = 80.0,    -- transition width from valley -> mountains (world units)
-    mountainSideBase = 0.08,      -- baseline amplitude multiplier in the valley [0..1]
+    mountainSideWidthX = 80.0,    -- softness around the valley boundary (world units)
+    mountainSideBase = 0.18,      -- baseline amplitude multiplier at the valley center [0..1]
 
     ready = function(self)
         if not BackgroundTiles then

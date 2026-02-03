@@ -1333,7 +1333,14 @@ void TiledBackgroundRenderer::GenerateTileHeightR16(const TileKey &key, std::vec
                 // This yields two broad mountain masses (left/right) that are visible near the horizon, without requiring
                 // huge offsets that may land outside the camera frustum at u_farDistance.
                 const float absX = std::abs(worldX);
-                const float uMask = Clamp01((absX - valleyHalfWidth) / falloffWidth);
+
+                // Use a "soft edge" around the valley boundary:
+                // - When falloffWidth >= valleyHalfWidth, the valley becomes a smooth bowl (no flat trench).
+                // - When falloffWidth < valleyHalfWidth, there is a flatter center band before ramping up.
+                const float start = std::max(0.0f, valleyHalfWidth - falloffWidth);
+                const float end = valleyHalfWidth + falloffWidth;
+                const float denom = std::max(end - start, 0.0001f);
+                const float uMask = Clamp01((absX - start) / denom);
                 const float t = Fade(uMask); // smoothstep(0..1)
 
                 const float mask = Lerp(base, 1.0f, t);
