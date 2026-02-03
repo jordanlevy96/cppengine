@@ -42,6 +42,13 @@ return {
         -- Button press state (using @mousedown/@mouseup)
         pressedButton = "",
 
+        -- Hover state (using @mouseenter/@mouseleave)
+        hovered = {
+            entityId = nil,        -- ID of hovered entity in scene tree
+            menuItem = "",         -- which menu item is hovered
+            inspectorField = ""    -- path of hovered inspector field
+        },
+
         -- UI Editor state
         uiEditor = {
             currentTemplate = "",
@@ -130,6 +137,31 @@ return {
 
         onButtonRelease = function(self)
             self.data.pressedButton = ""
+        end,
+
+        -- Hover handlers (dogfooding @mouseenter/@mouseleave)
+        onEntityHover = function(self, entityId)
+            self.data.hovered.entityId = entityId
+        end,
+
+        onEntityLeave = function(self)
+            self.data.hovered.entityId = nil
+        end,
+
+        onMenuHover = function(self, menuName)
+            self.data.hovered.menuItem = menuName
+        end,
+
+        onMenuLeave = function(self)
+            self.data.hovered.menuItem = ""
+        end,
+
+        onFieldHover = function(self, fieldPath)
+            self.data.hovered.inspectorField = fieldPath
+        end,
+
+        onFieldLeave = function(self)
+            self.data.hovered.inspectorField = ""
         end,
 
         -- Reserved for inspector hooks (implemented in C++ for now)
