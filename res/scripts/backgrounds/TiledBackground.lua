@@ -7,7 +7,7 @@ TiledBackground = {
     -- YAML-configurable (strings supported by C++ Configure parser)
     enabled = true,
     planeY = 0.0,
-    farDistance = 1500.0,
+    farDistance = 250.0,
     widthMultiplier = 1.2,
 
     -- GPU tile cache:
@@ -79,11 +79,11 @@ TiledBackground = {
     -- Baseline tuning (good starting point):
     -- - Keep mountainExtraDistance reasonably large so you see an actual mountain surface, not just a thin horizon band.
     -- - Keep mountainFadeDistance <= mountainExtraDistance for a clean rise after the horizon.
-    mountainExtraDistance = 400.0,
+    mountainExtraDistance = 100.0,
     mountainHeight = 240.0,
-    mountainFeatureSize = 320.0,
+    mountainFeatureSize = 100.0,
     mountainNoiseScale = 0.0, -- legacy override (ignored when mountainFeatureSize > 0)
-    mountainDetail = 0.80,
+    mountainDetail = 0.88,
     mountainFadeDistance = 45.0,
     mountainRiseExponent = 0.65,
     skirtDepth = 0.5,
