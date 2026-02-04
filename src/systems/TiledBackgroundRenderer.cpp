@@ -290,6 +290,8 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
     m_config.mountainFadeDistance = std::max(0.0f, m_config.mountainFadeDistance);
     m_config.mountainRiseExponent = std::clamp(m_config.mountainRiseExponent, 0.10f, 4.0f);
     m_config.skirtDepth = std::max(0.0f, m_config.skirtDepth);
+    m_config.mountainGridScale = std::max(1.0f, m_config.mountainGridScale);
+    m_config.mountainMajorStrength = std::clamp(m_config.mountainMajorStrength, 0.0f, 1.0f);
 
     m_config.mountainSideStrength = std::clamp(m_config.mountainSideStrength, 0.0f, 1.0f);
     m_config.mountainSideOffsetX = std::max(0.0f, m_config.mountainSideOffsetX);
@@ -301,7 +303,7 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
     EnsureDrawResources();
 
     const float derivedNoiseScale = (m_config.mountainFeatureSize > 0.0f) ? (1.0f / m_config.mountainFeatureSize) : m_config.mountainNoiseScale;
-    LOG_INFO("BackgroundTiles: far={} extra={} height={} featureSize={} noiseScale={} fade={} riseExp={} skirtDepth={}",
+    LOG_INFO("BackgroundTiles: far={} extra={} height={} featureSize={} noiseScale={} fade={} riseExp={} skirtDepth={} mGridScale={} mMajor={}",
              m_config.farDistance,
              m_config.mountainExtraDistance,
              m_config.mountainHeight,
@@ -309,7 +311,9 @@ void TiledBackgroundRenderer::Configure(const TiledBackgroundConfig &config)
              derivedNoiseScale,
              m_config.mountainFadeDistance,
              m_config.mountainRiseExponent,
-             m_config.skirtDepth);
+             m_config.skirtDepth,
+             m_config.mountainGridScale,
+             m_config.mountainMajorStrength);
 }
 
 void TiledBackgroundRenderer::SetEnabled(bool enabled)
@@ -1042,6 +1046,8 @@ void TiledBackgroundRenderer::DrawTiles(Camera *camera, const std::vector<TileIn
     m_shader->SetFloat("u_mountainFadeDistance", m_config.mountainFadeDistance);
     m_shader->SetFloat("u_mountainRiseExponent", m_config.mountainRiseExponent);
     m_shader->SetFloat("u_skirtDepth", m_config.skirtDepth);
+    m_shader->SetFloat("u_mountainGridScale", m_config.mountainGridScale);
+    m_shader->SetFloat("u_mountainMajorStrength", m_config.mountainMajorStrength);
     m_shader->SetFloat("u_horizonLinePixels", m_config.horizonLinePixels);
     m_shader->SetVec2("u_cameraPosXZ", glm::vec2(cameraPos.x, cameraPos.z));
     m_shader->SetVec2("u_cameraForwardXZ", glm::vec2(forward.x, forward.z));
@@ -1321,10 +1327,17 @@ void TiledBackgroundRenderer::GenerateTileHeightR16(const TileKey &key, std::vec
             // - a high-frequency ridge field (peaks / crags)
             //
             // mountainDetail (ruggedness) blends between smooth hills (0) and sharp ridges (1).
+            // As ruggedness increases, we also increase ridge frequency so distant silhouettes read less like a smooth band.
             const float rangeMask = std::pow(Clamp01(Fbm2D(nx * 0.25f, nz * 0.25f, 3)), 1.35f);
 
-            const float smooth = Fbm2D(nx, nz, 4);
-            const float ridged = RidgedFbm2D(nx * 1.15f + 12.3f, nz * 1.15f + 4.7f, 5);
+            const float warpAmp = ruggedness * 0.75f;
+            const float wx = (Fbm2D(nx * 0.50f + 10.1f, nz * 0.50f + 32.7f, 2) - 0.5f) * warpAmp;
+            const float wz = (Fbm2D(nx * 0.50f + 91.7f, nz * 0.50f + 7.3f, 2) - 0.5f) * warpAmp;
+
+            const float smooth = Fbm2D(nx + wx, nz + wz, 4);
+
+            const float ridgeFreq = Lerp(1.0f, 4.0f, ruggedness);
+            const float ridged = RidgedFbm2D((nx + wx) * ridgeFreq + 12.3f, (nz + wz) * ridgeFreq + 4.7f, 5);
 
             float n = Lerp(smooth, ridged, ruggedness);
             n *= (0.35f + 0.65f * rangeMask);

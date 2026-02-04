@@ -80,20 +80,22 @@ struct TiledBackgroundConfig
     float mountainHeight = 26.0f;       ///< Peak height above planeY (world units)
     float mountainNoiseScale = 0.012f;  ///< Procedural noise scale (world units -> noise space); prefer mountainFeatureSize for tuning
     float mountainFeatureSize = 0.0f;   ///< If >0, overrides mountainNoiseScale via (noiseScale = 1 / mountainFeatureSize)
-    float mountainDetail = 0.55f;       ///< Secondary noise strength [0..1]
+    float mountainDetail = 0.55f;       ///< Ruggedness [0..1] (0=smooth hills, 1=sharp ridges; also increases ridge frequency)
     float mountainFadeDistance = 24.0f; ///< How quickly mountains rise after the horizon (world units)
     float mountainRiseExponent = 0.65f; ///< Exponent shaping the rise curve (>0). Lower = rises sooner near horizon
     float skirtDepth = 0.5f;            ///< Skirt drop depth (world units) to hide LOD cracks in displaced regions
+    float mountainGridScale = 4.0f;     ///< Multiplies gridSpacing for the mountain region (reduces line moiré at distance)
+    float mountainMajorStrength = 0.0f; ///< [0..1] Major-line strength on mountains (0 disables magenta major lines)
 
     // Mountain "composition" (optional)
     //
     // For the synthwave background, it can be useful to bias the height field so there are two dominant mountain ranges
     // (left and right) with a flatter valley in the center. This is implemented as a world-X mask applied during height
     // tile generation, so it remains world-centric and deterministic.
-    float mountainSideStrength = 0.0f; ///< [0..1] 0=disable, 1=full side-range mask
-    float mountainSideOffsetX = 80.0f; ///< Half-width of center valley (world units); mountains rise beyond this |X|
-    float mountainSideWidthX = 80.0f;   ///< Softness around the valley boundary (world units)
-    float mountainSideBase = 0.18f;     ///< Baseline amplitude multiplier at the valley center [0..1]
+    float mountainSideStrength = 0.0f; ///< [0..1] Blend strength for the side-range mask (0=disable, 1=full)
+    float mountainSideOffsetX = 80.0f; ///< Valley half-width (world units around X=0). Larger pushes mountains outward
+    float mountainSideWidthX = 80.0f;  ///< Transition softness at valley boundary (world units). Larger reduces "trench" look
+    float mountainSideBase = 0.18f;    ///< Valley-center amplitude multiplier [0..1] (0=flat center, 0.1=some hills)
 };
 
 /**

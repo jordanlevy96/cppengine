@@ -114,6 +114,11 @@ out vec4 FragColor;
 
 uniform sampler2DArray u_tiles;
 uniform float u_mountainExtraDistance;
+uniform float u_mountainHeight;
+uniform float u_mountainFadeDistance;
+uniform float u_mountainRiseExponent;
+uniform float u_mountainGridScale;
+uniform float u_mountainMajorStrength;
 uniform vec4 u_fallbackColor;
 uniform float u_gridSpacing;
 uniform int u_majorEvery;
@@ -167,7 +172,18 @@ void main()
         baseColor = texture(u_tiles, vec3(vUV, vLayer));
     }
 
-    float grid = max(0.0001, u_gridSpacing);
+    float mountainT = 0.0;
+    if (u_mountainExtraDistance > 0.0 && u_mountainHeight > 0.0)
+    {
+        float fadeLen = max(min(u_mountainFadeDistance, u_mountainExtraDistance), 0.0001);
+        mountainT = saturate((vForwardDist - u_farDistance) / fadeLen);
+        float exp = max(u_mountainRiseExponent, 0.0001);
+        mountainT = pow(max(mountainT, 0.0), exp);
+    }
+
+    // Reduce line moiré on distant displaced terrain by decimating the grid in the mountain region.
+    float gridScale = mix(1.0, max(u_mountainGridScale, 1.0), mountainT);
+    float grid = max(0.0001, u_gridSpacing * gridScale);
     float majorGrid = grid * max(u_majorEvery, 1);
     float minorHalfW = max(u_minorLineWidth, 0.0);
     float majorHalfW = max(u_majorLineWidth, 0.0);
@@ -186,6 +202,9 @@ void main()
     float skirtFade = 1.0 - saturate(vSkirt);
     minorAlpha *= skirtFade;
     majorAlpha *= skirtFade;
+
+    // Optionally reduce or disable magenta major lines on mountains (ref images use blue wireframe).
+    majorAlpha *= mix(1.0, saturate(u_mountainMajorStrength), mountainT);
 
     // Clip to a maximum distance so the background does not extend infinitely.
     // The flat grid ends at u_farDistance; mountains (if enabled) can extend beyond it.

@@ -7,7 +7,7 @@ TiledBackground = {
     -- YAML-configurable (strings supported by C++ Configure parser)
     enabled = true,
     planeY = 0.0,
-    farDistance = 150.0,
+    farDistance = 1500.0,
     widthMultiplier = 1.2,
 
     -- GPU tile cache:
@@ -33,7 +33,7 @@ TiledBackground = {
     -- Tile mesh:
     -- - meshResolution is the number of segments per tile edge (higher = smoother mountain silhouettes).
     -- - Vertex count per instance is ~ (meshResolution^2 * 2 triangles).
-    meshResolution = 48,
+    meshResolution = 32,
 
     -- Grid (world units):
     -- - gridSpacing is distance between minor (cyan) lines.
@@ -62,6 +62,7 @@ TiledBackground = {
     --     0.0 : smooth rolling hills
     --     0.5 : ridged peaks with some smoothing (good default)
     --     1.0 : sharp ridges / crags (can look noisy if featureSize is too small)
+    --   Higher values also increase ridge frequency so distant silhouettes read less like a smooth band.
     -- - mountainFadeDistance controls how quickly mountains rise after the horizon (world units).
     --   If you see a "wall" at the horizon, increase this; if mountains feel too flat, decrease it.
     -- - mountainRiseExponent shapes the rise curve after the horizon:
@@ -69,25 +70,38 @@ TiledBackground = {
     --     > 1.0 => rises later (flatter band near the horizon)
     -- - skirtDepth is a small downward drop on coarse tile edges to hide LOD cracks in displaced regions.
     --   Keep this small (0.25 - 1.0) to avoid visible bands.
+    -- - mountainGridScale multiplies gridSpacing for the mountain region only:
+    --     1.0 => same grid density as the ground (often too dense / moiré)
+    --     3.0-6.0 => fewer lines so the mountain silhouette reads better
+    -- - mountainMajorStrength controls magenta major lines on mountains:
+    --     0.0 => disable magenta majors on mountains (typical synthwave refs use blue wireframe)
+    --     1.0 => same major lines everywhere
     -- Baseline tuning (good starting point):
     -- - Keep mountainExtraDistance reasonably large so you see an actual mountain surface, not just a thin horizon band.
     -- - Keep mountainFadeDistance <= mountainExtraDistance for a clean rise after the horizon.
-    mountainExtraDistance = 650.0,
-    mountainHeight = 120.0,
-    mountainFeatureSize = 240.0,
+    mountainExtraDistance = 400.0,
+    mountainHeight = 240.0,
+    mountainFeatureSize = 320.0,
     mountainNoiseScale = 0.0, -- legacy override (ignored when mountainFeatureSize > 0)
-    mountainDetail = 0.65,
+    mountainDetail = 0.80,
     mountainFadeDistance = 45.0,
     mountainRiseExponent = 0.65,
     skirtDepth = 0.5,
+    mountainGridScale = 4.0,
+    mountainMajorStrength = 0.0,
 
     -- Mountain composition (optional):
     -- Bias the generated height tiles so there are two dominant ranges (left/right) with a flatter center valley.
     -- This mask is applied in the CPU tile generator (world-X), so it's deterministic and stable per tile key.
-    mountainSideStrength = 1.0,   -- 0 disables, 1 full effect
-    mountainSideOffsetX = 60.0,   -- half-width of the center "valley" in world units (mountains rise beyond this |X|)
-    mountainSideWidthX = 40.0,    -- softness around the valley boundary (world units)
-    mountainSideBase = 0.02,      -- baseline mountain amplitude at valley center [0..1]
+    -- - mountainSideOffsetX widens the valley / pushes mountains outward (half-width in world units around X=0).
+    -- - mountainSideWidthX controls how soft the transition is at the valley boundary:
+    --     small => flatter center band + then a ramp
+    --     large => smooth bowl (less "trench-like")
+    -- - mountainSideBase is the valley-center amplitude multiplier [0..1] (0=flat center, 0.1=some hills).
+    mountainSideStrength = 1.0, -- 0 disables, 1 full effect
+    mountainSideOffsetX = 60.0,
+    mountainSideWidthX = 40.0,
+    mountainSideBase = 0.02,
 
     ready = function(self)
         if not BackgroundTiles then
@@ -126,6 +140,8 @@ TiledBackground = {
             mountainFadeDistance = self.mountainFadeDistance,
             mountainRiseExponent = self.mountainRiseExponent,
             skirtDepth = self.skirtDepth,
+            mountainGridScale = self.mountainGridScale,
+            mountainMajorStrength = self.mountainMajorStrength,
 
             mountainSideStrength = self.mountainSideStrength,
             mountainSideOffsetX = self.mountainSideOffsetX,
