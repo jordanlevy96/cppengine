@@ -525,13 +525,57 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
 
     // Cap root coverage in case of bad config.
     const int maxTilesPerAxis = 128;
-    const int clampedX0 = std::max(rootX0, rootX1 - maxTilesPerAxis);
-    const int clampedX1 = std::min(rootX1, rootX0 + maxTilesPerAxis);
-    const int clampedY0 = std::max(rootY0, rootY1 - maxTilesPerAxis);
-    const int clampedY1 = std::min(rootY1, rootY0 + maxTilesPerAxis);
+    auto clampAxisSpan = [&](int minV, int maxV) -> std::pair<int, int>
+    {
+        if (minV > maxV)
+        {
+            std::swap(minV, maxV);
+        }
+
+        const int span = maxV - minV + 1;
+        if (span <= maxTilesPerAxis)
+        {
+            return {minV, maxV};
+        }
+
+        const int half = maxTilesPerAxis / 2;
+        int start = minV + span / 2 - half;
+        int end = start + maxTilesPerAxis - 1;
+
+        if (start < minV)
+        {
+            start = minV;
+            end = start + maxTilesPerAxis - 1;
+        }
+        if (end > maxV)
+        {
+            end = maxV;
+            start = end - maxTilesPerAxis + 1;
+        }
+
+        if (start > end)
+        {
+            start = minV;
+            end = minV - 1;
+        }
+
+        return {start, end};
+    };
+
+    const auto [clampedX0, clampedX1] = clampAxisSpan(rootX0, rootX1);
+    const auto [clampedY0, clampedY1] = clampAxisSpan(rootY0, rootY1);
 
     std::vector<Candidate> leaves;
-    leaves.reserve(static_cast<size_t>((clampedX1 - clampedX0 + 1) * (clampedY1 - clampedY0 + 1)));
+    const int spanX = clampedX1 - clampedX0 + 1;
+    const int spanY = clampedY1 - clampedY0 + 1;
+    if (spanX <= 0 || spanY <= 0)
+    {
+        m_lastStats.visibleCandidates = 0;
+        m_lastStats.selectedTiles = 0;
+        return;
+    }
+
+    leaves.reserve(static_cast<size_t>(spanX * spanY));
 
     struct HeapItem
     {
