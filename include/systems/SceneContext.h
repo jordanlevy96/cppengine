@@ -5,8 +5,6 @@
  * SceneContext provides explicit access to engine systems and
  * role-provided modules for Lua scripts. Capabilities are only
  * present if declared in scene YAML.
- *
- * @see docs/architecture/SCENE_CONTRACTS.md
  */
 
 #pragma once

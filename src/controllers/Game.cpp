@@ -28,15 +28,15 @@
 #include "systems/HierarchySystem.h"
 #include "systems/RenderSystem.h"
 #include "systems/ScriptSystem.h"
+#include "systems/SkyBackgroundRenderer.h"
 #include "systems/TweenSystem.h"
+#include "systems/TiledBackgroundRenderer.h"
 #include "util/TransformUtils.h"
 #include "util/Logger.h"
 #include "util/ConfigLoader.h"
 #include "util/FrameTiming.h"
-#include <fstream>
 #include <chrono>
 #include <thread>
-#include <cmath>
 
 bool Game::Initialize()
 {
@@ -107,7 +107,7 @@ void Game::RunFixedLoop()
 
     // Initialize frame timing with fixed timestep
     FrameTiming timing(FrameTimingMode::FIXED, conf.targetFPS);
-    timing.SetVSync(true);  // Enable VSync for fixed-speed games
+    timing.SetVSync(true); // Enable VSync for fixed-speed games
     glfwSwapInterval(1);
 
     while (!m_core.ShouldClose())
@@ -149,7 +149,7 @@ void Game::RunVariableLoop()
 
     // Initialize frame timing with variable speed (60 FPS sim, conf.targetFPS render)
     FrameTiming timing(FrameTimingMode::VARIABLE, 60.0, conf.targetFPS);
-    timing.SetVSync(false);  // We control frame timing
+    timing.SetVSync(false); // We control frame timing
     glfwSwapInterval(0);
 
     while (!m_core.ShouldClose())
@@ -203,14 +203,20 @@ void Game::Render()
     glfwGetFramebufferSize(windowManager->window, &width, &height);
     glViewport(0, 0, width, height);
 
-    // 1. Background
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    // 0. Clear (sky is rendered as a fullscreen pass if enabled)
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // 2. Game Objects
+    // 0.25 Sky background (optional)
+    SkyBackgroundRenderer::GetInstance().Render(cam, static_cast<float>(delta));
+
+    // 0.5 Procedural tiled background (optional)
+    TiledBackgroundRenderer::GetInstance().Render(cam, static_cast<float>(delta));
+
+    // 1. Game Objects
     RenderSystem::Update(cam, delta);
 
-    // 3. UI
+    // 2. UI
     htmlRenderer->Render();
 }
 
@@ -238,6 +244,17 @@ void Game::TrackFPS()
             // Update Lua state values - LuaUIState handles dirty flag
             luaState->SetValue("data.fps", currentFPS);
             luaState->SetValue("data.frameTime", std::to_string(currentFrameTime).substr(0, 5));
+
+            // BackgroundTiles stats (updated by renderer during Render())
+            const auto bgStats = TiledBackgroundRenderer::GetInstance().GetLastStats();
+            luaState->SetValue("data.bg_tilesSelected", bgStats.selectedTiles);
+            luaState->SetValue("data.bg_tilesCandidates", bgStats.visibleCandidates);
+            luaState->SetValue("data.bg_cacheResident", bgStats.residentTiles);
+            luaState->SetValue("data.bg_uploads", bgStats.uploadsThisFrame);
+            luaState->SetValue("data.bg_pending", bgStats.pendingUploads);
+            luaState->SetValue("data.bg_cacheHits", bgStats.cacheHits);
+            luaState->SetValue("data.bg_cacheMisses", bgStats.cacheMisses);
+            luaState->SetValue("data.bg_evictions", bgStats.evictions);
 
             // Update game mode and speed info
             const char *modeName = (m_gameMode == GameMode::FIXED) ? "FIXED" : "VARIABLE";
@@ -299,6 +316,7 @@ void Game::CloseWindow()
 void Game::Shutdown()
 {
     LOG_INFO("[Game] Shutting down");
+
     htmlRenderer->Shutdown();
     windowManager->Shutdown();
     scriptManager->Shutdown();

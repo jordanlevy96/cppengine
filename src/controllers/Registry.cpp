@@ -277,6 +277,8 @@ bool Registry::LoadScene(const std::string &src)
                         const std::string &scriptSrc = (const std::string &)(res) + "scripts/" + componentNode["script"].as<std::string>();
                         sm.Run(scriptSrc);
                         sol::table scriptClass = sm.GetLuaTable(name);
+                        scriptClass["__entityId"] = id;
+                        scriptClass["__entityName"] = name;
                         for (const auto &property : componentNode)
                         {
                             std::string key = property.first.as<std::string>();

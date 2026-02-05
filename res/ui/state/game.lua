@@ -26,6 +26,16 @@ return {
         nextPiece = "I",         -- Next tetromino type
         finalScore = 0,          -- Score displayed on game over screen
 
+        -- BackgroundTiles debug (updated by C++)
+        bg_tilesSelected = 0,
+        bg_tilesCandidates = 0,
+        bg_cacheResident = 0,
+        bg_uploads = 0,
+        bg_pending = 0,
+        bg_cacheHits = 0,
+        bg_cacheMisses = 0,
+        bg_evictions = 0,
+
         -- Example list for v-for directive
         metrics = {
             { label = "FPS", value = "0", unit = "" },

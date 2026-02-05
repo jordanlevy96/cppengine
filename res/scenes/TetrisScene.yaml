@@ -30,3 +30,36 @@ scene:
           script: "games/tetris/TetrisGrid.lua"
           shader: "OutlinedCube.shader"
           model: "cube.obj"
+
+    - name: "SkyBackground"
+      components:
+        - type: "LuaScript"
+          script: "backgrounds/SkyBackground.lua"
+
+    - name: "TiledBackground"
+      components:
+        - type: "LuaScript"
+          script: "backgrounds/TiledBackground.lua"
+
+    - name: "FlyingProps"
+      components:
+        - type: "LuaScript"
+          script: "backgrounds/FlyingProps.lua"
+          shader: "Basic.shader"
+          models: "pyramid.obj,octahedron.obj,tetrahedron.obj,cube.obj"
+          spawnRate: 0.75
+          maxProps: 24
+          speed: 12.0
+          travelSign: 1.0
+          spawnDistanceMin: 80.0
+          spawnDistanceMax: 140.0
+          despawnDistance: 700.0
+          lateralRange: 80.0
+          verticalRange: 40.0
+          baseYOffset: -10.0
+          scaleMin: 0.6
+          scaleMax: 2.5
+          bobAmplitudeMin: 0.0
+          bobAmplitudeMax: 3.0
+          bobSpeedMin: 0.5
+          bobSpeedMax: 1.5

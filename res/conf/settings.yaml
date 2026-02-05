@@ -20,13 +20,13 @@ input:
 game:
   resourcePath: ../res/
   logPath: ../logs/tetris.log
-  appName: Tetris
+  appName: VaporwaveTetris
   scenePath: scenes/TetrisScene.yaml
   debug: true
   htmlPath: ui/templates/game.html
   cssPath: ui/styles/game.css
   luaStatePath: ui/state/game.lua
-  templateName: Tetris
+  templateName: VaporwaveTetris
 
 window:
   targetFPS: 60

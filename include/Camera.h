@@ -30,6 +30,7 @@ class Camera
 {
 public:
     float fov = 45.0f;                                  ///< Field of view in degrees
+    float moveSpeed = 0.05f;                             ///< Movement speed multiplier (world units per second)
     Transform transform;                                ///< Camera position and orientation
     glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);   ///< Forward direction vector
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);       ///< Up direction vector
@@ -80,6 +81,13 @@ public:
      * @param ypos Mouse Y position in screen coordinates
      */
     void RotateByMouse(double xpos, double ypos);
+
+    /**
+     * @brief Set yaw/pitch rotation and update forward vector
+     * @param yawDegrees Yaw angle in degrees
+     * @param pitchDegrees Pitch angle in degrees
+     */
+    void SetYawPitch(float yawDegrees, float pitchDegrees);
 
 private:
     bool firstMouse = true;             ///< Flag to prevent jump on first mouse input

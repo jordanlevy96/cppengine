@@ -7,7 +7,7 @@ local TetriminoData = {
         role = "data"
     },
     I = {
-        color = vec3(0, 0.8, 0.8),  -- Cyan
+        color = vec3(0, 0.9, 1.0),  -- Electric cyan
         shape = {
             {0, 0, 0, 0},
             {1, 1, 1, 1},
@@ -15,7 +15,7 @@ local TetriminoData = {
     },
 
     O = {
-        color = vec3(0.8, 0.8, 0),  -- Yellow
+        color = vec3(1.0, 0.8, 0.0),  -- Neon yellow/gold
         shape = {
             {0, 1, 1, 0},
             {0, 1, 1, 0},
@@ -23,7 +23,7 @@ local TetriminoData = {
     },
 
     T = {
-        color = vec3(0.6, 0, 0.8),  -- Purple
+        color = vec3(0.6, 0.1, 0.9),  -- Deep purple
         shape = {
             {0, 0, 1, 0},
             {0, 1, 1, 1}
@@ -31,7 +31,7 @@ local TetriminoData = {
     },
 
     J = {
-        color = vec3(0, 0, 0.8),  -- Blue
+        color = vec3(0.4, 0.6, 1.0),  -- Bright blue
         shape = {
             {0, 1, 1, 1},
             {0, 0, 0, 1},
@@ -39,7 +39,7 @@ local TetriminoData = {
     },
 
     L = {
-        color = vec3(0.8, 0.4, 0),  -- Orange
+        color = vec3(1.0, 0.3, 0.5),  -- Hot pink
         shape = {
             {1, 1, 1, 0},
             {1, 0, 0, 0}
@@ -47,7 +47,7 @@ local TetriminoData = {
     },
 
     S = {
-        color = vec3(0, 0.8, 0),  -- Green
+        color = vec3(1.0, 0.0, 0.8),  -- Neon magenta
         shape = {
             {0, 1, 1, 0},
             {1, 1, 0, 0}
@@ -55,7 +55,7 @@ local TetriminoData = {
     },
 
     Z = {
-        color = vec3(0.8, 0, 0),  -- Red
+        color = vec3(0.9, 0.2, 0.6),  -- Pink/magenta
         shape = {
             {0, 1, 1, 0},
             {0, 0, 1, 1}

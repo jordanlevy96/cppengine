@@ -37,6 +37,7 @@ struct InputEvent
     ///< vec3 format for clicks: (x, y, button) where button: 0=left, 1=right, 2=middle
     ///< vec4 format for mouse buttons: (x, y, button, action) where action is GLFW_PRESS/GLFW_RELEASE
     int mods = 0; ///< Keyboard modifiers (GLFW_MOD_CONTROL, GLFW_MOD_SHIFT, etc.)
+    int action = 0; ///< Action for key/click events (GLFW_PRESS, GLFW_RELEASE, GLFW_REPEAT)
 };
 
 /**

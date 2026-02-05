@@ -9,7 +9,6 @@
  * 4. Dependency resolution via topological sort
  * 5. Module initialization in correct order
  *
- * @see docs/architecture/SCENE_CONTRACTS.md
  */
 
 #pragma once

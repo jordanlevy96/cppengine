@@ -80,6 +80,31 @@
                     <span class="debug-value" style="font-size: 16px;">{{ data.frameTime }}ms</span>
                 </div>
 
+                <div class="stat-row">
+                    <span class="debug-label">BG Tiles</span>
+                    <span class="debug-value" style="font-size: 16px;">{{ data.bg_tilesSelected }} / {{ data.bg_tilesCandidates }}</span>
+                </div>
+
+                <div class="stat-row">
+                    <span class="debug-label">BG Cache</span>
+                    <span class="debug-value" style="font-size: 16px;">res {{ data.bg_cacheResident }} | pend {{ data.bg_pending }}</span>
+                </div>
+
+                <div class="stat-row">
+                    <span class="debug-label">BG Uploads</span>
+                    <span class="debug-value" style="font-size: 16px;">{{ data.bg_uploads }}</span>
+                </div>
+
+                <div class="stat-row">
+                    <span class="debug-label">BG Hits/Miss</span>
+                    <span class="debug-value" style="font-size: 16px;">{{ data.bg_cacheHits }} / {{ data.bg_cacheMisses }}</span>
+                </div>
+
+                <div class="stat-row">
+                    <span class="debug-label">BG Evict</span>
+                    <span class="debug-value" style="font-size: 16px;">{{ data.bg_evictions }}</span>
+                </div>
+
                 <div v-if="data.gameMode == 'VARIABLE'">
                     <div class="stat-row">
                         <span class="debug-label">Speed</span>

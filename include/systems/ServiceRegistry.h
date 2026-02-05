@@ -7,8 +7,6 @@
  * - Expose narrow, declarative Lua APIs
  * - Never call back into Lua during execution
  * - Are optional and scene-scoped
- *
- * @see docs/architecture/SCENE_CONTRACTS.md
  */
 
 #pragma once
