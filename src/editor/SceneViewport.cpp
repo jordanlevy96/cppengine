@@ -128,6 +128,14 @@ void SceneViewport::RenderToScreen(int fbX, int fbY, int fbWidth, int fbHeight)
         return;
     }
 
+    // Save scissor state before enabling
+    GLboolean prevScissorEnabled = glIsEnabled(GL_SCISSOR_TEST);
+    GLint prevScissorBox[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_SCISSOR_BOX, prevScissorBox);
+
+    GLfloat prevClearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    glGetFloatv(GL_COLOR_CLEAR_VALUE, prevClearColor);
+
     // Render only within the viewport rectangle.
     glEnable(GL_SCISSOR_TEST);
     glViewport(fbX, fbY, fbWidth, fbHeight);
@@ -136,7 +144,20 @@ void SceneViewport::RenderToScreen(int fbX, int fbY, int fbWidth, int fbHeight)
     // Clear with dark gray background (inside viewport only)
     glClearColor(0.2f, 0.2f, 0.25f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDisable(GL_SCISSOR_TEST);
+
+    // Restore scissor state
+    if (prevScissorEnabled)
+    {
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(prevScissorBox[0], prevScissorBox[1], prevScissorBox[2], prevScissorBox[3]);
+    }
+    else
+    {
+        glDisable(GL_SCISSOR_TEST);
+    }
+
+    // Restore clear color
+    glClearColor(prevClearColor[0], prevClearColor[1], prevClearColor[2], prevClearColor[3]);
 
     // Enable depth testing for 3D rendering
     glEnable(GL_DEPTH_TEST);
@@ -297,6 +318,9 @@ void SceneViewport::RenderPickingPass()
     GLboolean prevDepthEnabled = glIsEnabled(GL_DEPTH_TEST);
     GLboolean prevScissorEnabled = glIsEnabled(GL_SCISSOR_TEST);
 
+    GLfloat prevClearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    glGetFloatv(GL_COLOR_CLEAR_VALUE, prevClearColor);
+
     glBindFramebuffer(GL_FRAMEBUFFER, m_pickFramebuffer);
     glViewport(0, 0, m_width, m_height);
 
@@ -388,4 +412,7 @@ void SceneViewport::RenderPickingPass()
     glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prevDrawFbo);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, prevReadFbo);
+
+    // Restore clear color
+    glClearColor(prevClearColor[0], prevClearColor[1], prevClearColor[2], prevClearColor[3]);
 }
