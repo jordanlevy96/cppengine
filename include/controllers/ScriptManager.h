@@ -199,6 +199,13 @@ public:
 private:
     ScriptManager() {};
 
+    /**
+     * @brief Configure Python environment before interpreter starts
+     * @note MUST be called before py::scoped_interpreter is created
+     *       Sets PYTHONHOME/PYTHONPATH for bundled distribution support
+     */
+    void PreInitializePython();
+
     sol::state lua;
     std::unique_ptr<py::scoped_interpreter> guard;
 };

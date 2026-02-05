@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2026-01-21
+> Last Updated: 2026-02-05
 > Version: 0.1.0
 
 ## Project Overview
@@ -105,6 +105,7 @@ App (controllers/App.cpp)
 | **litehtml**          | HTML/CSS engine   | Git submodule  | In `external/`                  |
 | **Lua + Sol2**        | Lua scripting     | Git submodule  | In `external/`                  |
 | **Python + pybind11** | Python bindings   | Git submodule  | In `external/`                  |
+| **python-build-standalone** | Portable Python | Script-downloaded | Via `scripts/package-macos.sh` |
 | **yaml-cpp**          | Config parsing    | Git submodule  | In `external/`                  |
 | **Dear ImGui**        | Debug UI (legacy) | Git submodule  | In `external/`                  |
 
@@ -321,6 +322,8 @@ imhotep/
 │   ├── scenes/       # YAML scene definitions
 │   ├── conf/         # YAML config (settings.yaml)
 │   └── scripts/      # Game Lua scripts (Tetris*.lua)
+├── scripts/          # Build/packaging scripts
+│   └── package-macos.sh  # macOS .app bundle packaging
 ├── docs/             # Documentation
 │   ├── architecture/ # Current system designs
 │   └── guides/       # How-to guides
@@ -490,7 +493,25 @@ Each programming language has a distinct use case and usage must remain within i
 - **Lua**: UI state, game logic (all gameplay code)
 - **Python**: Data exports, analytics and other external tooling
 
-### 3. Resource Paths Relative to Project Root
+### 3. Bundled Python Distribution
+
+The engine supports bundling a portable Python runtime for distribution:
+
+- **PathResolver** (`include/util/PathResolver.h`, `src/util/PathResolver.cpp`): Runtime environment detection
+  - `GetExecutableDir()` - Absolute path to executable directory (platform-specific)
+  - `IsInstalledBundle()` - Detects `.app/Contents/MacOS` pattern + verifies `../Resources/res`
+  - `GetBundledPythonHome()` - Returns bundled Python path or empty string
+- **PreInitializePython()** in ScriptManager: Sets PYTHONHOME/PYTHONPATH before `py::scoped_interpreter`
+  - Dev mode: `PYTHONPATH=../res/scripts`
+  - Bundle mode: `PYTHONHOME` + full `PYTHONPATH` with lib/site-packages
+- **Config fields** (`Config.h`): `PythonHome`, `PythonPath`, `BundledPython` (parsed from `python:` YAML section)
+- **Engine bindings** (`engine_bindings.cpp`): `engine.getResourcePath()`, `engine.isInstalledBundle()`, `engine.getExecutableDir()`
+- **CMake options**: `IMHOTEP_BUILD_BUNDLE`, `IMHOTEP_BUNDLE_PYTHON`, `IMHOTEP_PYTHON_BUNDLE_PATH`
+- **Packaging**: `scripts/package-macos.sh` (downloads python-build-standalone, creates .app bundle)
+
+See `docs/handoff.bundled-python.md` for full implementation details.
+
+### 4. Resource Paths Relative to Project Root
 
 All paths use `../res/` prefix (run from `build/` directory, cwd is `/Users/jordan/dev/cppengine/build/`):
 
@@ -512,6 +533,7 @@ See `docs/INDEX.md` for full documentation index with status tracking. Always sa
 | **UI System**        | `docs/architecture/UI_SYSTEM.md`           | UI architecture, directives, templates, multi-threading, event handling |
 | **Editor**           | `docs/architecture/EDITOR_ARCHITECTURE.md` | Editor design, implementation phases                                    |
 | **Transform System** | `docs/architecture/TRANSFORM_PIPELINE.md`  | Hierarchy refactor, world transforms                                    |
+| **Bundled Python**   | `docs/handoff.bundled-python.md`           | Portable Python distribution, PathResolver, packaging                   |
 | **Vulkan Migration** | `docs/architecture/VULKAN_MIGRATION.md`    | Planning OpenGL → Vulkan migration (future research)                    |
 | **Project History**  | `CHANGELOG.md`                             | Understanding why architecture evolved                                  |
 
@@ -592,6 +614,15 @@ cd external && git submodule update --init --recursive
 
 # Update submodules to latest
 cd external && git submodule update --remote
+```
+
+### Distribution Build (macOS)
+
+```bash
+# Package as .app bundle with bundled Python
+chmod +x scripts/package-macos.sh
+./scripts/package-macos.sh
+open build-release/dist/Imhotep.app
 ```
 
 ### Search & Navigation
@@ -738,4 +769,4 @@ if (imhotep::Version::IsAtLeast(1, 0)) {
 
 ---
 
-_Last Updated: January 20, 2026_
+_Last Updated: February 5, 2026_

@@ -42,8 +42,10 @@
 #include "systems/SkyBackgroundRenderer.h"
 
 #include "controllers/WindowManager.h"
+#include "util/PathResolver.h"
 
 #include <iostream>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <variant>
@@ -868,6 +870,52 @@ namespace LuaBindings
 // Python Scripting
 // ============================================================================
 
+void ScriptManager::PreInitializePython()
+{
+    std::string pythonHome = PathResolver::GetBundledPythonHome();
+    Config& conf = Game::GetInstance().conf;
+
+    // Config override takes precedence
+    if (!conf.PythonHome.empty())
+    {
+        pythonHome = conf.PythonHome;
+    }
+
+    if (!pythonHome.empty())
+    {
+        // Bundled mode - set PYTHONHOME and PYTHONPATH
+        setenv("PYTHONHOME", pythonHome.c_str(), 1);
+
+        std::string pythonPath = pythonHome + "/lib/python3.13:" +
+                                 pythonHome + "/lib/python3.13/site-packages:" +
+                                 conf.ResourcePath + "scripts";
+
+        // Append any additional configured paths
+        if (!conf.PythonPath.empty())
+        {
+            pythonPath += ":" + conf.PythonPath;
+        }
+
+        setenv("PYTHONPATH", pythonPath.c_str(), 1);
+        LOG_INFO("Python bundled mode: PYTHONHOME={}", pythonHome);
+        LOG_DEBUG("Python bundled mode: PYTHONPATH={}", pythonPath);
+    }
+    else
+    {
+        // Development mode - just add scripts to path
+        std::string scriptsPath = conf.ResourcePath + "scripts";
+
+        // Append any additional configured paths
+        if (!conf.PythonPath.empty())
+        {
+            scriptsPath += ":" + conf.PythonPath;
+        }
+
+        setenv("PYTHONPATH", scriptsPath.c_str(), 1);
+        LOG_INFO("Python development mode: PYTHONPATH={}", scriptsPath);
+    }
+}
+
 py::object ScriptManager::ImportModule(const std::string &moduleName)
 {
     // Check if the module is already imported
@@ -995,6 +1043,7 @@ void ScriptManager::Initialize()
     Run(Game::GetInstance().conf.ResourcePath + "scripts/init.lua");
 
     // Initialize Python
+    PreInitializePython();
     guard = std::make_unique<py::scoped_interpreter>();
     LOG_TRACE_L1("Python: Running init.py");
     std::ifstream file(Game::GetInstance().conf.ResourcePath + "scripts/init.py");

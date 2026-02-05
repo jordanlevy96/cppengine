@@ -65,6 +65,20 @@ namespace ConfigLoader
             }
             std::cout << "[ConfigLoader] Game settings parsed" << std::endl;
 
+            // Parse Python settings (optional)
+            std::cout << "[ConfigLoader] Parsing Python settings..." << std::endl;
+            YAML::Node python = yamlConfig["python"];
+            if (python)
+            {
+                if (python["bundled"])
+                    config.BundledPython = python["bundled"].as<bool>();
+                if (python["home"])
+                    config.PythonHome = python["home"].as<std::string>();
+                if (python["path"])
+                    config.PythonPath = python["path"].as<std::string>();
+            }
+            std::cout << "[ConfigLoader] Python settings parsed" << std::endl;
+
             std::cout << "[ConfigLoader] Configuration loaded successfully from " << configPath << std::endl;
             return true;
         }

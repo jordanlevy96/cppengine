@@ -83,6 +83,10 @@ This document credits the resources, libraries, and tools that made Imhotep poss
   - Data export and analysis
   - External tooling support
 
+- **[python-build-standalone](https://github.com/indygreg/python-build-standalone)** - Portable Python distribution
+  - Self-contained Python runtime for app bundles
+  - Used by `scripts/package-macos.sh` for distribution builds
+
 ### Utilities
 
 - **[yaml-cpp](https://github.com/jbeder/yaml-cpp)** - YAML parsing
@@ -181,8 +185,10 @@ This project uses external libraries under their respective licenses:
 - **yaml-cpp**: MIT License
 - **Quill**: MIT License
 
+- **python-build-standalone**: Zero-Clause BSD License
+
 See individual library repositories for full license texts.
 
 ---
 
-_Last Updated: January 13, 2026_
+_Last Updated: February 5, 2026_

@@ -28,4 +28,9 @@ struct Config
     std::string TemplateName = "game";    ///< Optional name of template to register with ReactiveUI
     bool Fullscreen = false;              ///< Start in fullscreen mode
     bool Debug = false;                   ///< Enable debug mode
+
+    // Python configuration (for bundled distribution)
+    std::string PythonHome = "";          ///< Python home directory (empty = auto-detect)
+    std::string PythonPath = "";          ///< Additional Python module paths
+    bool BundledPython = false;           ///< True if using bundled Python runtime
 };

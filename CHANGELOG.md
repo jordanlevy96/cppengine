@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Bundled Python Distribution**: Support for distributing games with a portable Python runtime
+  - `PathResolver` utility for runtime environment detection (dev vs installed .app bundle)
+  - `PreInitializePython()` sets PYTHONHOME/PYTHONPATH before interpreter initialization
+  - Config fields for Python (`PythonHome`, `PythonPath`, `BundledPython`) with YAML support
+  - Engine bindings: `engine.getResourcePath()`, `engine.isInstalledBundle()`, `engine.getExecutableDir()`
+  - CMake install targets for macOS app bundles (`IMHOTEP_BUILD_BUNDLE`, `IMHOTEP_BUNDLE_PYTHON`)
+  - `scripts/package-macos.sh` packaging script for distribution builds
+- **ARM64 Python Auto-Detection**: CMake automatically finds Homebrew ARM64 Python on Apple Silicon
+  - Validates Python architecture matches build target to prevent linker errors
+  - Multi-source discovery: user-specified → conda → Homebrew ARM64 → system
+- **CMake Improvements**: CMP0135 policy for FetchContent timestamps, suppressed duplicate library warnings
 - Build-time log verbosity flag: `IMHOTEP_LOG_LEVEL` (default `Info`)
 - Lua logging helpers with level routing (`log`, `log_debug`, `log_warning`, etc.)
 - Scene module contracts for Tetris scripts (roles, dependencies, capabilities)
@@ -30,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Regression detection**: Performance budget warnings trigger when renders exceed 10ms
 
 ### Documentation
+- Added comprehensive handoff document for bundled Python distribution
 - Added comprehensive handoff document for incremental UI update architecture
 - Removed obsolete plan files (superseded by implementation)
 - Cleaned time estimates from architecture docs per project philosophy
@@ -350,4 +362,4 @@ The following sections document the chronological development history prior to s
 
 ---
 
-_Last Updated: January 13, 2026_
+_Last Updated: February 5, 2026_

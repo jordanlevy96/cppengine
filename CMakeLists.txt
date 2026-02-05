@@ -1,4 +1,13 @@
 cmake_minimum_required(VERSION 3.12)
+
+# ============================================================================
+# CMake Policies - Suppress development warnings
+# ============================================================================
+# CMP0135: Use download timestamp for FetchContent archives (new behavior)
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 project(imhotep VERSION 0.1.0)
 
@@ -38,6 +47,7 @@ add_library(core SHARED
     "src/systems/SkyBackgroundRenderer.cpp"
     "src/util/ConfigLoader.cpp"
     "src/util/FileIO.cpp"
+    "src/util/PathResolver.cpp"
     "src/util/FrameTiming.cpp"
     "src/util/Logger.cpp"
     "src/util/Mesh.cpp"
@@ -145,6 +155,11 @@ set(core_LINKS
 target_include_directories(core PUBLIC ${core_INCLUDE_DIRS})
 target_link_libraries(core PUBLIC ${core_LINKS})
 
+# Suppress duplicate library warnings on macOS (imgui and core both link glfw)
+if(APPLE)
+    target_link_options(core PRIVATE "LINKER:-no_warn_duplicate_libraries")
+endif()
+
 # ============================================================================
 # Lua Scripting - Game logic and UI
 # ============================================================================
@@ -162,31 +177,148 @@ target_compile_definitions(core PUBLIC USE_LUA_SCRIPTING)
 # ============================================================================
 # Python Scripting - Data analytics, etc.
 # ============================================================================
-message(STATUS "Configuring Python scripting")
+# NOTE: You may see linker warnings about '/usr/local/opt/openssl@1.1/lib' not found.
+# This is harmless - it comes from the Python library's embedded link flags and
+# the path may not exist on all systems. The warning can be ignored.
+#
+message(STATUS "")
+message(STATUS "=== Configuring Python Scripting ===")
 
-# Find Python - support both conda and system installations
-set(CONDA_PREFIX $ENV{CONDA_PREFIX})
-if (CONDA_PREFIX)
-    message(STATUS "Using Conda environment: ${CONDA_PREFIX}")
-    set(Python3_ROOT_DIR "${CONDA_PREFIX}")
-    set(Python3_EXECUTABLE "${CONDA_PREFIX}/bin/python")
+# Detect target architecture
+if(APPLE)
+    execute_process(
+        COMMAND uname -m
+        OUTPUT_VARIABLE IMHOTEP_HOST_ARCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    message(STATUS "Host architecture: ${IMHOTEP_HOST_ARCH}")
 endif()
 
+# Find Python - priority order:
+# 1. Explicitly specified Python3_EXECUTABLE (cmake -DPython3_EXECUTABLE=...)
+# 2. Conda environment (if CONDA_PREFIX set)
+# 3. Homebrew ARM64 Python (on Apple Silicon)
+# 4. System Python (find_package fallback)
+
+set(CONDA_PREFIX $ENV{CONDA_PREFIX})
+set(IMHOTEP_PYTHON_SOURCE "unknown")
+
+if(Python3_EXECUTABLE)
+    # User explicitly specified Python - use it
+    message(STATUS "Using user-specified Python: ${Python3_EXECUTABLE}")
+    set(IMHOTEP_PYTHON_SOURCE "user-specified")
+
+elseif(CONDA_PREFIX)
+    # Conda environment active
+    message(STATUS "Conda environment detected: ${CONDA_PREFIX}")
+    set(Python3_ROOT_DIR "${CONDA_PREFIX}")
+    set(Python3_EXECUTABLE "${CONDA_PREFIX}/bin/python")
+    set(IMHOTEP_PYTHON_SOURCE "conda")
+
+elseif(APPLE AND IMHOTEP_HOST_ARCH STREQUAL "arm64")
+    # Apple Silicon without conda - look for Homebrew ARM64 Python
+    message(STATUS "Apple Silicon detected, searching for ARM64 Python...")
+
+    # Common Homebrew ARM64 Python locations
+    set(HOMEBREW_PYTHON_VERSIONS "3.13" "3.12" "3.11")
+    set(HOMEBREW_PYTHON_FOUND FALSE)
+
+    foreach(PYVER IN LISTS HOMEBREW_PYTHON_VERSIONS)
+        set(HOMEBREW_PYTHON_PATH "/opt/homebrew/opt/python@${PYVER}")
+        set(HOMEBREW_PYTHON_EXE "${HOMEBREW_PYTHON_PATH}/bin/python${PYVER}")
+        set(HOMEBREW_PYTHON_FW "${HOMEBREW_PYTHON_PATH}/Frameworks/Python.framework/Versions/${PYVER}")
+
+        if(EXISTS "${HOMEBREW_PYTHON_EXE}" AND EXISTS "${HOMEBREW_PYTHON_FW}/include/python${PYVER}")
+            message(STATUS "Found Homebrew Python ${PYVER} at: ${HOMEBREW_PYTHON_PATH}")
+
+            # Verify it's actually ARM64
+            execute_process(
+                COMMAND file "${HOMEBREW_PYTHON_FW}/Python"
+                OUTPUT_VARIABLE PYTHON_ARCH_CHECK
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+
+            if(PYTHON_ARCH_CHECK MATCHES "arm64")
+                message(STATUS "Verified: Python ${PYVER} is ARM64")
+                set(Python3_EXECUTABLE "${HOMEBREW_PYTHON_EXE}")
+                set(Python3_LIBRARY "${HOMEBREW_PYTHON_FW}/lib/libpython${PYVER}.dylib")
+                set(Python3_INCLUDE_DIR "${HOMEBREW_PYTHON_FW}/include/python${PYVER}")
+                set(Python3_ROOT_DIR "${HOMEBREW_PYTHON_PATH}")
+                set(HOMEBREW_PYTHON_FOUND TRUE)
+                set(IMHOTEP_PYTHON_SOURCE "homebrew-arm64")
+                break()
+            else()
+                message(STATUS "Skipping: Python ${PYVER} at ${HOMEBREW_PYTHON_PATH} is not ARM64")
+            endif()
+        endif()
+    endforeach()
+
+    if(NOT HOMEBREW_PYTHON_FOUND)
+        message(WARNING "")
+        message(WARNING "=== ARM64 Python Not Found ===")
+        message(WARNING "On Apple Silicon, you need ARM64 Python. Install with:")
+        message(WARNING "  brew install python@3.13")
+        message(WARNING "")
+        message(WARNING "Or specify Python explicitly:")
+        message(WARNING "  cmake -DPython3_EXECUTABLE=/path/to/python3 ..")
+        message(WARNING "")
+        message(WARNING "Falling back to system Python (may cause architecture mismatch)...")
+        set(IMHOTEP_PYTHON_SOURCE "system-fallback")
+    endif()
+
+else()
+    message(STATUS "Using system Python (find_package)")
+    set(IMHOTEP_PYTHON_SOURCE "system")
+endif()
+
+# Now find_package will use the hints we've set above
 find_package(Python3 COMPONENTS Interpreter Development Development.Embed REQUIRED)
+
+# Verify architecture match on Apple Silicon
+if(APPLE AND IMHOTEP_HOST_ARCH STREQUAL "arm64")
+    execute_process(
+        COMMAND file "${Python3_LIBRARIES}"
+        OUTPUT_VARIABLE PYTHON_LIB_ARCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+
+    if(PYTHON_LIB_ARCH MATCHES "x86_64" AND NOT PYTHON_LIB_ARCH MATCHES "arm64")
+        message(FATAL_ERROR "")
+        message(FATAL_ERROR "=== ARCHITECTURE MISMATCH ===")
+        message(FATAL_ERROR "Found x86_64 Python but building for ARM64!")
+        message(FATAL_ERROR "Python library: ${Python3_LIBRARIES}")
+        message(FATAL_ERROR "")
+        message(FATAL_ERROR "Solutions:")
+        message(FATAL_ERROR "1. Install ARM64 Python: brew install python@3.13")
+        message(FATAL_ERROR "2. Specify ARM64 Python explicitly:")
+        message(FATAL_ERROR "   cmake -DPython3_EXECUTABLE=/opt/homebrew/bin/python3.13 \\")
+        message(FATAL_ERROR "         -DPython3_LIBRARY=/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/lib/libpython3.13.dylib \\")
+        message(FATAL_ERROR "         -DPython3_INCLUDE_DIR=/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/include/python3.13 \\")
+        message(FATAL_ERROR "         ..")
+        message(FATAL_ERROR "3. Use a conda environment with ARM64 Python")
+        message(FATAL_ERROR "")
+    endif()
+endif()
 
 # Try to find pybind11 as a system package first, fall back to submodule
 find_package(pybind11 CONFIG QUIET)
 if(NOT pybind11_FOUND)
-    message(STATUS "pybind11 not found in system, using submodule")
+    message(STATUS "pybind11: using submodule (not found in system)")
     add_subdirectory(external/pybind11)
 else()
-    message(STATUS "Using system pybind11: ${pybind11_DIR}")
+    message(STATUS "pybind11: using system installation at ${pybind11_DIR}")
 endif()
 
-message(STATUS "Python executable: ${Python3_EXECUTABLE}")
-message(STATUS "Python include dirs: ${Python3_INCLUDE_DIRS}")
-message(STATUS "Python libraries: ${Python3_LIBRARIES}")
-message(STATUS "Python library dirs: ${Python3_LIBRARY_DIRS}")
+# Summary
+message(STATUS "")
+message(STATUS "Python Configuration Summary:")
+message(STATUS "  Source:       ${IMHOTEP_PYTHON_SOURCE}")
+message(STATUS "  Executable:   ${Python3_EXECUTABLE}")
+message(STATUS "  Version:      ${Python3_VERSION}")
+message(STATUS "  Include dirs: ${Python3_INCLUDE_DIRS}")
+message(STATUS "  Libraries:    ${Python3_LIBRARIES}")
+message(STATUS "")
 
 # pybind11's add_subdirectory already sets up include paths
 target_include_directories(core PUBLIC ${Python3_INCLUDE_DIRS})
@@ -209,3 +341,75 @@ add_executable(imhotep-editor
 )
 target_link_libraries(imhotep-editor PRIVATE core)
 target_include_directories(imhotep-editor PRIVATE ${core_INCLUDE_DIRS})
+
+# ============================================================================
+# Installation Configuration (for distributable builds)
+# ============================================================================
+# CMake install() commands define where files go when running:
+#   cmake --install . --prefix /path/to/install
+#
+# For macOS app bundles, the structure is:
+#   Imhotep.app/Contents/MacOS/imhotep      (executable)
+#   Imhotep.app/Contents/Frameworks/        (dylibs)
+#   Imhotep.app/Contents/Resources/         (assets, bundled Python)
+
+# --- macOS App Bundle Properties ---
+# Only enable bundle mode when building for distribution (not during development)
+option(IMHOTEP_BUILD_BUNDLE "Build macOS app bundle (for distribution)" OFF)
+
+if(APPLE AND IMHOTEP_BUILD_BUNDLE)
+    set_target_properties(imhotep PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_BUNDLE_NAME "Imhotep"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        # INSTALL_RPATH tells the executable where to find dylibs at runtime
+        # @executable_path = directory containing the executable
+        INSTALL_RPATH "@executable_path/../Frameworks"
+        BUILD_WITH_INSTALL_RPATH TRUE
+    )
+
+    set_target_properties(core PROPERTIES
+        INSTALL_RPATH "@loader_path"
+        BUILD_WITH_INSTALL_RPATH TRUE
+    )
+
+    # Engine Python module needs rpath for finding core library
+    set_target_properties(engine PROPERTIES
+        INSTALL_RPATH "@loader_path"
+        BUILD_WITH_INSTALL_RPATH TRUE
+    )
+endif()
+
+# --- Install Targets ---
+install(TARGETS imhotep
+    BUNDLE DESTINATION .                    # .app goes to install root
+    RUNTIME DESTINATION bin                 # Non-bundle goes to bin/
+)
+
+install(TARGETS core engine
+    LIBRARY DESTINATION $<IF:$<PLATFORM_ID:Darwin>,imhotep.app/Contents/Frameworks,lib>
+)
+
+# --- Install Resources ---
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/res/
+    DESTINATION $<IF:$<PLATFORM_ID:Darwin>,imhotep.app/Contents/Resources/res,share/imhotep/res>
+    PATTERN ".DS_Store" EXCLUDE
+    PATTERN "__pycache__" EXCLUDE
+)
+
+# --- Optional: Bundled Python ---
+option(IMHOTEP_BUNDLE_PYTHON "Bundle Python runtime for distribution" OFF)
+set(IMHOTEP_PYTHON_BUNDLE_PATH "" CACHE PATH "Path to portable Python installation")
+
+if(IMHOTEP_BUNDLE_PYTHON AND EXISTS "${IMHOTEP_PYTHON_BUNDLE_PATH}")
+    message(STATUS "Bundling Python from: ${IMHOTEP_PYTHON_BUNDLE_PATH}")
+    install(DIRECTORY ${IMHOTEP_PYTHON_BUNDLE_PATH}/
+        DESTINATION $<IF:$<PLATFORM_ID:Darwin>,imhotep.app/Contents/Resources/python,share/imhotep/python>
+        PATTERN "__pycache__" EXCLUDE
+        PATTERN "*.pyc" EXCLUDE
+        PATTERN "test" EXCLUDE
+        PATTERN "tests" EXCLUDE
+        PATTERN "pip*" EXCLUDE
+    )
+endif()

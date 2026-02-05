@@ -1,6 +1,6 @@
 # Imhotep Documentation Index
 
-> Last Updated: 2026-01-28
+> Last Updated: 2026-02-05
 
 ## Quick Reference
 
@@ -31,6 +31,7 @@
 
 | Document | Date | Purpose |
 |----------|------|---------|
+| [handoff.bundled-python.md](handoff.bundled-python.md) | 2026-02-05 | Bundled Python distribution for macOS app bundles |
 | [handoff.incremental-ui.md](handoff.incremental-ui.md) | 2026-01-19 | Incremental UI update architecture - Phase 1 instrumentation complete |
 
 ---
@@ -84,6 +85,15 @@ Future graphics API migration research: current OpenGL analysis, Vulkan requirem
 
 ### TERRAIN_IMPLEMENTATION.md
 Implementation notes for an EU/Factorio-style world map: stable chunked data, quadtree render tiles, GPU cache + streaming, province borders/picking, and incremental recompute for dynamic changes.
+
+### handoff.bundled-python.md
+Bundled Python distribution for portable game deployment:
+- **PathResolver** utility for runtime environment detection (dev vs .app bundle)
+- **PreInitializePython()** sets PYTHONHOME/PYTHONPATH before interpreter
+- CMake install targets for macOS app bundles with optional bundled Python
+- `scripts/package-macos.sh` packaging script (not yet tested end-to-end)
+- ARM64 Python auto-detection and architecture validation
+- Engine bindings: `getResourcePath()`, `isInstalledBundle()`, `getExecutableDir()`
 
 ### handoff.incremental-ui.md
 Incremental UI update optimization architecture:

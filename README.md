@@ -54,10 +54,12 @@ Valid values: `TraceL3`, `TraceL2`, `TraceL1`, `Debug`, `Info`, `Warning`, `Erro
   - lua-cmake‡
   - sol2‡
 - pybind11‡ (for Python bindings)
+- [python-build-standalone](https://github.com/indygreg/python-build-standalone)§ (portable Python for distribution)
 
 \*<sub><sup>System dependency - required installation</sup></sub>\
 †<sub><sup>Auto-downloaded via CMake FetchContent</sup></sub>\
-‡<sub><sup>Git submodule - run `cd external && git submodule update --init --recursive` to initialize</sup></sub>
+‡<sub><sup>Git submodule - run `cd external && git submodule update --init --recursive` to initialize</sup></sub>\
+§<sub><sup>Downloaded automatically by packaging script - not needed for development</sup></sub>
 
 #### Installing FreeType
 
@@ -77,3 +79,27 @@ sudo apt-get install libfreetype6-dev
 
 - Download from https://www.freetype.org/ or use vcpkg
 - Or build from source
+
+### macOS Apple Silicon (ARM64)
+
+CMake auto-detects Homebrew ARM64 Python on Apple Silicon. If it picks the wrong architecture, force it:
+
+```sh
+cmake \
+  -DPython3_EXECUTABLE=/opt/homebrew/bin/python3.13 \
+  -DPython3_LIBRARY=/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/lib/libpython3.13.dylib \
+  -DPython3_INCLUDE_DIR=/opt/homebrew/opt/python@3.13/Frameworks/Python.framework/Versions/3.13/include/python3.13 \
+  ..
+```
+
+### Distribution Build (macOS)
+
+To create a distributable `.app` bundle with bundled Python:
+
+```sh
+chmod +x scripts/package-macos.sh
+./scripts/package-macos.sh
+open build-release/dist/Imhotep.app
+```
+
+This downloads a portable Python runtime, installs packages (pandas, matplotlib, numpy), and creates a self-contained app bundle.
