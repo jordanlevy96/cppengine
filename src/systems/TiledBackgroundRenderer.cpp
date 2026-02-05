@@ -34,6 +34,27 @@
 
 namespace
 {
+    class ScopedUnpackAlignment
+    {
+    public:
+        explicit ScopedUnpackAlignment(GLint alignment)
+        {
+            glGetIntegerv(GL_UNPACK_ALIGNMENT, &m_previousAlignment);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+        }
+
+        ~ScopedUnpackAlignment()
+        {
+            glPixelStorei(GL_UNPACK_ALIGNMENT, m_previousAlignment);
+        }
+
+        ScopedUnpackAlignment(const ScopedUnpackAlignment &) = delete;
+        ScopedUnpackAlignment &operator=(const ScopedUnpackAlignment &) = delete;
+
+    private:
+        GLint m_previousAlignment = 4;
+    };
+
     float SafeTanHalfFovRadians(float fovDegrees)
     {
         float clamped = std::clamp(fovDegrees, 1.0f, 179.0f);
@@ -363,7 +384,7 @@ void TiledBackgroundRenderer::RecreateCacheIfNeeded()
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    const ScopedUnpackAlignment unpackAlignment(1);
 
     // Allocate storage (no initial data).
     glTexImage3D(GL_TEXTURE_2D_ARRAY,
@@ -387,8 +408,6 @@ void TiledBackgroundRenderer::RecreateCacheIfNeeded()
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     glTexImage3D(GL_TEXTURE_2D_ARRAY,
                  0,
@@ -832,7 +851,7 @@ void TiledBackgroundRenderer::UploadPendingTiles()
     glGetIntegerv(GL_ACTIVE_TEXTURE, &previousActiveTexture);
     glActiveTexture(GL_TEXTURE0);
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    const ScopedUnpackAlignment unpackAlignment(1);
 
     std::vector<std::uint16_t> heights;
     heights.reserve(static_cast<size_t>(m_config.heightResolution * m_config.heightResolution));
