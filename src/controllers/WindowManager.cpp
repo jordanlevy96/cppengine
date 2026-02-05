@@ -25,6 +25,7 @@
  */
 
 #include "controllers/WindowManager.h"
+#include "controllers/ScriptManager.h"
 #include "controllers/Game.h"
 
 #include <iostream>

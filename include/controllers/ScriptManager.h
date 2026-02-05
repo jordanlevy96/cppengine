@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "util/InputEvent.h"
 #include "util/debug.h"
 #include "util/Logger.h"
 #include <sol/sol.hpp>
@@ -16,9 +17,6 @@ namespace py = pybind11;
 
 static const std::string &EVENT_QUEUE = "EventQueue";     ///< Lua global for input queue
 static const std::string &HANDLE_INPUT_F = "HandleInput"; ///< Lua input handler function name
-
-// Forward declaration for InputEvent (defined in WindowManager.h)
-struct InputEvent;
 
 /**
  * @brief Lua C++ bindings registration

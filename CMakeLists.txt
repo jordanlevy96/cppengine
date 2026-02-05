@@ -9,6 +9,7 @@ if(POLICY CMP0135)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(imhotep VERSION 0.1.0)
 
 # Log verbosity (TraceL3, TraceL2, TraceL1, Debug, Info, Warning, Error, Critical, Off)
