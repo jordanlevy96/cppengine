@@ -24,13 +24,13 @@ SkyBackground = {
     -- sunStripeFill is the lit fraction of each stripe period [0..1] (lower = thicker gaps).
     -- sunStripeTopClear keeps the top portion of the disc solid [0..1] (classic synthwave look).
     -- sunHorizonMix mixes the bottom of the sun toward horizonColor [0..1] (adds pink near the horizon).
-    sunPos = { x = 0.72, y = 0.62 },
-    sunRadius = 0.06,
+    sunPos = { x = 0.5, y = 0.6 },
+    sunRadius = 0.12,
     sunGlow = 0.14,
     sunColor = { r = 1.00, g = 0.55, b = 0.15 },
     sunStripeCount = 10,
     sunStripeFill = 0.65,
-    sunStripeTopClear = 0.25,
+    sunStripeTopClear = 0.5,
     sunHorizonMix = 0.55,
 
     -- Mountains (distant silhouette)
