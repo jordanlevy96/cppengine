@@ -41,10 +41,31 @@ EngineCore::EngineCore()
 EngineCore::~EngineCore()
 {
     // Unregister UI click handler
-    if (m_uiClickHandlerId != 0 && m_windowManager)
+    const size_t invalidId = std::numeric_limits<size_t>::max();
+
+    // Avoid interacting with WindowManager during process teardown if the window is already destroyed.
+    if (m_uiClickHandlerId != invalidId && m_windowManager && m_windowManager->window != nullptr)
     {
         m_windowManager->UnregisterInputHandler(m_uiClickHandlerId);
-        m_uiClickHandlerId = 0;
+        m_uiClickHandlerId = invalidId;
+    }
+
+    if (m_uiMouseButtonHandlerId != invalidId && m_windowManager && m_windowManager->window != nullptr)
+    {
+        m_windowManager->UnregisterInputHandler(m_uiMouseButtonHandlerId);
+        m_uiMouseButtonHandlerId = invalidId;
+    }
+
+    if (m_uiCursorHandlerId != invalidId && m_windowManager && m_windowManager->window != nullptr)
+    {
+        m_windowManager->UnregisterInputHandler(m_uiCursorHandlerId);
+        m_uiCursorHandlerId = invalidId;
+    }
+
+    if (m_uiResizeHandlerId != invalidId && m_windowManager && m_windowManager->window != nullptr)
+    {
+        m_windowManager->UnregisterInputHandler(m_uiResizeHandlerId);
+        m_uiResizeHandlerId = invalidId;
     }
 
     if (m_camera)
@@ -213,6 +234,27 @@ bool EngineCore::InitializeHTMLRenderer()
 
     m_htmlRenderer->Initialize(m_windowManager->window, fbWidth, fbHeight);
     LOG_INFO("INIT - HTMLRendererMT: SUCCESS");
+
+    // Register resize handler so the UI overlay always matches the framebuffer size.
+    const size_t invalidId = std::numeric_limits<size_t>::max();
+    if (m_uiResizeHandlerId == invalidId)
+    {
+        m_uiResizeHandlerId = m_windowManager->RegisterInputHandler([this](const InputEvent &event)
+                                                                    {
+            if (event.type != InputTypes::Resize || !m_htmlRenderer)
+            {
+                return false;
+            }
+
+            if (std::holds_alternative<glm::vec2>(event.input))
+            {
+                auto fbSize = std::get<glm::vec2>(event.input);
+                m_htmlRenderer->Resize(static_cast<int>(fbSize.x), static_cast<int>(fbSize.y));
+            }
+
+            return false; });
+    }
+
     m_htmlRendererInitialized = true;
     return true;
 }
@@ -325,6 +367,33 @@ bool EngineCore::InitializeUI(const std::string &htmlPath,
                 auto clickData = std::get<glm::vec2>(event.input);
                 return m_htmlRenderer->HandleClickEvent(clickData.x, clickData.y, 0);
             }
+        }
+        return false; });
+
+    // Register mouse button handler to forward press/release to HTMLRenderer (@mousedown/@mouseup).
+    m_uiMouseButtonHandlerId = m_windowManager->RegisterInputHandler([this](const InputEvent &event)
+                                                                     {
+        if (event.type != InputTypes::MouseButton)
+        {
+            return false;
+        }
+
+        if (std::holds_alternative<glm::vec4>(event.input))
+        {
+            auto mouseData = std::get<glm::vec4>(event.input);
+            int button = static_cast<int>(mouseData.z);
+            int action = static_cast<int>(mouseData.w);
+            return m_htmlRenderer->HandleMouseButtonEvent(mouseData.x, mouseData.y, button, action);
+        }
+        return false; });
+
+    // Register cursor handler for hover state (@mouseenter/@mouseleave, etc.). Never consumes.
+    m_uiCursorHandlerId = m_windowManager->RegisterInputHandler([this](const InputEvent &event)
+                                                                {
+        if (event.type == InputTypes::Cursor && std::holds_alternative<glm::vec2>(event.input))
+        {
+            auto pos = std::get<glm::vec2>(event.input);
+            m_htmlRenderer->UpdateHoverState(pos.x, pos.y);
         }
         return false; });
 

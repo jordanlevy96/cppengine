@@ -119,16 +119,59 @@ public:
      * @param button Mouse button (0=left, 1=right, 2=middle)
      * @return true if click was handled by an interactive element
      * @note Thread-safe, uses m_frontInteractiveElements
+     * @note Only triggers on button press (not release)
      */
     bool HandleClickEvent(float x, float y, int button);
+
+    /**
+     * @brief Handle mouse button event with action (press/release)
+     * @param x Mouse X coordinate (window space)
+     * @param y Mouse Y coordinate (window space)
+     * @param button Mouse button (0=left, 1=right, 2=middle)
+     * @param action GLFW action (GLFW_PRESS or GLFW_RELEASE)
+     * @return true if event was handled by an interactive element
+     * @note Thread-safe, dispatches mousedown/mouseup events based on action
+     * @note Use this for fine-grained control; HandleClickEvent for simple clicks
+     */
+    bool HandleMouseButtonEvent(float x, float y, int button, int action);
 
     /**
      * @brief Update hover state based on cursor position
      * @param x Mouse X coordinate (window space)
      * @param y Mouse Y coordinate (window space)
-     * @note Generates synthetic mouseover/mouseout events
+     * @note Generates synthetic mouseover/mouseout/mouseenter/mouseleave events
      */
     void UpdateHoverState(float x, float y);
+
+    /**
+     * @brief Try to get the bounds of an interactive element by its data-event-id
+     * @param elemId Element ID (data-event-id)
+     * @param x Out: left
+     * @param y Out: top
+     * @param width Out: width
+     * @param height Out: height
+     * @return true if element was found in the current interactive element set
+     * @note Coordinates are in framebuffer/litehtml space (top-left origin)
+     */
+    bool TryGetInteractiveElementBounds(const std::string &elemId, int &x, int &y, int &width, int &height) const;
+
+    /**
+     * @brief Try to find an interactive element by matching a handler expression
+     * @param eventType Event type to match (e.g., "click")
+     * @param handlerExpr Handler expression string (e.g., "onViewportClick($event)")
+     * @param x Out: left
+     * @param y Out: top
+     * @param width Out: width
+     * @param height Out: height
+     * @return true if a matching element was found in the current interactive element set
+     * @note Coordinates are in framebuffer/litehtml space (top-left origin)
+     */
+    bool TryFindInteractiveElementBoundsByHandler(const std::string &eventType,
+                                                 const std::string &handlerExpr,
+                                                 int &x,
+                                                 int &y,
+                                                 int &width,
+                                                 int &height) const;
 
     /**
      * @brief Get event handlers map (thread-safe copy)
@@ -169,6 +212,15 @@ private:
      * @brief Upload pixel buffer to OpenGL texture (main thread)
      */
     void UpdateTextureFromPixelBuffer();
+
+    /**
+     * @brief Convert window coordinates to framebuffer coordinates
+     * @param windowX X coordinate in window space
+     * @param windowY Y coordinate in window space
+     * @return Coordinates in framebuffer space (scaled for HiDPI)
+     * @note On Retina/HiDPI displays, framebuffer is typically 2x window size
+     */
+    glm::vec2 WindowToFramebuffer(float windowX, float windowY) const;
 
     /**
      * @brief Frame buffer for double buffering
@@ -217,15 +269,18 @@ private:
     FrameBuffer m_frontBuffer;          ///< Read by main thread (protected by m_bufferMutex)
     FrameBuffer m_backBuffer;           ///< Written by render thread (exclusive ownership)
     std::mutex m_bufferMutex;           ///< Protects buffer swap
-    uint32_t m_lastFrameNumber = 0;
+    uint64_t m_nextFrameNumber = 0;     ///< Monotonic counter for frame versioning (render thread only)
+    uint64_t m_lastFrameNumber = 0;     ///< Last uploaded frame number (main thread only)
 
     // Interactive elements (double buffered for thread safety)
     std::vector<InteractiveElement> m_frontInteractiveElements;  ///< Read by main thread
     std::vector<InteractiveElement> m_backInteractiveElements;   ///< Written by render thread
-    std::mutex m_interactiveElementsMutex;                       ///< Protects element swap
+    mutable std::mutex m_interactiveElementsMutex;               ///< Protects element swap (readable from const APIs)
     mutable std::mutex m_eventHandlersMutex;                     ///< Protects event handlers
     std::map<std::string, std::map<std::string, std::string>> m_eventHandlers; ///< From TemplateParser
     std::string m_lastHoveredElement;                            ///< Track hover state for mouseout events
+    std::string m_mouseCaptureElement;                           ///< Element that received last mousedown (for mouseup capture)
+    int m_mouseCaptureButton = -1;                               ///< Mouse button captured for mouseup
 
     // OpenGL resources (main thread only)
     Shader* m_compositeShader = nullptr;

@@ -1,6 +1,15 @@
 /**
  * @file UITemplateManager.cpp
- * @brief Template management system implementation
+ * @brief UI template management (HTML/CSS/Lua) for the editor
+ * @lines ~260
+ *
+ * Purpose: Manage UI templates on disk for the in-engine UI editor.
+ *
+ * Key functions:
+ * - ListTemplates() - Enumerate templates from filesystem (line ~35)
+ * - LoadTemplate() - Read template files into memory (line ~69)
+ * - SaveTemplate() - Write template files to disk (line ~92)
+ * - CreateTemplate() - Create new template skeleton (line ~132)
  */
 
 #include "editor/UITemplateManager.h"
@@ -8,6 +17,25 @@
 #include "util/Logger.h"
 #include <filesystem>
 #include <algorithm>
+#include <cctype>
+
+static bool IsValidTemplateName(const std::string &name)
+{
+    if (name.empty())
+    {
+        return false;
+    }
+
+    for (unsigned char c : name)
+    {
+        if (!(std::isalnum(c) || c == '_' || c == '-'))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 bool UITemplateManager::Initialize(const std::string &templatesDir, const std::string &stylesDir, const std::string &stateDir)
 {
@@ -127,6 +155,12 @@ bool UITemplateManager::CreateTemplate(const std::string &name)
         return false;
     }
 
+    if (!IsValidTemplateName(name))
+    {
+        LOG_ERROR("[UITemplateManager] Invalid template name: '{}' (allowed: [A-Za-z0-9_-])", name);
+        return false;
+    }
+
     if (TemplateExists(name))
     {
         LOG_WARNING("[UITemplateManager] Template '{}' already exists", name);
@@ -148,8 +182,8 @@ bool UITemplateManager::CreateTemplate(const std::string &name)
     </style>
 </head>
 <body>
-    <h1>New Template</h1>
-    <p>Edit this template in the UI Editor.</p>
+    <h1>Lorem ipsum</h1>
+    <p>Lorem ipsum dolor sit amet.</p>
 </body>
 </html>
 )";

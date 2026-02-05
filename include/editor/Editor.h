@@ -16,6 +16,7 @@
 #include "editor/UITemplateManager.h"
 #include "util/Config.h"
 #include <chrono>
+#include <limits>
 
 /**
  * @brief Editor application singleton
@@ -120,6 +121,12 @@ private:
     void UpdateInspector();
 
     /**
+     * @brief Apply inspector-edited values to the selected entity
+     * @note Called during text input while an inspector field is focused
+     */
+    void ApplyInspectorEdits();
+
+    /**
      * @brief Initialize UI Editor system
      * @note Called during Initialize() to set up template manager and populate template list
      */
@@ -180,8 +187,8 @@ private:
     double m_delta = 0.0;
 
     // Input handler IDs
-    size_t m_keyboardHandlerId = 0;
-    size_t m_clickHandlerId = 0;
+    size_t m_keyboardHandlerId = std::numeric_limits<size_t>::max();
+    size_t m_clickHandlerId = std::numeric_limits<size_t>::max();
 
     // UI Editor state
     std::chrono::steady_clock::time_point m_lastCodeChange;
@@ -190,4 +197,14 @@ private:
     
     // Text input state
     std::string m_focusedInputField; // Lua path to focused input field (e.g., "uiEditor.newTemplateName")
+    size_t m_cursorPos = 0;          // Cursor position within focused field
+    size_t m_selectionStart = 0;     // Selection start (or same as cursorPos if no selection)
+    size_t m_selectionEnd = 0;       // Selection end
+
+    // Cached viewport rectangle (framebuffer coords, top-left origin).
+    bool m_viewportRectValid = false;
+    int m_viewportRectX = 0;
+    int m_viewportRectY = 0;
+    int m_viewportRectW = 0;
+    int m_viewportRectH = 0;
 };

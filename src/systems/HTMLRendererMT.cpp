@@ -715,9 +715,9 @@ private:
                 int paddingTop = (int)padding.top.val();
                 int paddingBottom = (int)padding.bottom.val();
 
-                // TODO: Extract z-index from litehtml CSS (API unclear)
-                // For now, use default z-index of 0 (DOM order determines priority)
-                int elemZIndex = 0;
+                // Extract z-index from litehtml CSS
+                // Note: get_z_index() returns 0 for "auto" (default), which means DOM order
+                int elemZIndex = elem->css().get_z_index();
 
                 // Create interactive element with full box (content + padding)
                 HTMLRendererMT::InteractiveElement ie;
@@ -968,7 +968,7 @@ void HTMLRendererMT::SetupGL()
 void HTMLRendererMT::LoadHTML(const std::string &html)
 {
     auto start = std::chrono::high_resolution_clock::now();
-    LOG_TRACE_L2("[HTMLRendererMT] Loading HTML ({} bytes)", html.size());
+    LOG_TRACE_L2("[HTMLRendererMT] LoadHTML called ({} bytes)", html.size());
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -979,7 +979,7 @@ void HTMLRendererMT::LoadHTML(const std::string &html)
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    LOG_TRACE_L2("[HTMLRendererMT] LoadHTML took {}ms", duration);
+    LOG_TRACE_L2("[HTMLRendererMT] LoadHTML signaled render thread ({}ms)", duration);
 }
 
 void HTMLRendererMT::UpdateHTML(const std::string &html)
@@ -998,7 +998,7 @@ void HTMLRendererMT::Render()
         std::lock_guard<std::mutex> lock(m_bufferMutex);
         if (m_frontBuffer.frameNumber != m_lastFrameNumber)
         {
-            LOG_TRACE_L2("[HTMLRendererMT] Uploading new frame {}", m_frontBuffer.frameNumber);
+            LOG_TRACE_L2("[HTMLRendererMT] Uploading new frame {} (was {})", m_frontBuffer.frameNumber, m_lastFrameNumber);
             UpdateTextureFromPixelBuffer();
             m_lastFrameNumber = m_frontBuffer.frameNumber;
         }
@@ -1197,10 +1197,14 @@ void HTMLRendererMT::RenderThreadLoop()
             auto renderDuration = std::chrono::duration_cast<std::chrono::milliseconds>(renderEnd - renderStart).count();
 
             // Swap buffers (pixel buffer + interactive elements)
+            uint64_t newFrameNumber;
             {
                 std::lock_guard<std::mutex> lock(m_bufferMutex);
                 std::swap(m_frontBuffer, m_backBuffer);
-                m_frontBuffer.frameNumber++;
+                // Use monotonic counter to ensure frame numbers always increase
+                m_nextFrameNumber++;
+                m_frontBuffer.frameNumber = m_nextFrameNumber;
+                newFrameNumber = m_frontBuffer.frameNumber;
             }
             {
                 std::lock_guard<std::mutex> lock(m_interactiveElementsMutex);
@@ -1210,29 +1214,32 @@ void HTMLRendererMT::RenderThreadLoop()
             needsRender = false;
             auto totalEnd = std::chrono::high_resolution_clock::now();
             auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(totalEnd - renderStart).count();
-            LOG_TRACE_L2("[RenderThread] Render complete (render: {}ms, total: {}ms)", renderDuration, totalDuration);
+            LOG_TRACE_L2("[RenderThread] Render complete, frame {} (render: {}ms, total: {}ms)", newFrameNumber, renderDuration, totalDuration);
         }
     }
 
     LOG_INFO("[RenderThread] Exiting");
 }
 
-bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
+glm::vec2 HTMLRendererMT::WindowToFramebuffer(float windowX, float windowY) const
 {
-    // Convert window coordinates to framebuffer coordinates
-    // On Retina/HiDPI displays, framebuffer is 2x window size
     int windowWidth, windowHeight;
     glfwGetWindowSize(m_window, &windowWidth, &windowHeight);
 
     float scaleX = (float)m_width / (float)windowWidth;
     float scaleY = (float)m_height / (float)windowHeight;
 
-    float framebufferX = x * scaleX;
-    float framebufferY = y * scaleY;
+    return glm::vec2(windowX * scaleX, windowY * scaleY);
+}
 
-    // Use framebuffer coordinates for hit-testing
-    x = framebufferX;
-    y = framebufferY;
+bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
+{
+    // Convert window coordinates to framebuffer coordinates
+    glm::vec2 fb = WindowToFramebuffer(x, y);
+    x = fb.x;
+    y = fb.y;
+
+    LOG_DEBUG("[HTMLRendererMT] HandleClickEvent: fb coords ({}, {})", x, y);
 
     // Copy interactive elements (thread-safe)
     std::vector<InteractiveElement> elements;
@@ -1240,6 +1247,8 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
         std::lock_guard<std::mutex> lock(m_interactiveElementsMutex);
         elements = m_frontInteractiveElements;
     }
+
+    LOG_DEBUG("[HTMLRendererMT] HandleClickEvent: {} interactive elements", elements.size());
 
     // Screen coordinates now match litehtml coordinates (no flip needed)
 
@@ -1252,10 +1261,15 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
         if (x >= elem.x && x < elem.x + elem.width &&
             y >= elem.y && y < elem.y + elem.height)
         {
+            LOG_DEBUG("[HTMLRendererMT] Hit element '{}' at ({},{}) size {}x{}",
+                      elem.id, elem.x, elem.y, elem.width, elem.height);
+
             // Check if element has a click handler
             auto clickIt = elem.handlers.find("click");
             if (clickIt != elem.handlers.end())
             {
+                LOG_DEBUG("[HTMLRendererMT] Dispatching click to handler: {}", clickIt->second);
+
                 // Dispatch to ReactiveUI
                 // Note: Pass framebuffer coordinates directly - they match the hit-test coordinates
                 ReactiveUI &ui = ReactiveUI::GetInstance();
@@ -1269,24 +1283,157 @@ bool HTMLRendererMT::HandleClickEvent(float x, float y, int button)
                 ui.DispatchEvent("click", clickIt->second, eventData);
                 return true; // Event handled
             }
+            else
+            {
+                LOG_DEBUG("[HTMLRendererMT] Element '{}' has no click handler, continuing search", elem.id);
+            }
         }
     }
 
+    LOG_DEBUG("[HTMLRendererMT] HandleClickEvent: no element found, returning false");
     return false; // Event not handled
+}
+
+bool HTMLRendererMT::HandleMouseButtonEvent(float x, float y, int button, int action)
+{
+    // Convert window coordinates to framebuffer coordinates
+    glm::vec2 fb = WindowToFramebuffer(x, y);
+    x = fb.x;
+    y = fb.y;
+
+    // Copy interactive elements (thread-safe)
+    std::vector<InteractiveElement> elements;
+    {
+        std::lock_guard<std::mutex> lock(m_interactiveElementsMutex);
+        elements = m_frontInteractiveElements;
+    }
+
+    // Determine event type based on action
+    std::string eventType;
+    if (action == GLFW_PRESS)
+    {
+        eventType = "mousedown";
+    }
+    else if (action == GLFW_RELEASE)
+    {
+        eventType = "mouseup";
+    }
+    else
+    {
+        return false; // Unknown action
+    }
+
+    auto dispatchToElement = [&](const InteractiveElement &elem) -> bool
+    {
+        auto handlerIt = elem.handlers.find(eventType);
+        if (handlerIt == elem.handlers.end())
+        {
+            return false;
+        }
+
+        ReactiveUI &ui = ReactiveUI::GetInstance();
+        ReactiveUI::EventData eventData;
+        eventData.x = x;
+        eventData.y = y;
+        eventData.button = button;
+        eventData.elemId = elem.id;
+        eventData.eventType = eventType;
+
+        ui.DispatchEvent(eventType, handlerIt->second, eventData);
+        return true;
+    };
+
+    bool handled = false;
+
+    // Primary dispatch target: element under cursor at time of event.
+    for (auto it = elements.rbegin(); it != elements.rend(); ++it)
+    {
+        const auto &elem = *it;
+        if (x >= elem.x && x < elem.x + elem.width &&
+            y >= elem.y && y < elem.y + elem.height)
+        {
+            handled = dispatchToElement(elem);
+            if (handled && action == GLFW_PRESS)
+            {
+                // Capture this element for a matching mouseup even if the cursor leaves the element.
+                m_mouseCaptureElement = elem.id;
+                m_mouseCaptureButton = button;
+            }
+            break;
+        }
+    }
+
+    // Fallback for mouseup: if release happens outside the element, dispatch to the captured element.
+    if (!handled && action == GLFW_RELEASE && !m_mouseCaptureElement.empty() && m_mouseCaptureButton == button)
+    {
+        for (const auto &elem : elements)
+        {
+            if (elem.id == m_mouseCaptureElement)
+            {
+                handled = dispatchToElement(elem);
+                break;
+            }
+        }
+    }
+
+    // Always clear capture on release.
+    if (action == GLFW_RELEASE)
+    {
+        m_mouseCaptureElement.clear();
+        m_mouseCaptureButton = -1;
+    }
+
+    return handled;
+}
+
+bool HTMLRendererMT::TryGetInteractiveElementBounds(const std::string &elemId, int &x, int &y, int &width, int &height) const
+{
+    std::lock_guard<std::mutex> lock(m_interactiveElementsMutex);
+    for (const auto &elem : m_frontInteractiveElements)
+    {
+        if (elem.id == elemId)
+        {
+            x = elem.x;
+            y = elem.y;
+            width = elem.width;
+            height = elem.height;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool HTMLRendererMT::TryFindInteractiveElementBoundsByHandler(const std::string &eventType,
+                                                              const std::string &handlerExpr,
+                                                              int &x,
+                                                              int &y,
+                                                              int &width,
+                                                              int &height) const
+{
+    std::lock_guard<std::mutex> lock(m_interactiveElementsMutex);
+    for (const auto &elem : m_frontInteractiveElements)
+    {
+        auto it = elem.handlers.find(eventType);
+        if (it != elem.handlers.end() && it->second == handlerExpr)
+        {
+            x = elem.x;
+            y = elem.y;
+            width = elem.width;
+            height = elem.height;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void HTMLRendererMT::UpdateHoverState(float x, float y)
 {
     // Convert window coordinates to framebuffer coordinates
-    // On Retina/HiDPI displays, framebuffer is 2x window size
-    int windowWidth, windowHeight;
-    glfwGetWindowSize(m_window, &windowWidth, &windowHeight);
-
-    float scaleX = (float)m_width / (float)windowWidth;
-    float scaleY = (float)m_height / (float)windowHeight;
-
-    x = x * scaleX;
-    y = y * scaleY;
+    glm::vec2 fb = WindowToFramebuffer(x, y);
+    x = fb.x;
+    y = fb.y;
 
     // Copy interactive elements (thread-safe)
     std::vector<InteractiveElement> elements;
@@ -1315,7 +1462,9 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
     // Check if hover state changed
     if (newHoveredElement != m_lastHoveredElement)
     {
-        // Dispatch mouseout to old element
+        ReactiveUI &ui = ReactiveUI::GetInstance();
+
+        // Dispatch mouseout/mouseleave to old element
         if (!m_lastHoveredElement.empty())
         {
             // Find old element
@@ -1323,26 +1472,33 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
             {
                 if (elem.id == m_lastHoveredElement)
                 {
+                    ReactiveUI::EventData eventData;
+                    eventData.x = x;
+                    eventData.y = y;
+                    eventData.button = -1; // No button for hover events
+                    eventData.elemId = elem.id;
+
+                    // Dispatch mouseout event
                     auto mouseoutIt = elem.handlers.find("mouseout");
                     if (mouseoutIt != elem.handlers.end())
                     {
-                        // Dispatch to ReactiveUI
-                        ReactiveUI &ui = ReactiveUI::GetInstance();
-                        ReactiveUI::EventData eventData;
-                        eventData.x = x;
-                        eventData.y = y;
-                        eventData.button = -1; // No button for hover events
-                        eventData.elemId = elem.id;
                         eventData.eventType = "mouseout";
-
                         ui.DispatchEvent("mouseout", mouseoutIt->second, eventData);
+                    }
+
+                    // Dispatch mouseleave event (alias for mouseout, for web compat)
+                    auto mouseleaveIt = elem.handlers.find("mouseleave");
+                    if (mouseleaveIt != elem.handlers.end())
+                    {
+                        eventData.eventType = "mouseleave";
+                        ui.DispatchEvent("mouseleave", mouseleaveIt->second, eventData);
                     }
                     break;
                 }
             }
         }
 
-        // Dispatch mouseover to new element
+        // Dispatch mouseover/mouseenter to new element
         if (!newHoveredElement.empty())
         {
             // Find new element
@@ -1350,19 +1506,26 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
             {
                 if (elem.id == newHoveredElement)
                 {
+                    ReactiveUI::EventData eventData;
+                    eventData.x = x;
+                    eventData.y = y;
+                    eventData.button = -1; // No button for hover events
+                    eventData.elemId = elem.id;
+
+                    // Dispatch mouseover event
                     auto mouseoverIt = elem.handlers.find("mouseover");
                     if (mouseoverIt != elem.handlers.end())
                     {
-                        // Dispatch to ReactiveUI
-                        ReactiveUI &ui = ReactiveUI::GetInstance();
-                        ReactiveUI::EventData eventData;
-                        eventData.x = x;
-                        eventData.y = y;
-                        eventData.button = -1; // No button for hover events
-                        eventData.elemId = elem.id;
                         eventData.eventType = "mouseover";
-
                         ui.DispatchEvent("mouseover", mouseoverIt->second, eventData);
+                    }
+
+                    // Dispatch mouseenter event (alias for mouseover, for web compat)
+                    auto mouseenterIt = elem.handlers.find("mouseenter");
+                    if (mouseenterIt != elem.handlers.end())
+                    {
+                        eventData.eventType = "mouseenter";
+                        ui.DispatchEvent("mouseenter", mouseenterIt->second, eventData);
                     }
                     break;
                 }
@@ -1371,8 +1534,32 @@ void HTMLRendererMT::UpdateHoverState(float x, float y)
 
         // TODO: CSS :hover pseudo-class support requires litehtml API integration
         // Need to call something like elem->set_pseudo_class(":hover", true) on hovered element
-        // For now, hover events are dispatched to Lua handlers via mouseover/mouseout
+        // For now, hover events are dispatched to Lua handlers via mouseover/mouseout/mouseenter/mouseleave
 
         m_lastHoveredElement = newHoveredElement;
+    }
+
+    // Dispatch mousemove to currently hovered element (if handler exists).
+    if (!newHoveredElement.empty())
+    {
+        for (const auto &elem : elements)
+        {
+            if (elem.id == newHoveredElement)
+            {
+                auto mousemoveIt = elem.handlers.find("mousemove");
+                if (mousemoveIt != elem.handlers.end())
+                {
+                    ReactiveUI &ui = ReactiveUI::GetInstance();
+                    ReactiveUI::EventData eventData;
+                    eventData.x = x;
+                    eventData.y = y;
+                    eventData.button = -1;
+                    eventData.elemId = elem.id;
+                    eventData.eventType = "mousemove";
+                    ui.DispatchEvent("mousemove", mousemoveIt->second, eventData);
+                }
+                break;
+            }
+        }
     }
 }

@@ -18,7 +18,7 @@
  *
  * Input handler system:
  * - RegisterInputHandler() adds listeners for keyboard/mouse events
- * - Events routed to handlers in order (editor has priority via order)
+ * - Events routed to handlers in reverse registration order (latest has priority)
  * - Handlers return true to consume event, false to pass through
  *
  * Integration: Used by all systems needing window/input access (Game, Editor, ReactiveUI)
@@ -180,6 +180,8 @@ void error_callback(int error, const char *description)
 
 bool WindowManager::Initialize(int const width, int const height)
 {
+    m_isShutdown = false;
+
     glfwSetErrorCallback(error_callback);
 
     // Wayland is not fully supported in GLFW
@@ -247,7 +249,23 @@ bool WindowManager::Initialize(int const width, int const height)
 
 void WindowManager::Shutdown()
 {
-    glfwDestroyWindow(window);
+    if (m_isShutdown)
+    {
+        return;
+    }
+
+    m_isShutdown = true;
+
+    // Clear input handlers so late unregistration during static teardown is a no-op.
+    m_inputHandlers.clear();
+    m_nextHandlerId = 0;
+
+    if (window != nullptr)
+    {
+        glfwDestroyWindow(window);
+        window = nullptr;
+    }
+
     glfwTerminate();
 }
 
@@ -284,11 +302,10 @@ void WindowManager::UnregisterInputHandler(size_t id)
     if (it != m_inputHandlers.end())
     {
         m_inputHandlers.erase(it, m_inputHandlers.end());
-        LOG_INFO("[WindowManager] Unregistered input handler ID {}", id);
     }
     else
     {
-        LOG_WARNING("[WindowManager] Attempted to unregister unknown handler ID {}", id);
+        // During shutdown/static teardown, IDs can be stale; avoid logging here.
     }
 }
 
@@ -304,12 +321,13 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
         event.input = GLFW_KEY(key);
         event.mods = mods;
 
-        LOG_INFO("[WindowManager] Key event: key={}, action={}, mods={}", GLFW_KEY(key), action, mods);
+        LOG_TRACE_L2("[WindowManager] Key event: key={}, action={}, mods={}", GLFW_KEY(key), action, mods);
 
         // Try C++ handlers first
         WindowManager &wm = GetInstance();
-        for (const auto &[id, handler] : wm.m_inputHandlers)
+        for (auto it = wm.m_inputHandlers.rbegin(); it != wm.m_inputHandlers.rend(); ++it)
         {
+            const auto &[id, handler] = *it;
             if (handler(event))
             {
                 LOG_DEBUG("[WindowManager] Key input consumed by handler ID {}", id);
@@ -326,28 +344,39 @@ void WindowManager::key_callback(GLFWwindow *window, int key, int scancode, int 
 void WindowManager::click_callback(GLFWwindow *window, int button, int action, int mods)
 {
     // Log all click events for debugging
-    LOG_WARNING("[WindowManager] click_callback triggered: button={}, action={}, mods={}", button, action, mods);
-
-    // Handle button press events (action=GLFW_PRESS)
-    // In some cases, we might only receive release events, so we process those too
-    if (action != GLFW_PRESS && action != GLFW_RELEASE)
-    {
-        LOG_DEBUG("[WindowManager] Ignoring click event with action={} (not GLFW_PRESS or GLFW_RELEASE)", action);
-        return;
-    }
-
-    // For now, process both press and release
-    // This makes click detection more reliable across platforms
-    if (action == GLFW_RELEASE)
-    {
-        LOG_DEBUG("[WindowManager] Processing mouse release event (some platforms only send release)");
-    }
+    LOG_TRACE_L2("[WindowManager] click_callback triggered: button={}, action={}, mods={}", button, action, mods);
 
     // Get cursor position at time of click
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
 
-    LOG_INFO("[WindowManager] Mouse click detected: button={}, pos=({}, {})", button, xpos, ypos);
+    LOG_TRACE_L2("[WindowManager] Mouse click detected: button={}, pos=({}, {})", button, xpos, ypos);
+
+    // Always emit a MouseButton event (press + release) for fine-grained UI input (@mousedown/@mouseup).
+    // This is handled by C++ systems (HTMLRendererMT) and is not queued to Lua by default.
+    {
+        InputEvent mouseButtonEvent;
+        mouseButtonEvent.type = InputTypes::MouseButton;
+        mouseButtonEvent.input = glm::vec4(xpos, ypos, static_cast<float>(button), static_cast<float>(action));
+        mouseButtonEvent.mods = mods;
+
+        WindowManager &wm = GetInstance();
+        for (auto it = wm.m_inputHandlers.rbegin(); it != wm.m_inputHandlers.rend(); ++it)
+        {
+            const auto &[id, handler] = *it;
+            if (handler(mouseButtonEvent))
+            {
+                LOG_TRACE_L2("[WindowManager] MouseButton input consumed by handler ID {}", id);
+                break;
+            }
+        }
+    }
+
+    // Only emit Click on GLFW_PRESS to avoid double-triggering on press+release.
+    if (action != GLFW_PRESS)
+    {
+        return;
+    }
 
     InputEvent event;
     event.type = InputTypes::Click;
@@ -356,21 +385,22 @@ void WindowManager::click_callback(GLFWwindow *window, int button, int action, i
 
     // Try C++ handlers first
     WindowManager &wm = GetInstance();
-    LOG_INFO("[WindowManager] Trying {} C++ handlers for click event", wm.m_inputHandlers.size());
-    for (const auto &[id, handler] : wm.m_inputHandlers)
+    LOG_TRACE_L3("[WindowManager] Trying {} C++ handlers for click event", wm.m_inputHandlers.size());
+    for (auto it = wm.m_inputHandlers.rbegin(); it != wm.m_inputHandlers.rend(); ++it)
     {
-        LOG_DEBUG("[WindowManager] Calling handler ID {}", id);
+        const auto &[id, handler] = *it;
+        LOG_TRACE_L3("[WindowManager] Calling handler ID {}", id);
         bool consumed = handler(event);
-        LOG_DEBUG("[WindowManager] Handler ID {} returned {}", id, consumed ? "true (consumed)" : "false (pass through)");
+        LOG_TRACE_L3("[WindowManager] Handler ID {} returned {}", id, consumed ? "true (consumed)" : "false (pass through)");
         if (consumed)
         {
-            LOG_DEBUG("[WindowManager] Click input consumed by handler ID {}", id);
+            LOG_TRACE_L2("[WindowManager] Click input consumed by handler ID {}", id);
             return; // Event consumed, don't send to Lua
         }
     }
 
     // Fall through to Lua if no C++ handler consumed event
-    LOG_DEBUG("[WindowManager] No handlers consumed click, adding to Lua queue");
+    LOG_TRACE_L3("[WindowManager] No handlers consumed click, adding to Lua queue");
     ScriptManager &sm = ScriptManager::GetInstance();
     APPEND_EVENT(event)
 }
@@ -389,8 +419,9 @@ void WindowManager::cursorPos_callback(GLFWwindow *window, double xpos, double y
 
     // Try C++ handlers first
     WindowManager &wm = GetInstance();
-    for (const auto &[id, handler] : wm.m_inputHandlers)
+    for (auto it = wm.m_inputHandlers.rbegin(); it != wm.m_inputHandlers.rend(); ++it)
     {
+        const auto &[id, handler] = *it;
         if (handler(event))
         {
             LOG_DEBUG("[WindowManager] Cursor input consumed by handler ID {}", id);
@@ -408,6 +439,21 @@ void WindowManager::resize_callback(GLFWwindow *window, int fbWidth, int fbHeigh
     // Update OpenGL viewport to match new framebuffer size
     glViewport(0, 0, fbWidth, fbHeight);
 
+    // Broadcast a Resize event to C++ handlers (e.g., HTMLRendererMT, editor viewport sizing).
+    {
+        InputEvent event;
+        event.type = InputTypes::Resize;
+        event.input = glm::vec2(static_cast<float>(fbWidth), static_cast<float>(fbHeight));
+
+        WindowManager &wm = GetInstance();
+        for (auto it = wm.m_inputHandlers.rbegin(); it != wm.m_inputHandlers.rend(); ++it)
+        {
+            const auto &[id, handler] = *it;
+            (void)id;
+            handler(event);
+        }
+    }
+
     // Update camera projection if camera exists
     // Note: Camera uses window size for aspect ratio, not framebuffer size
     int windowWidth, windowHeight;
@@ -422,14 +468,7 @@ void WindowManager::resize_callback(GLFWwindow *window, int fbWidth, int fbHeigh
         {
             game->cam->SetPerspective(game->cam->fov, windowWidth, windowHeight);
         }
-        else
-        {
-            LOG_ERROR("[WindowManager] Camera is null, cannot update perspective on resize");
-        }
-    }
-    else
-    {
-        LOG_ERROR("[WindowManager] User pointer is null, cannot update perspective on resize");
+        // If cam is null, skip silently (common in editor mode).
     }
 }
 
@@ -441,8 +480,9 @@ void WindowManager::scroll_callback(GLFWwindow *window, double xoffset, double y
 
     // Try C++ handlers first
     WindowManager &wm = GetInstance();
-    for (const auto &[id, handler] : wm.m_inputHandlers)
+    for (auto it = wm.m_inputHandlers.rbegin(); it != wm.m_inputHandlers.rend(); ++it)
     {
+        const auto &[id, handler] = *it;
         if (handler(event))
         {
             LOG_DEBUG("[WindowManager] Scroll input consumed by handler ID {}", id);
@@ -499,8 +539,9 @@ void WindowManager::char_callback(GLFWwindow *window, unsigned int codepoint)
 
     // Try C++ handlers first
     WindowManager &wm = GetInstance();
-    for (const auto &[id, handler] : wm.m_inputHandlers)
+    for (auto it = wm.m_inputHandlers.rbegin(); it != wm.m_inputHandlers.rend(); ++it)
     {
+        const auto &[id, handler] = *it;
         if (handler(event))
         {
             return; // Event consumed

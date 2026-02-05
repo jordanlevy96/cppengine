@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- CSS_PLACEHOLDER -->
+</head>
+<body>
+    <div class="container">
+        <h1>UI Event System Test Suite</h1>
+        <p class="subtitle">Testing new event features: mouseenter/leave, mousedown/up, and v-table</p>
+
+        <!-- Section 1: Click Events (no double-click) -->
+        <section class="test-section">
+            <h2>1. Click Events (Fixed Double-Click)</h2>
+            <p class="description">Click the button below. It should only fire once per click.</p>
+
+            <button class="test-button" @click="onButtonClick">
+                Click Me! (Count: {{ clickCount }})
+            </button>
+
+            <div class="event-log">
+                <strong>Last Event:</strong> {{ lastEvent }}
+            </div>
+        </section>
+
+        <!-- Section 2: Mouse Enter/Leave Events -->
+        <section class="test-section">
+            <h2>2. Mouse Enter/Leave Events</h2>
+            <p class="description">Hover over the boxes below to trigger enter/leave events.</p>
+
+            <div class="hover-test-container">
+                <div class="hover-box"
+                     @mouseenter="onMouseEnter('Box 1')"
+                     @mouseleave="onMouseLeave('Box 1')">
+                    <strong>Box 1</strong>
+                    <div class="hover-status">{{ hoverStatus1 }}</div>
+                </div>
+
+                <div class="hover-box"
+                     @mouseenter="onMouseEnter('Box 2')"
+                     @mouseleave="onMouseLeave('Box 2')">
+                    <strong>Box 2</strong>
+                    <div class="hover-status">{{ hoverStatus2 }}</div>
+                </div>
+
+                <div class="hover-box"
+                     @mouseover="onMouseOver('Box 3')"
+                     @mouseout="onMouseOut('Box 3')">
+                    <strong>Box 3 (old events)</strong>
+                    <div class="hover-status">{{ hoverStatus3 }}</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Mouse Down/Up Events -->
+        <section class="test-section">
+            <h2>3. Mouse Down/Up Events</h2>
+            <p class="description">Press and hold the button to see separate down/up events.</p>
+
+            <button class="drag-button"
+                    @mousedown="onMouseDown"
+                    @mouseup="onMouseUp">
+                {{ pressState }}
+            </button>
+
+            <div class="event-log">
+                <strong>Press Duration:</strong> {{ pressDuration }}ms
+            </div>
+        </section>
+
+        <!-- Section 4: v-table Directive -->
+        <section class="test-section">
+            <h2>4. v-table Directive (New Macro)</h2>
+            <p class="description">Automatic table generation from Lua data.</p>
+
+            <h3>Example 1: Player Stats</h3>
+            <table v-table="playerData" class="data-table"></table>
+
+            <h3>Example 2: Performance Metrics</h3>
+            <table v-table="metricsData" class="data-table striped"></table>
+
+            <button class="test-button" @click="refreshTableData">
+                Refresh Data
+            </button>
+        </section>
+
+        <!-- Section 5: Combined Events -->
+        <section class="test-section">
+            <h2>5. Combined Events</h2>
+            <p class="description">Interactive card with multiple event types.</p>
+
+            <div class="interactive-card"
+                 @click="onCardClick"
+                 @mouseenter="onCardEnter"
+                 @mouseleave="onCardLeave"
+                 @mousedown="onCardPress"
+                 @mouseup="onCardRelease">
+                <h3>Interactive Card</h3>
+                <div class="card-status">Status: {{ cardStatus }}</div>
+                <div class="card-info">
+                    <div>Clicks: {{ cardClicks }}</div>
+                    <div>Hovers: {{ cardHovers }}</div>
+                    <div>Presses: {{ cardPresses }}</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: Event Log -->
+        <section class="test-section">
+            <h2>6. Event Log</h2>
+            <div class="full-event-log">
+                <div v-for="logEntry in eventLog" class="log-entry">
+                    [{{ logEntry.time }}] {{ logEntry.message }}
+                </div>
+            </div>
+            <button class="test-button" @click="clearLog">Clear Log</button>
+        </section>
+    </div>
+</body>
+</html>

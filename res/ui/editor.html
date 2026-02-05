@@ -2,53 +2,154 @@
 <html>
 <head>
     <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background: #1e1e1e;
+            background: rgba(0, 0, 0, 0);
             color: #cccccc;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
         }
 
         .menu-bar {
-            height: 30px;
+            flex: 0 0 auto;
             background: #252526;
-            padding: 8px;
+            padding: 0.35em 0.5em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+
+        .menu-left {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .menu-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .menu-item {
+            cursor: pointer;
+            user-select: none;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            transition: all 0.12s;
+        }
+
+        .menu-item:hover, .menu-item.hovered {
+            background: #3a3a3a;
+            color: #ffffff;
+        }
+
+        .menu-item.active {
+            color: #4ec9b0;
+        }
+
+        .menu-item.active:hover, .menu-item.active.hovered {
+            background: #2a3a38;
         }
 
         .content {
-            margin-top: 10px;
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .scene-tree {
-            float: left;
-            width: 250px;
+            width: 240px;
             background: #252526;
-            padding: 10px;
-            min-height: 600px;
+            padding: 0.75em;
+            height: 100%;
+            overflow-y: auto;
+            box-sizing: border-box;
         }
 
         .viewport {
-            float: left;
-            width: 800px;
-            background: #2d2d30;
-            padding: 10px;
+            flex: 1;
+            background: rgba(0, 0, 0, 0);
+            padding: 0;
+            height: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: flex;
+            align-items: stretch;
+            justify-content: stretch;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .viewport-host {
+            flex: 1;
+            width: 100%;
+            height: 100%;
         }
 
         .inspector {
-            float: left;
-            width: 250px;
+            width: 260px;
             background: #252526;
-            padding: 10px;
-            min-height: 600px;
+            padding: 0.75em;
+            height: 100%;
+            overflow-y: auto;
+            box-sizing: border-box;
         }
 
         .ui-editor {
-            float: left;
-            width: 500px;
+            width: 100%;
             background: #252526;
-            padding: 10px;
-            min-height: 600px;
+            padding: 0.75em;
+            height: 100%;
             overflow-y: auto;
+            box-sizing: border-box;
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+
+        .main-row {
+            display: flex;
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .splitter {
+            width: 6px;
+            background: #1e1e1e;
+            cursor: col-resize;
+            user-select: none;
+        }
+
+        .splitter:hover {
+            background: #3e3e3e;
+        }
+
+        .resize-overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0);
+            cursor: col-resize;
+        }
+
+        .app {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
         .ui-editor-header {
@@ -70,30 +171,213 @@
         }
 
         .ui-editor-tab {
-            padding: 6px 12px;
+            padding: 0.35em 0.7em;
             background: #1e1e1e;
             border: 1px solid #3e3e3e;
             cursor: pointer;
             margin-right: 2px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .ui-editor-tab:hover {
+            background: #2a2a2a;
+            border-color: #4ec9b0;
         }
 
         .ui-editor-tab.active {
             background: #0e639c;
             color: #ffffff;
+            border-color: #0e639c;
         }
 
-        .ui-editor-code {
-            width: 100%;
-            height: 300px;
-            padding: 8px;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border: 1px solid #3e3e3e;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            resize: vertical;
-            box-sizing: border-box;
+        .ui-editor-tab.active:hover {
+            background: #1177bb;
         }
+
+        /* Inspector - Godot-style design */
+        .inspector-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5em 0.6em;
+            background: linear-gradient(180deg, #3d3d3d 0%, #2d2d2d 100%);
+            border: 1px solid #1a1a1a;
+            border-radius: 3px;
+            margin-bottom: 0.5em;
+        }
+
+        .inspector-header-name {
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .inspector-header-id {
+            font-size: 0.8em;
+            color: #888;
+            font-family: 'SF Mono', monospace;
+        }
+
+        .inspector-section {
+            margin-bottom: 0.4em;
+            border: 1px solid #1a1a1a;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .inspector-section-header {
+            display: flex;
+            align-items: center;
+            padding: 0.4em 0.5em;
+            background: linear-gradient(180deg, #383838 0%, #2a2a2a 100%);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s;
+        }
+
+        .inspector-section-header:hover {
+            background: linear-gradient(180deg, #404040 0%, #323232 100%);
+        }
+
+        .inspector-section-icon {
+            width: 1em;
+            margin-right: 0.4em;
+            color: #888;
+            font-size: 0.8em;
+        }
+
+        .inspector-section-title {
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #b0b0b0;
+        }
+
+        .inspector-section-content {
+            padding: 0.5em;
+            background: #252525;
+        }
+
+        .inspector-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.35em;
+            min-height: 1.6em;
+        }
+
+        .inspector-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .inspector-row-label {
+            width: 70px;
+            flex-shrink: 0;
+            font-size: 0.85em;
+            color: #9cdcfe;
+            user-select: none;
+        }
+
+        .inspector-row-values {
+            display: flex;
+            flex: 1;
+            gap: 3px;
+        }
+
+        .inspector-field {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .inspector-field-label {
+            width: 14px;
+            flex-shrink: 0;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-align: center;
+            padding: 0.3em 0;
+            border-radius: 2px 0 0 2px;
+            user-select: none;
+        }
+
+        .inspector-field-label.x {
+            background: #8b3a3a;
+            color: #ffaaaa;
+        }
+
+        .inspector-field-label.y {
+            background: #3a6b3a;
+            color: #aaffaa;
+        }
+
+        .inspector-field-label.z {
+            background: #3a3a8b;
+            color: #aaaaff;
+        }
+
+        .inspector-input {
+            flex: 1;
+            padding: 0.3em 0.4em;
+            background: #1a1a1a;
+            color: #cccccc;
+            border: 1px solid #333;
+            border-left: none;
+            border-radius: 0 2px 2px 0;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.85em;
+            box-sizing: border-box;
+            user-select: none;
+            white-space: nowrap;
+            overflow: hidden;
+            min-width: 0;
+            cursor: text;
+            transition: all 0.15s;
+        }
+
+        .inspector-input:hover, .inspector-input.hovered {
+            background: #222;
+            border-color: #444;
+        }
+
+        .inspector-input.hovered:not(.focused) {
+            border-color: #555;
+        }
+
+        .inspector-input.focused {
+            background: #1e2a1e;
+            border-color: #4ec9b0;
+            color: #fff;
+        }
+
+        .input-cursor {
+            color: #4ec9b0;
+            animation: blink 1s step-end infinite;
+            font-weight: normal;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .inspector-empty {
+            color: #666;
+            font-style: italic;
+            padding: 1em;
+            text-align: center;
+        }
+
+	        .ui-editor-code {
+	            width: 100%;
+	            height: 300px;
+	            padding: 8px;
+	            background: #1e1e1e;
+	            color: #d4d4d4;
+	            border: 1px solid #3e3e3e;
+	            font-family: 'Courier New', monospace;
+	            font-size: 0.85em;
+	            resize: vertical;
+	            box-sizing: border-box;
+	        }
 
         .ui-editor-buttons {
             margin-top: 10px;
@@ -107,10 +391,18 @@
             color: #ffffff;
             border: none;
             cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
         }
 
         .ui-editor-button:hover {
             background: #1177bb;
+        }
+
+        .ui-editor-button.pressing {
+            background: #094771;
+            transform: translateY(1px);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .ui-editor-preview {
@@ -123,11 +415,11 @@
             overflow-y: auto;
         }
 
-        .ui-editor-error {
-            color: #f48771;
-            margin-top: 5px;
-            font-size: 12px;
-        }
+	        .ui-editor-error {
+	            color: #f48771;
+	            margin-top: 5px;
+	            font-size: 0.85em;
+	        }
 
         .ui-editor-new-template {
             margin-top: 10px;
@@ -146,118 +438,231 @@
         }
 
         h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
+            margin: 0 0 0.6em 0;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .entity-item {
-            padding: 4px;
+            padding: 0.35em 0.5em;
             margin-bottom: 2px;
             background: #1e1e1e;
             cursor: pointer;
             user-select: none;
+            transition: all 0.12s;
+            border-left: 3px solid transparent;
+            border-radius: 2px;
+            font-size: 0.9em;
         }
 
         .entity-item:hover {
-            background: #2a2a2a;
+            background: #2d2d2d;
+            border-left-color: #4ec9b0;
         }
 
         .entity-item.selected {
-            background: #0e639c;
+            background: linear-gradient(90deg, #1a5a8a 0%, #0e4a7a 100%);
             color: #ffffff;
+            border-left-color: #4ec9b0;
         }
-    </style>
-</head>
-<body>
-    <div class="menu-bar">
-        File | Edit | View | Tools
-    </div>
 
-    <div class="content">
-        <div class="scene-tree">
-            <h3>Scene Hierarchy</h3>
-            <div v-for="entity in entities" v-bind:class="'entity-item' .. (selectedEntityId == entity.id and ' selected' or '')" @click="selectEntity(entity.id)">
-                {{ entity.name }}
+        .entity-item.selected:hover, .entity-item.selected.hovered {
+            background: linear-gradient(90deg, #1f6a9a 0%, #105a8a 100%);
+        }
+
+        .entity-item.hovered {
+            background: #2d2d2d;
+            border-left-color: #4ec9b0;
+        }
+
+	    </style>
+</head>
+<body style="font-size: {{ data.fontSize }}px;">
+    <div class="app">
+        <div class="menu-bar">
+            <div class="menu-left">
+                <span class="menu-item" v-bind:class="data.hovered.menuItem == 'file' and 'hovered' or ''" @mouseenter="onMenuHover('file')" @mouseleave="onMenuLeave">File</span> |
+                <span class="menu-item" v-bind:class="data.hovered.menuItem == 'edit' and 'hovered' or ''" @mouseenter="onMenuHover('edit')" @mouseleave="onMenuLeave">Edit</span> |
+                <span class="menu-item" @click="toggleView" v-bind:class="(data.activeView == 'ui' and 'active' or '') .. (data.hovered.menuItem == 'view' and ' hovered' or '')" @mouseenter="onMenuHover('view')" @mouseleave="onMenuLeave">View</span> |
+                <span class="menu-item" v-bind:class="data.hovered.menuItem == 'tools' and 'hovered' or ''" @mouseenter="onMenuHover('tools')" @mouseleave="onMenuLeave">Tools</span>
+            </div>
+            <div class="menu-right">
+                <span class="menu-item" v-bind:class="data.hovered.menuItem == 'fontDown' and 'hovered' or ''" @click="decreaseFont" @mouseenter="onMenuHover('fontDown')" @mouseleave="onMenuLeave">A-</span>
+                <span class="menu-item" v-bind:class="data.hovered.menuItem == 'fontUp' and 'hovered' or ''" @click="increaseFont" @mouseenter="onMenuHover('fontUp')" @mouseleave="onMenuLeave">A+</span>
+                <span>{{ data.fontSize }}px</span>
             </div>
         </div>
+
+	        <div class="content">
+	            <div v-if="data.activeView == 'scene'" class="main-row">
+	            <div class="scene-tree" style="width: {{ data.layout.leftWidth }}px;">
+	            <h3>Scene Hierarchy</h3>
+	            <div v-for="entity in data.entities"
+	                 v-bind:class="'entity-item' .. (data.selectedEntityId == entity.id and ' selected' or '') .. (data.hovered.entityId == entity.id and ' hovered' or '')"
+	                 @click="selectEntity(entity.id)"
+	                 @mouseenter="onEntityHover(entity.id)"
+	                 @mouseleave="onEntityLeave">
+	                {{ entity.name }}
+	            </div>
+	        </div>
+
+        <div class="splitter"
+             @mousedown="beginResizeLeft($event)"
+             @mouseup="endResize"></div>
 
         <div class="viewport">
-            <img src="{{ viewportImage }}" width="1580" height="1185" />
+            <div class="viewport-host" @click="onViewportClick($event)"></div>
         </div>
 
-        <div class="inspector">
+        <div class="splitter"
+             @mousedown="beginResizeInspector($event)"
+             @mouseup="endResize"></div>
+
+        <div class="inspector" style="width: {{ data.layout.inspectorWidth }}px;">
             <h3>Inspector</h3>
-            <div v-if="selectedEntityId">
-                <div><strong>{{ selectedEntityName }}</strong></div>
-                <div style="margin-top: 10px;">
-                    <div><strong>Position</strong></div>
-                    <div>X: {{ selectedEntityPosition.x }}</div>
-                    <div>Y: {{ selectedEntityPosition.y }}</div>
-                    <div>Z: {{ selectedEntityPosition.z }}</div>
+            <div v-if="data.selectedEntityId ~= nil">
+                <div class="inspector-header">
+                    <span class="inspector-header-name">{{ data.selectedEntityName }}</span>
+                    <span class="inspector-header-id">#{{ data.selectedEntityId }}</span>
                 </div>
-                <div style="margin-top: 10px;">
-                    <div><strong>Rotation</strong></div>
-                    <div>X: {{ selectedEntityRotation.x }}</div>
-                    <div>Y: {{ selectedEntityRotation.y }}</div>
-                    <div>Z: {{ selectedEntityRotation.z }}</div>
-                </div>
-                <div style="margin-top: 10px;">
-                    <div><strong>Scale</strong></div>
-                    <div>X: {{ selectedEntityScale.x }}</div>
-                    <div>Y: {{ selectedEntityScale.y }}</div>
-                    <div>Z: {{ selectedEntityScale.z }}</div>
+
+                <div class="inspector-section">
+                    <div class="inspector-section-header">
+                        <span class="inspector-section-icon">▼</span>
+                        <span class="inspector-section-title">Transform</span>
+                    </div>
+                    <div class="inspector-section-content">
+                        <div class="inspector-row">
+                            <span class="inspector-row-label">Position</span>
+                            <div class="inspector-row-values">
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label x">X</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posX', hovered: data.hovered.inspectorField == 'posX'}" @click="focusInput('data.inspector.posX')" @mouseenter="onFieldHover('posX')" @mouseleave="onFieldLeave"><span v-if="data.focusedField == 'data.inspector.posX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posX'">{{ data.inspector.posX }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label y">Y</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posY', hovered: data.hovered.inspectorField == 'posY'}" @click="focusInput('data.inspector.posY')" @mouseenter="onFieldHover('posY')" @mouseleave="onFieldLeave"><span v-if="data.focusedField == 'data.inspector.posY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posY'">{{ data.inspector.posY }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label z">Z</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.posZ', hovered: data.hovered.inspectorField == 'posZ'}" @click="focusInput('data.inspector.posZ')" @mouseenter="onFieldHover('posZ')" @mouseleave="onFieldLeave"><span v-if="data.focusedField == 'data.inspector.posZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.posZ'">{{ data.inspector.posZ }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="inspector-row">
+                            <span class="inspector-row-label">Rotation</span>
+                            <div class="inspector-row-values">
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label x">X</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotX', hovered: data.hovered.inspectorField == 'rotX'}" @click="focusInput('data.inspector.rotX')" @mouseenter="onFieldHover('rotX')" @mouseleave="onFieldLeave"><span v-if="data.focusedField == 'data.inspector.rotX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotX'">{{ data.inspector.rotX }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label y">Y</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotY', hovered: data.hovered.inspectorField == 'rotY'}" @click="focusInput('data.inspector.rotY')" @mouseenter="onFieldHover('rotY')" @mouseleave="onFieldLeave"><span v-if="data.focusedField == 'data.inspector.rotY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotY'">{{ data.inspector.rotY }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label z">Z</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.rotZ', hovered: data.hovered.inspectorField == 'rotZ'}" @click="focusInput('data.inspector.rotZ')" @mouseenter="onFieldHover('rotZ')" @mouseleave="onFieldLeave"><span v-if="data.focusedField == 'data.inspector.rotZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.rotZ'">{{ data.inspector.rotZ }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="inspector-row">
+                            <span class="inspector-row-label">Scale</span>
+                            <div class="inspector-row-values">
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label x">X</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleX', hovered: data.hovered.inspectorField == 'scaleX'}" @click="focusInput('data.inspector.scaleX')" @mouseenter="onFieldHover('scaleX')" @mouseleave="onFieldLeave"><span v-if="data.focusedField == 'data.inspector.scaleX'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleX'">{{ data.inspector.scaleX }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label y">Y</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleY', hovered: data.hovered.inspectorField == 'scaleY'}" @click="focusInput('data.inspector.scaleY')" @mouseenter="onFieldHover('scaleY')" @mouseleave="onFieldLeave"><span v-if="data.focusedField == 'data.inspector.scaleY'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleY'">{{ data.inspector.scaleY }}</span></div>
+                                </div>
+                                <div class="inspector-field">
+                                    <span class="inspector-field-label z">Z</span>
+                                    <div class="inspector-input" :class="{focused: data.focusedField == 'data.inspector.scaleZ', hovered: data.hovered.inspectorField == 'scaleZ'}" @click="focusInput('data.inspector.scaleZ')" @mouseenter="onFieldHover('scaleZ')" @mouseleave="onFieldLeave"><span v-if="data.focusedField == 'data.inspector.scaleZ'">{{ data.inspectorDisplay }}</span><span v-if="data.focusedField ~= 'data.inspector.scaleZ'">{{ data.inspector.scaleZ }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div v-else>
-                No selection
+            <div v-if="data.selectedEntityId == nil" class="inspector-empty">
+                Select an entity to inspect
             </div>
         </div>
+            </div>
 
-        <div class="ui-editor">
+        <div v-if="data.activeView == 'ui'" class="ui-editor">
             <div class="ui-editor-header">
                 <h3>UI Editor</h3>
-                <select class="ui-editor-selector" v-model="uiEditor.currentTemplate" @change="loadTemplate(uiEditor.currentTemplate)">
+                <select class="ui-editor-selector" v-model="data.uiEditor.currentTemplate" @change="loadTemplate">
                     <option value="">-- Select Template --</option>
-                    <option v-for="tpl in uiEditor.templates" v-bind:value="tpl.name">{{ tpl.name }}</option>
+                    <option v-for="tpl in data.uiEditor.templates" v-bind:value="tpl.name">{{ tpl.name }}</option>
                 </select>
             </div>
 
-            <div v-if="uiEditor.currentTemplate">
+            <div v-if="data.uiEditor.currentTemplate">
                 <div class="ui-editor-tabs">
-                    <div class="ui-editor-tab" :class="{active: uiEditor.activeTab == 'html'}" @click="uiEditor.activeTab = 'html'">HTML</div>
-                    <div class="ui-editor-tab" :class="{active: uiEditor.activeTab == 'css'}" @click="uiEditor.activeTab = 'css'">CSS</div>
-                    <div class="ui-editor-tab" :class="{active: uiEditor.activeTab == 'lua'}" @click="uiEditor.activeTab = 'lua'">Lua</div>
+                    <div class="ui-editor-tab"
+                         :class="{active: data.uiEditor.activeTab == 'html'}"
+                         @click="switchTab('html')">HTML</div>
+                    <div class="ui-editor-tab"
+                         :class="{active: data.uiEditor.activeTab == 'css'}"
+                         @click="switchTab('css')">CSS</div>
+                    <div class="ui-editor-tab"
+                         :class="{active: data.uiEditor.activeTab == 'lua'}"
+                         @click="switchTab('lua')">Lua</div>
                 </div>
 
-                <textarea v-if="uiEditor.activeTab == 'html'" class="ui-editor-code" v-model="uiEditor.htmlCode" @input="onCodeChange"></textarea>
-                <textarea v-if="uiEditor.activeTab == 'css'" class="ui-editor-code" v-model="uiEditor.cssCode" @input="onCodeChange"></textarea>
-                <textarea v-if="uiEditor.activeTab == 'lua'" class="ui-editor-code" v-model="uiEditor.luaCode" @input="onCodeChange"></textarea>
+                <textarea v-if="data.uiEditor.activeTab == 'html'" class="ui-editor-code" v-model="data.uiEditor.htmlCode" @input="onCodeChange"></textarea>
+                <textarea v-if="data.uiEditor.activeTab == 'css'" class="ui-editor-code" v-model="data.uiEditor.cssCode" @input="onCodeChange"></textarea>
+                <textarea v-if="data.uiEditor.activeTab == 'lua'" class="ui-editor-code" v-model="data.uiEditor.luaCode" @input="onCodeChange"></textarea>
 
                 <div class="ui-editor-buttons">
-                    <button class="ui-editor-button" @click="saveTemplate">Save</button>
-                    <button class="ui-editor-button" @click="previewTemplate">Preview</button>
+                    <button class="ui-editor-button"
+                            :class="{pressing: data.pressedButton == 'save'}"
+                            @click="saveTemplate"
+                            @mousedown="onButtonPress('save')"
+                            @mouseup="onButtonRelease">Save</button>
+                    <button class="ui-editor-button"
+                            :class="{pressing: data.pressedButton == 'preview'}"
+                            @click="previewTemplate"
+                            @mousedown="onButtonPress('preview')"
+                            @mouseup="onButtonRelease">Preview</button>
                 </div>
 
-                <div v-if="uiEditor.errorMessage" class="ui-editor-error">
-                    {{ uiEditor.errorMessage }}
+                <div v-if="data.uiEditor.errorMessage" class="ui-editor-error">
+                    {{ data.uiEditor.errorMessage }}
                 </div>
 
                 <div class="ui-editor-preview">
                     <h4>Live Preview</h4>
-                    <div v-html="uiEditor.previewHTML"></div>
+                    <div v-html="data.uiEditor.previewHTML"></div>
                 </div>
             </div>
-            <div v-else>
-                <p>Select a template from the dropdown above to edit, or create a new one below.</p>
-                
+            <div v-if="not data.uiEditor.currentTemplate">
                 <div class="ui-editor-new-template">
                     <h4>Create New Template</h4>
-                    <input type="text" v-model="uiEditor.newTemplateName" @click="focusInput('uiEditor.newTemplateName')" placeholder="Template name (e.g., 'my_ui')" />
-                    <button class="ui-editor-button" @click="createTemplate(uiEditor.newTemplateName)">Create</button>
-                    <p style="font-size: 11px; color: #888; margin-top: 5px;">Enter a name without extension (e.g., 'my_ui' creates my_ui.html, my_ui.css, my_ui.lua)</p>
+                    <input type="text" v-model="data.uiEditor.newTemplateName" @click="focusInput('data.uiEditor.newTemplateName')" placeholder="Template name" />
+                    <button class="ui-editor-button"
+                            :class="{pressing: data.pressedButton == 'create'}"
+                            @click="createTemplate"
+                            @mousedown="onButtonPress('create')"
+                            @mouseup="onButtonRelease">Create</button>
                 </div>
             </div>
         </div>
+        </div>
+
+        <div v-if="data.resizing.active"
+             class="resize-overlay"
+             @mousemove="onMouseMove($event)"
+             @mouseup="endResize"
+             @mouseleave="endResize"
+             @click="noop"></div>
     </div>
 </body>
 </html>

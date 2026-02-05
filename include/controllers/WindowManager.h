@@ -13,12 +13,14 @@
 
 #include <functional>
 #include <vector>
+#include <variant>
 
 /// Input event types for callback dispatching
 enum InputTypes
 {
     Key,    ///< Keyboard input
     Click,  ///< Mouse button click
+    MouseButton, ///< Mouse button press/release (for mousedown/mouseup)
     Cursor, ///< Mouse cursor movement
     Resize, ///< Window resize event
     Scroll, ///< Mouse scroll wheel
@@ -31,8 +33,9 @@ enum InputTypes
 struct InputEvent
 {
     InputTypes type;                                       ///< InputTypes enum value
-    std::variant<std::string, glm::vec2, glm::vec3> input; ///< Event data (key name, 2D position, or 3D click data)
+    std::variant<std::string, glm::vec2, glm::vec3, glm::vec4> input; ///< Event data (key name, 2D position, click data, or mouse button data)
     ///< vec3 format for clicks: (x, y, button) where button: 0=left, 1=right, 2=middle
+    ///< vec4 format for mouse buttons: (x, y, button, action) where action is GLFW_PRESS/GLFW_RELEASE
     int mods = 0; ///< Keyboard modifiers (GLFW_MOD_CONTROL, GLFW_MOD_SHIFT, etc.)
 };
 
@@ -142,4 +145,6 @@ private:
 
     /// Next handler ID for registration
     size_t m_nextHandlerId = 0;
+
+    bool m_isShutdown = false;
 };

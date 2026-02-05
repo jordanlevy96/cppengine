@@ -175,6 +175,17 @@ private:
     std::string ProcessVForElement(GumboNode* node, const std::string& expression, LuaUIState& state);
 
     /**
+     * @brief Process v-table directive - generates table HTML from data
+     * @param node Gumbo element node (should be <table> or container)
+     * @param expression Lua expression evaluating to table data
+     * @param state Lua state for evaluation
+     * @return Rendered table HTML
+     * @note Expected data format: {columns={"A","B"}, rows={{1,2},{3,4}}}
+     * @note Alternative format: {headers={"A","B"}, data={{1,2},{3,4}}}
+     */
+    std::string ProcessVTableElement(GumboNode* node, const std::string& expression, LuaUIState& state);
+
+    /**
      * @brief Serialize element with scoped iteration variables
      * @param node Gumbo element node
      * @param state Lua state
