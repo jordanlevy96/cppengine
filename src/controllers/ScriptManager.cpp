@@ -709,6 +709,33 @@ namespace LuaBindings
                 }
             };
 
+            auto setInt = [&](const char *key, auto setter)
+            {
+                sol::object v = cfg[key];
+                if (!v.valid())
+                {
+                    return;
+                }
+                if (v.is<int>())
+                {
+                    setter(v.as<int>());
+                }
+                else if (v.is<double>())
+                {
+                    setter(static_cast<int>(v.as<double>()));
+                }
+                else if (v.is<std::string>())
+                {
+                    try
+                    {
+                        setter(std::stoi(v.as<std::string>()));
+                    }
+                    catch (...)
+                    {
+                    }
+                }
+            };
+
             auto setBool = [&](const char *key, auto setter)
             {
                 sol::object v = cfg[key];
@@ -813,6 +840,10 @@ namespace LuaBindings
             setNumber("sunRadius", [&](float v) { c.sunRadius = v; });
             setNumber("sunGlow", [&](float v) { c.sunGlow = v; });
             setVec3("sunColor", c.sunColor);
+            setInt("sunStripeCount", [&](int v) { c.sunStripeCount = v; });
+            setNumber("sunStripeFill", [&](float v) { c.sunStripeFill = v; });
+            setNumber("sunStripeTopClear", [&](float v) { c.sunStripeTopClear = v; });
+            setNumber("sunHorizonMix", [&](float v) { c.sunHorizonMix = v; });
 
             setBool("mountainsEnabled", [&](bool v) { c.mountainsEnabled = v; });
             setBool("mountainsOccludeSun", [&](bool v) { c.mountainsOccludeSun = v; });

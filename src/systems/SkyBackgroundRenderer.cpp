@@ -82,6 +82,10 @@ void SkyBackgroundRenderer::Configure(const SkyBackgroundConfig &config)
     m_config.horizonGlow = std::max(0.0f, m_config.horizonGlow);
     m_config.sunRadius = std::max(0.0f, m_config.sunRadius);
     m_config.sunGlow = std::max(0.0f, m_config.sunGlow);
+    m_config.sunStripeCount = std::clamp(m_config.sunStripeCount, 0, 128);
+    m_config.sunStripeFill = std::clamp(m_config.sunStripeFill, 0.0f, 1.0f);
+    m_config.sunStripeTopClear = std::clamp(m_config.sunStripeTopClear, 0.0f, 1.0f);
+    m_config.sunHorizonMix = std::clamp(m_config.sunHorizonMix, 0.0f, 1.0f);
 
     m_config.mountainBaseY = std::clamp(m_config.mountainBaseY, 0.0f, 1.0f);
     m_config.mountainHeight = std::max(0.0f, m_config.mountainHeight);
@@ -163,6 +167,10 @@ void SkyBackgroundRenderer::Render(Camera *camera, float deltaMs)
     m_shader->SetFloat("u_sunRadius", m_config.sunRadius);
     m_shader->SetFloat("u_sunGlow", m_config.sunGlow);
     m_shader->SetVec3("u_sunColor", m_config.sunColor);
+    m_shader->SetInt("u_sunStripeCount", m_config.sunStripeCount);
+    m_shader->SetFloat("u_sunStripeFill", m_config.sunStripeFill);
+    m_shader->SetFloat("u_sunStripeTopClear", m_config.sunStripeTopClear);
+    m_shader->SetFloat("u_sunHorizonMix", m_config.sunHorizonMix);
     m_shader->SetFloat("u_time", m_timeSeconds);
     m_shader->SetFloat("u_aspect", aspect);
 

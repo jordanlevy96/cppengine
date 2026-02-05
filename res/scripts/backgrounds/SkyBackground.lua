@@ -20,10 +20,18 @@ SkyBackground = {
     -- Sun:
     -- sunPos is UV [0..1] with (0,0) at bottom-left.
     -- sunRadius is UV-space radius; sunGlow expands the halo radius relative to sunRadius.
+    -- sunStripeCount enables horizontal stripes (0 disables).
+    -- sunStripeFill is the lit fraction of each stripe period [0..1] (lower = thicker gaps).
+    -- sunStripeTopClear keeps the top portion of the disc solid [0..1] (classic synthwave look).
+    -- sunHorizonMix mixes the bottom of the sun toward horizonColor [0..1] (adds pink near the horizon).
     sunPos = { x = 0.72, y = 0.62 },
     sunRadius = 0.06,
     sunGlow = 0.14,
     sunColor = { r = 1.00, g = 0.55, b = 0.15 },
+    sunStripeCount = 10,
+    sunStripeFill = 0.65,
+    sunStripeTopClear = 0.25,
+    sunHorizonMix = 0.55,
 
     -- Mountains (distant silhouette)
     -- NOTE: For the synthwave background, we prefer the tiled terrain mountains (with grid lines),
@@ -55,6 +63,10 @@ SkyBackground = {
             sunRadius = self.sunRadius,
             sunGlow = self.sunGlow,
             sunColor = self.sunColor,
+            sunStripeCount = self.sunStripeCount,
+            sunStripeFill = self.sunStripeFill,
+            sunStripeTopClear = self.sunStripeTopClear,
+            sunHorizonMix = self.sunHorizonMix,
 
             mountainsEnabled = self.mountainsEnabled,
             mountainsOccludeSun = self.mountainsOccludeSun,

@@ -33,6 +33,10 @@ uniform vec2 u_sunPos;
 uniform float u_sunRadius;
 uniform float u_sunGlow;
 uniform vec3 u_sunColor;
+uniform int u_sunStripeCount;
+uniform float u_sunStripeFill;
+uniform float u_sunStripeTopClear;
+uniform float u_sunHorizonMix;
 
 uniform float u_time;
 uniform float u_aspect;
@@ -116,19 +120,53 @@ void main()
     float hg = (u_horizonGlow <= 0.0) ? 0.0 : (1.0 - smoothstep(0.0, u_horizonGlow, h));
     color = mix(color, u_horizonColor, saturate(hg) * kHorizonTint);
 
-    // Sun disc + glow
-    float d = length(vUV - u_sunPos);
-    float disc = 1.0 - smoothstep(u_sunRadius * 0.98, u_sunRadius * 1.02, d);
+    // Sun disc + glow (synthwave style)
+    // - Use aspect-correct distance so the sun stays circular on wide screens
+    // - Use mix() for the disc so it doesn't wash out by adding into the sky gradient
+    vec2 sunD = vUV - u_sunPos;
+    sunD.x *= u_aspect;
+    float d = length(sunD);
+    float aa = max(fwidth(d), 1e-6);
+
+    float disc = 1.0 - smoothstep(u_sunRadius - aa, u_sunRadius + aa, d);
     float glowR = u_sunRadius * (1.0 + max(u_sunGlow, 0.0));
     float glow = 1.0 - smoothstep(glowR * 0.5, glowR, d);
-    float sunTerm = (disc * 0.9 + glow * 0.25);
+    float halo = saturate(glow - disc);
+
+    float yLocal = (vUV.y - (u_sunPos.y - u_sunRadius)) / max(2.0 * u_sunRadius, 1e-6);
+    yLocal = saturate(yLocal);
+
+    vec3 sunBottom = mix(u_sunColor, u_horizonColor, saturate(u_sunHorizonMix));
+    vec3 sunDiscColor = mix(sunBottom, u_sunColor, yLocal);
+
+    // Horizontal stripe mask (gaps reveal the sky behind, like classic outrun suns).
+    float stripeMask = 1.0;
+    if (u_sunStripeCount > 0 && u_sunStripeFill < 1.0)
+    {
+        float topClear = saturate(u_sunStripeTopClear);
+        float threshold = 1.0 - topClear;
+        float fade = 0.02;
+        float stripeRegion = 1.0 - smoothstep(threshold, threshold + fade, yLocal);
+
+        float p = yLocal * float(u_sunStripeCount);
+        float f = fract(p);
+        float aaf = max(fwidth(p), 1e-6);
+        float fill = saturate(u_sunStripeFill);
+        float pattern = 1.0 - smoothstep(fill - aaf, fill + aaf, f);
+
+        stripeMask = mix(1.0, pattern, stripeRegion);
+    }
 
     float m = mountainMask(vUV);
     if (u_mountainsOccludeSun != 0)
     {
-        sunTerm *= (1.0 - m);
+        disc *= (1.0 - m);
+        halo *= (1.0 - m);
     }
-    color += u_sunColor * sunTerm;
+
+    float discAlpha = disc * stripeMask;
+    color = mix(color, sunDiscColor, discAlpha);
+    color += sunDiscColor * halo * 0.35;
 
     // Mountains overlay (in front of gradient + sun)
     color = mix(color, u_mountainColor, m);

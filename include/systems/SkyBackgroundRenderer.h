@@ -45,6 +45,10 @@ struct SkyBackgroundConfig
     float sunRadius = 0.06f;     ///< Sun disc radius in UV space
     float sunGlow = 0.14f;       ///< Sun glow radius multiplier
     glm::vec3 sunColor = glm::vec3(1.00f, 0.55f, 0.15f); ///< Sun tint (linear)
+    int sunStripeCount = 0;      ///< Number of horizontal sun stripes (0 disables)
+    float sunStripeFill = 0.65f; ///< Stripe fill fraction [0..1] (1=solid disc, 0=all gaps)
+    float sunStripeTopClear = 0.25f; ///< Top portion of disc without stripes [0..1] (0=stripes everywhere)
+    float sunHorizonMix = 0.55f; ///< Bottom-of-sun mix toward horizonColor [0..1] (0=flat sunColor)
 
     // Mountains (horizon silhouette)
     //
