@@ -323,6 +323,58 @@ HTMLRendererMT also handles UI event hit-testing:
 
 Event handlers are double-buffered like pixel data to prevent race conditions during UI updates.
 
+#### Input Event Architecture
+
+The engine uses a three-tiered input dispatch system with LIFO priority:
+
+**1. C++ Input Handlers (Highest Priority - LIFO)**
+- Registered via `WindowManager::RegisterInputHandler()`
+- Handlers called in **reverse registration order** (last registered = highest priority)
+- Used by EngineCore to detect UI clicks, Editor to intercept input
+- Return `true` to consume event (stops propagation), `false` to pass through
+
+**2. Lua Event Queue (Medium Priority)**
+- Events not consumed by C++ handlers go to `ScriptManager::AddInputEventToQueue()`
+- Queued as Lua tables to `EventQueue` global
+- Processed by `HandleInput()` in game scripts (e.g., TetrisInput.lua)
+- Used for game logic input (player movement, camera controls)
+
+**3. UI Event Handlers (UI-Specific)**
+- Triggered when C++ handlers detect clicks on UI elements
+- Dispatched via `ReactiveUI::DispatchEvent()`
+- Executes Lua methods bound in templates (`@click="methodName"`)
+- Used for button clicks, form inputs, UI interactions
+
+**Priority Example**:
+```cpp
+// Register in this order:
+id1 = RegisterInputHandler(gameHandler);   // Called 3rd (lowest priority)
+id2 = RegisterInputHandler(uiHandler);     // Called 2nd
+id3 = RegisterInputHandler(editorHandler); // Called 1st (highest priority)
+```
+
+**Event Flow**:
+```
+GLFW Event → WindowManager callback
+    ↓
+[1] Try C++ handlers (REVERSE order, LIFO)
+    ├─→ Handler returns true → Event consumed (STOP)
+    └─→ All return false → Continue to [2]
+    ↓
+[2] ScriptManager::AddInputEventToQueue()
+    ├─→ UI handler detects hit → ReactiveUI::DispatchEvent() [3]
+    └─→ Otherwise → Lua HandleInput() processes queue
+    ↓
+[3] ReactiveUI executes Lua method from template
+```
+
+**Important Notes**:
+- `MouseButton` events only go to C++ handlers, not Lua queue (for @mousedown/@mouseup)
+- Once consumed by C++ handler, Lua never sees the event
+- LIFO allows UI/editor to intercept before game logic
+
+**See**: `include/util/InputEvent.h` for comprehensive architecture documentation
+
 #### Thread Safety
 
 **Safe operations**:

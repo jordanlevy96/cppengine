@@ -16,17 +16,26 @@
  * @brief GLFW window manager singleton handling window lifecycle and input
  *
  * Creates OpenGL context via GLFW, manages window state, and dispatches
- * input events to ScriptManager for Lua/Python handling.
+ * input events using a multi-tiered priority system.
  *
- * **Input Flow:**
- * GLFW callbacks → InputEvent → ScriptManager → Lua/Python handlers
+ * **Input Dispatch Architecture (Priority Order):**
+ * 1. **C++ Handlers** (LIFO): Registered via `RegisterInputHandler()`
+ *    - Handlers called in reverse registration order
+ *    - First handler to return true consumes event
+ * 2. **Lua Event Queue**: Events not consumed by C++ go to `ScriptManager::ProcessInput()`
+ * 3. **UI Events**: Specific UI elements trigger ReactiveUI event handlers
  *
- * **Supported inputs:**
- * - Keyboard (key press/release)
- * - Mouse clicks
+ * **Supported input types:**
+ * - Keyboard (key press/release/repeat)
+ * - Mouse clicks (Click + MouseButton events)
  * - Mouse movement
  * - Window resize
  * - Scroll wheel
+ * - Character input (text fields)
+ *
+ * @see InputEvent.h for detailed input architecture documentation
+ * @see ScriptManager for Lua event queue processing
+ * @see ReactiveUI::DispatchEvent() for UI-specific event handling
  */
 class WindowManager
 {
@@ -70,10 +79,26 @@ public:
     glm::vec2 GetSize();
 
     /**
-     * @brief Register C++ input handler (called before Lua)
+     * @brief Register C++ input handler with LIFO priority
      * @param handler Callback that returns true to consume event
      * @return Handler ID for unregistration
-     * @note Handlers are called in registration order. First handler to return true consumes event.
+     *
+     * @note Handlers are called in REVERSE registration order (LIFO - Last In, First Out).
+     *       Handlers registered later have higher priority and are called first.
+     *       This allows UI layers to intercept events before game logic.
+     *
+     * @note First handler to return true consumes the event, stopping further propagation.
+     *       Events not consumed by any C++ handler are queued to Lua via ScriptManager.
+     *
+     * @par Example Priority:
+     * @code
+     * id1 = RegisterInputHandler(gameHandler);   // Called 3rd (lowest priority)
+     * id2 = RegisterInputHandler(uiHandler);     // Called 2nd
+     * id3 = RegisterInputHandler(editorHandler); // Called 1st (highest priority)
+     * @endcode
+     *
+     * @see InputEvent.h for full input architecture documentation
+     * @see UnregisterInputHandler() to remove handlers
      */
     size_t RegisterInputHandler(InputHandler handler);
 
