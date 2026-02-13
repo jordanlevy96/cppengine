@@ -226,13 +226,10 @@ OnKeyPress = function(key)
         if grid then
             grid:rotateTetrimino(Rotations.CW)
         end
-    elseif key == "LEFT" then
+    -- LEFT/RIGHT handled by DAS polling in TetrisGrid.process()
+    elseif key == "C" then
         if grid then
-            grid:moveTetriminoLateral(DIRECTION_LEFT)
-        end
-    elseif key == "RIGHT" then
-        if grid then
-            grid:moveTetriminoLateral(DIRECTION_RIGHT)
+            grid:holdPiece()
         end
     end
 end

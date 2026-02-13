@@ -23,7 +23,15 @@ return {
         score = 0,
         lines = 0,
         level = 1,
-        nextPiece = "I",         -- Next tetromino type
+        notifyMain = "",         -- Primary notification (DOUBLE, TRIPLE, N I C E, etc.)
+        notifyExtra = "",        -- Secondary notification (COMBO)
+
+        -- Next piece preview cells (4x2 grid, np1-np4 = row 1, np5-np8 = row 2)
+        np1 = "transparent", np2 = "transparent", np3 = "transparent", np4 = "transparent",
+        np5 = "transparent", np6 = "transparent", np7 = "transparent", np8 = "transparent",
+        -- Hold piece preview cells (same layout)
+        hp1 = "transparent", hp2 = "transparent", hp3 = "transparent", hp4 = "transparent",
+        hp5 = "transparent", hp6 = "transparent", hp7 = "transparent", hp8 = "transparent",
         finalScore = 0,          -- Score displayed on game over screen
 
         -- BackgroundTiles debug (updated by C++)

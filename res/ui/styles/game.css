@@ -53,24 +53,59 @@
         color: #00ff00;
         text-shadow: 0 0 5px #00ff00;
     }
-    .next-piece-container {
-        margin-top: 30px;
+    .piece-grid-container {
+        margin-top: 20px;
         padding: 15px;
         background: rgba(0,255,0,0.05);
         border: 2px solid #00ff00;
         text-align: center;
     }
-    .next-piece-label {
-        font-size: 18px;
-        color: #00aa00;
-        margin-bottom: 10px;
+    .piece-grid {
+        margin: 0 auto;
+        border-spacing: 2px;
     }
-    .next-piece-display {
-        font-size: 48px;
+    .piece-cell {
+        width: 28px;
+        height: 28px;
+        display: block;
+    }
+    .notify-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: transparent;
+        z-index: 500;
+    }
+    .notify-box {
+        background: rgba(0, 0, 0, 0.80);
+        border: 3px solid #ff00ff;
+        padding: 20px 50px;
+        box-shadow: 0 0 40px rgba(255, 0, 255, 0.4);
+    }
+    .notify-main {
+        font-size: 56px;
         font-weight: bold;
-        color: #00ff00;
-        text-shadow: 0 0 15px #00ff00;
-        padding: 20px;
+        color: #ff00ff;
+        text-shadow: 0 0 30px #ff00ff, 0 0 60px #ff00ff;
+        padding: 5px;
+    }
+    .notify-extra {
+        font-size: 32px;
+        font-weight: bold;
+        color: #00ffff;
+        text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+        padding: 5px;
+    }
+    .hold-section {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 2px solid #00ff00;
     }
     .debug-section {
         margin-top: 30px;

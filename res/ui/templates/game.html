@@ -10,6 +10,7 @@
         <div class="start-button"
              @click="onStartGame">START GAME</div>
         <div class="instructions">Press ENTER to start or click above</div>
+        <div class="instructions" style="margin-top: 15px; font-size: 16px;">LEFT/RIGHT: Move | Z/X: Rotate | DOWN: Drop | SPACE: Hard Drop | C: Hold | P: Pause</div>
     </div>
 
     <!-- Game Over Screen -->
@@ -32,6 +33,14 @@
         <div class="instructions">Press P to resume</div>
     </div>
 
+    <!-- Clear Notification Overlay -->
+    <div v-if="data.notifyMain ~= ''" class="notify-screen">
+        <div class="notify-box">
+            <div class="notify-main">{{ data.notifyMain }}</div>
+            <div v-if="data.notifyExtra ~= ''" class="notify-extra">{{ data.notifyExtra }}</div>
+        </div>
+    </div>
+
     <!-- Game UI -->
     <div v-if="data.gameStarted and data.gameOver == false" class="game-container">
         <!-- Left Panel: Game Stats -->
@@ -52,14 +61,21 @@
                 <span class="stat-label">LEVEL</span>
                 <span class="stat-value">{{ data.level }}</span>
             </div>
+
+            <div class="hold-section">
+                <div class="panel-title" style="font-size: 20px; margin-top: 20px;">HOLD [C]</div>
+                <div class="piece-grid-container">
+                    <table class="piece-grid"><tr><td><div class="piece-cell" style="background:{{ data.hp1 }}"></div></td><td><div class="piece-cell" style="background:{{ data.hp2 }}"></div></td><td><div class="piece-cell" style="background:{{ data.hp3 }}"></div></td><td><div class="piece-cell" style="background:{{ data.hp4 }}"></div></td></tr><tr><td><div class="piece-cell" style="background:{{ data.hp5 }}"></div></td><td><div class="piece-cell" style="background:{{ data.hp6 }}"></div></td><td><div class="piece-cell" style="background:{{ data.hp7 }}"></div></td><td><div class="piece-cell" style="background:{{ data.hp8 }}"></div></td></tr></table>
+                </div>
+            </div>
         </div>
 
         <!-- Right Panel: Next Piece & Debug -->
         <div class="side-panel right-panel">
             <div class="panel-title">NEXT PIECE</div>
 
-            <div class="next-piece-container">
-                <div class="next-piece-display">{{ data.nextPiece }}</div>
+            <div class="piece-grid-container">
+                <table class="piece-grid"><tr><td><div class="piece-cell" style="background:{{ data.np1 }}"></div></td><td><div class="piece-cell" style="background:{{ data.np2 }}"></div></td><td><div class="piece-cell" style="background:{{ data.np3 }}"></div></td><td><div class="piece-cell" style="background:{{ data.np4 }}"></div></td></tr><tr><td><div class="piece-cell" style="background:{{ data.np5 }}"></div></td><td><div class="piece-cell" style="background:{{ data.np6 }}"></div></td><td><div class="piece-cell" style="background:{{ data.np7 }}"></div></td><td><div class="piece-cell" style="background:{{ data.np8 }}"></div></td></tr></table>
             </div>
 
             <div v-if="data.showDebug" class="debug-section">

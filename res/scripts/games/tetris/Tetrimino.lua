@@ -1,6 +1,7 @@
 -- Tetrimino
 --
 -- Object-oriented tetrimino class that encapsulates tetrimino state and behavior
+-- Uses pre-defined SRS rotation states instead of computed matrix rotation
 
 local Tetrimino = {
     _contract = {
@@ -58,8 +59,10 @@ function Tetrimino.new(shapeKey, renderComponent, lightID)
         error("Unknown tetrimino shape: " .. shapeKey)
     end
 
-    -- Store shape type
+    -- Store shape type and rotation state (SRS: 0=spawn, 1=CW, 2=180, 3=CCW)
     self.shapeKey = shapeKey
+    self.rotationState = 0
+    self.srsStates = tetriminoData.states
 
     -- Create parent entity
     self.entityID = RegisterEntity()
@@ -73,17 +76,8 @@ function Tetrimino.new(shapeKey, renderComponent, lightID)
             end
         end
 
-    -- Create shape (2D Lua table, 0-indexed)
-    local shape = {}
-    for i = 1, 4 do
-        shape[i] = {0, 0, 0, 0}
-    end
-
-    for i = 1, #tetriminoData.shape do
-        for j = 1, 4 do
-            shape[i][j] = tetriminoData.shape[i][j]
-        end
-    end
+    -- Use state 0 (spawn orientation) for initial shape
+    local shape = tetriminoData.states[0]
 
     -- Create child cube entities where shape has blocks
     for i = 0, 3 do
@@ -212,69 +206,71 @@ function Tetrimino:isMovementFinished()
     return not tween.isActive
 end
 
--- ============================================================================
--- ROTATION
--- ============================================================================
-
--- Rotate the childMap 90 degrees clockwise
--- @return: New rotated childMap
-function Tetrimino:turnMatrixCW()
-    local rotated = {}
-    for i = 0, 3 do
-        rotated[i] = {}
-        for j = 0, 3 do
-            rotated[i][j] = C.GRID_EMPTY_CELL
-        end
+-- Cancel any active tween and snap to grid position
+function Tetrimino:cancelTween()
+    local tween = GetTween(self.entityID)
+    if tween.isActive then
+        tween.isActive = false
+        self:updateChildPositions()
     end
-
-    for i = 0, 3 do
-        for j = 0, 3 do
-            rotated[3 - j][i] = self.childMap[i][j]
-        end
-    end
-
-    return rotated
 end
 
--- Rotate the childMap 90 degrees counter-clockwise
--- @return: New rotated childMap
-function Tetrimino:turnMatrixCCW()
-    local rotated = {}
-    for i = 0, 3 do
-        rotated[i] = {}
-        for j = 0, 3 do
-            rotated[i][j] = C.GRID_EMPTY_CELL
-        end
-    end
+-- ============================================================================
+-- ROTATION (SRS pre-defined states)
+-- ============================================================================
 
-    for i = 0, 3 do
-        for j = 0, 3 do
-            rotated[j][3 - i] = self.childMap[i][j]
-        end
-    end
-
-    return rotated
-end
-
--- Get the rotated childMap for a given rotation direction
+-- Get the target rotation state for a given direction
 -- @param rotation: Rotation direction (from Rotations enum)
--- @return: New rotated childMap
-function Tetrimino:getRotatedChildMap(rotation)
+-- @return: New rotation state (0-3)
+function Tetrimino:getNextRotationState(rotation)
     if rotation == Rotations.CW then
-        return self:turnMatrixCW()
-    elseif rotation == Rotations.CCW then
-        return self:turnMatrixCCW()
+        return (self.rotationState + 1) % 4
+    else
+        return (self.rotationState - 1 + 4) % 4
     end
 end
 
--- Rotate the tetrimino
+-- Get the childMap for the target rotation state (using SRS pre-defined states)
+-- Collects entity IDs from current childMap and places them into the target shape
+-- @param rotation: Rotation direction (from Rotations enum)
+-- @return: New childMap with entity IDs in target positions
+function Tetrimino:getRotatedChildMap(rotation)
+    local targetState = self:getNextRotationState(rotation)
+    local targetShape = self.srsStates[targetState]
+
+    -- Collect existing entity IDs (order doesn't matter since all blocks look the same)
+    local entityIDs = {}
+    for i = 0, 3 do
+        for j = 0, 3 do
+            if self.childMap[i][j] ~= C.GRID_EMPTY_CELL then
+                table.insert(entityIDs, self.childMap[i][j])
+            end
+        end
+    end
+
+    -- Build new childMap with entity IDs placed in target shape positions
+    local newMap = {}
+    local idx = 1
+    for i = 0, 3 do
+        newMap[i] = {}
+        for j = 0, 3 do
+            if targetShape[i + 1][j + 1] == 1 then
+                newMap[i][j] = entityIDs[idx]
+                idx = idx + 1
+            else
+                newMap[i][j] = C.GRID_EMPTY_CELL
+            end
+        end
+    end
+
+    return newMap
+end
+
+-- Rotate the tetrimino to the next SRS state
 -- @param rotation: Rotation direction (from Rotations enum)
 function Tetrimino:rotate(rotation)
-    -- Update the child map to new rotation
-    local newChildMap = self:getRotatedChildMap(rotation)
-    self.childMap = newChildMap
-
-    -- Update child positions to match new rotation
+    self.childMap = self:getRotatedChildMap(rotation)
+    self.rotationState = self:getNextRotationState(rotation)
     self:updateChildPositions()
 end
 

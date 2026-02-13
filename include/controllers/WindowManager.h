@@ -108,6 +108,13 @@ public:
      */
     void UnregisterInputHandler(size_t id);
 
+    /**
+     * @brief Poll whether a key is currently pressed
+     * @param keyName Key name string (e.g., "LEFT", "RIGHT", "DOWN")
+     * @return true if the key is currently held down
+     */
+    bool IsKeyPressed(const std::string &keyName) const;
+
     GLFWwindow *window; ///< GLFW window handle (public for renderer access)
 
 private:

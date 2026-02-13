@@ -174,6 +174,17 @@ std::unordered_map<int, std::string> keyMap = {
 
 #define GLFW_KEY(x) (keyMap.count(x) ? keyMap[x] : nullptr)
 
+// Reverse map: string name → GLFW key code (built once from keyMap)
+static std::unordered_map<std::string, int> reverseKeyMap = []()
+{
+    std::unordered_map<std::string, int> m;
+    for (const auto &[code, name] : keyMap)
+    {
+        m[name] = code;
+    }
+    return m;
+}();
+
 void error_callback(int error, const char *description)
 {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
@@ -284,6 +295,16 @@ glm::vec2 WindowManager::GetSize()
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     return glm::vec2(width, height);
+}
+
+bool WindowManager::IsKeyPressed(const std::string &keyName) const
+{
+    auto it = reverseKeyMap.find(keyName);
+    if (it == reverseKeyMap.end())
+    {
+        return false;
+    }
+    return glfwGetKey(window, it->second) == GLFW_PRESS;
 }
 
 size_t WindowManager::RegisterInputHandler(InputHandler handler)

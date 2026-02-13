@@ -364,7 +364,8 @@ namespace LuaBindings
 
         lua.new_usertype<WindowManager>("Window",
                                         "CloseWindow", &WindowManager::CloseWindow,
-                                        "GetSize", &WindowManager::GetSize);
+                                        "GetSize", &WindowManager::GetSize,
+                                        "IsKeyPressed", &WindowManager::IsKeyPressed);
 
         lua.new_usertype<Registry>("Registry",
                                    "GetInstance", &Registry::GetInstance,

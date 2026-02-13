@@ -221,9 +221,7 @@ sol::object SceneContext::BuildCapabilityTable(sol::state &lua,
         // Input capability - access to input state
         cap["isKeyPressed"] = [](const std::string &key) -> bool
         {
-            // Note: This would need WindowManager to expose key state query
-            // For now, return false - can be extended later
-            return false;
+            return WindowManager::GetInstance().IsKeyPressed(key);
         };
 
         return cap;

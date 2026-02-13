@@ -68,7 +68,7 @@ TetrisConstants.GRID_EMPTY_CELL = -1
 -- Tetriminos spawn near the top-center of the grid.
 -- Horizontal: Center column minus 1 (accounts for 4-wide I-tetrimino).
 -- Vertical: 4 rows from top (standard Tetris spawn height, allows visibility).
-TetrisConstants.SPAWN_COLUMN = math.floor(TetrisConstants.GRID_WIDTH / 2) - 1  -- Evaluates to 3 for width=10
+TetrisConstants.SPAWN_COLUMN = math.floor(TetrisConstants.GRID_WIDTH / 2) - 2  -- Evaluates to 3 for width=10
 TetrisConstants.SPAWN_ROW = TetrisConstants.GRID_HEIGHT - 4                    -- Evaluates to 16 for height=20
 
 -- ----------------------------------------------------------------------------
@@ -89,8 +89,29 @@ TetrisConstants.CAMERA_Z_OFFSET = 1
 -- ----------------------------------------------------------------------------
 -- GAMEPLAY CONFIGURATION
 -- ----------------------------------------------------------------------------
--- Time in milliseconds between automatic downward movements.
+-- Legacy fixed speed (deprecated - use GetGravitySpeed instead)
 TetrisConstants.MOVE_SPEED_MS = 200
+
+-- NES-inspired gravity curve (milliseconds per cell drop)
+TetrisConstants.GRAVITY_TABLE = {
+    [1]  = 800,  [2]  = 717,  [3]  = 633,  [4]  = 550,  [5]  = 467,
+    [6]  = 383,  [7]  = 300,  [8]  = 217,  [9]  = 133,  [10] = 100,
+    [11] = 83,   [12] = 83,   [13] = 67,   [14] = 67,   [15] = 50,
+    [16] = 50,   [17] = 33,   [18] = 33,   [19] = 17,   [20] = 17,
+}
+
+function TetrisConstants.GetGravitySpeed(level)
+    if level >= 20 then return 17 end
+    return TetrisConstants.GRAVITY_TABLE[level] or 800
+end
+
+-- Lock delay constants
+TetrisConstants.LOCK_DELAY_MS = 500         -- Grace period after landing (ms)
+TetrisConstants.LOCK_DELAY_MAX_RESETS = 15  -- Max move/rotate resets while grounded
+
+-- DAS (Delayed Auto Shift) constants
+TetrisConstants.DAS_DELAY_MS = 170          -- Initial delay before auto-repeat (ms)
+TetrisConstants.DAS_ARR_MS = 50             -- Auto-repeat rate once DAS charges (ms)
 
 -- Rounding offset for converting floating-point positions to integer grid indices.
 -- Using 0.5 ensures proper rounding (e.g., 2.3 + 0.5 = 2.8 → floor → 2).
@@ -115,5 +136,36 @@ TetrisConstants.ROTATION_ANGLE_CCW = -90.0
 
 -- Euler axis for tetrimino rotation (yaw/Z axis - rotates in XY plane)
 TetrisConstants.ROTATION_AXIS = vec3(0, 0, 1)
+
+-- ----------------------------------------------------------------------------
+-- SRS WALL KICK DATA
+-- ----------------------------------------------------------------------------
+-- Rotation states: 0=spawn, 1=CW, 2=180, 3=CCW
+-- Format: KICKS[fromState .. ">" .. toState] = {{dx, dy}, ...}
+-- Offsets are in grid units (positive X = right, positive Y = up)
+
+-- Wall kicks for J, L, S, T, Z pieces
+TetrisConstants.SRS_KICKS_JLSTZ = {
+    ["0>1"] = {{0,0}, {-1,0}, {-1,1},  {0,-2}, {-1,-2}},
+    ["1>0"] = {{0,0}, {1,0},  {1,-1},  {0,2},  {1,2}},
+    ["1>2"] = {{0,0}, {1,0},  {1,-1},  {0,2},  {1,2}},
+    ["2>1"] = {{0,0}, {-1,0}, {-1,1},  {0,-2}, {-1,-2}},
+    ["2>3"] = {{0,0}, {1,0},  {1,1},   {0,-2}, {1,-2}},
+    ["3>2"] = {{0,0}, {-1,0}, {-1,-1}, {0,2},  {-1,2}},
+    ["3>0"] = {{0,0}, {-1,0}, {-1,-1}, {0,2},  {-1,2}},
+    ["0>3"] = {{0,0}, {1,0},  {1,1},   {0,-2}, {1,-2}},
+}
+
+-- Wall kicks for I piece (different offset table)
+TetrisConstants.SRS_KICKS_I = {
+    ["0>1"] = {{0,0}, {-2,0}, {1,0},  {-2,-1}, {1,2}},
+    ["1>0"] = {{0,0}, {2,0},  {-1,0}, {2,1},   {-1,-2}},
+    ["1>2"] = {{0,0}, {-1,0}, {2,0},  {-1,2},  {2,-1}},
+    ["2>1"] = {{0,0}, {1,0},  {-2,0}, {1,-2},  {-2,1}},
+    ["2>3"] = {{0,0}, {2,0},  {-1,0}, {2,1},   {-1,-2}},
+    ["3>2"] = {{0,0}, {-2,0}, {1,0},  {-2,-1}, {1,2}},
+    ["3>0"] = {{0,0}, {1,0},  {-2,0}, {1,-2},  {-2,1}},
+    ["0>3"] = {{0,0}, {-1,0}, {2,0},  {-1,2},  {2,-1}},
+}
 
 return TetrisConstants
