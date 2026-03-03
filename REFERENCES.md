@@ -61,10 +61,6 @@ This document credits the resources, libraries, and tools that made Imhotep poss
   - Subset of CSS2/CSS3 support
   - Software rendering backend
 
-- **[Dear ImGui](https://github.com/ocornut/imgui)** - Immediate mode GUI
-  - Debug UI and development tools
-  - Lightweight overlay interface
-
 ### Scripting
 
 - **[Lua](https://www.lua.org/)** - Embedded scripting language
@@ -178,7 +174,6 @@ This project uses external libraries under their respective licenses:
 - **GLM**: MIT License
 - **FreeType**: FreeType License (BSD-style)
 - **litehtml**: BSD 3-Clause License
-- **Dear ImGui**: MIT License
 - **Lua**: MIT License
 - **Sol2**: MIT License
 - **pybind11**: BSD 3-Clause License
@@ -191,4 +186,4 @@ See individual library repositories for full license texts.
 
 ---
 
-_Last Updated: February 5, 2026_
+_Last Updated: February 13, 2026_

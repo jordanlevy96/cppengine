@@ -1,7 +1,7 @@
 # Vulkan Migration Analysis
 
 > **Purpose**: Technical analysis of OpenGL → Vulkan migration with focus on data-driven simulation games
-> **Last Updated**: 2026-01-13
+> **Last Updated**: 2026-02-13
 
 ---
 
@@ -43,7 +43,7 @@ This document explores:
 
 ### System Inventory
 
-Approximately 45 unique OpenGL function types across 8 files:
+Approximately 45 unique OpenGL function types across 6 files:
 
 | Component | File | OpenGL Usage | Migration Complexity |
 |-----------|------|--------------|---------------------|
@@ -52,8 +52,7 @@ Approximately 45 unique OpenGL function types across 8 files:
 | **Mesh/Buffers** | Mesh.cpp | VAO/VBO/EBO, vertex attributes | Medium (staging buffers, memory management) |
 | **3D Rendering** | RenderSystem.cpp | Draw calls, state management | High (pipelines, command buffers) |
 | **UI Rendering** | HTMLRendererMT.cpp | Texture upload, compositing quad | Low (similar pattern in Vulkan) |
-| **Debug UI** | UI.cpp | ImGui OpenGL3 backend | Low (ImGui has Vulkan backend) |
-| **Main Loop** | App.cpp | Clear, viewport, swap buffers | Medium (render passes, synchronization) |
+| **Main Loop** | Game.cpp / Editor.cpp | Clear, viewport, swap buffers | Medium (render passes, synchronization) |
 
 ### Rendering Pipeline (Current)
 
@@ -65,8 +64,7 @@ Approximately 45 unique OpenGL function types across 8 files:
 3. **UI Overlay** (~2ms main thread, 5-15ms async):
    - **Render thread** (CPU): litehtml → RGBA pixel buffer
    - **Main thread** (GPU): `glTexSubImage2D` upload → `glDrawArrays` composite
-4. **Debug UI** (<1ms): ImGui rendering
-5. **Present**: `glfwSwapBuffers`
+4. **Present**: `glfwSwapBuffers`
 
 **Bottlenecks for Simulation Games**:
 - **High draw call overhead**: Each entity = separate draw call with state changes
@@ -422,7 +420,7 @@ vkCmdEndRenderPass(cmdBuf)
 - Abstract renderer interface: `Initialize()`, `BeginFrame()`, `DrawMesh()`, `EndFrame()`
 - OpenGLRenderer: Current implementation
 - VulkanRenderer: New implementation
-- App selects backend at initialization based on config
+- EngineCore selects backend at initialization based on config
 
 ---
 
@@ -781,7 +779,8 @@ vkCmdEndRenderPass(cmdBuf)
 ### Modified Files
 
 **Core Engine**:
-- `App.h/cpp` - Add `IRenderer* renderer` member, backend selection logic
+- `controllers/EngineCore.h/cpp` - Backend selection logic and renderer initialization
+- `controllers/Game.h/cpp` + `editor/Editor.h/cpp` - Route frame execution through selected backend
 - `WindowManager.h/cpp` - GLFW Vulkan surface creation (`glfwCreateWindowSurface`)
 - `CMakeLists.txt` - Vulkan SDK, VMA, shader compilation, platform flags
 
@@ -792,7 +791,6 @@ vkCmdEndRenderPass(cmdBuf)
 **Systems**:
 - `HTMLRendererMT.h/cpp` - Replace OpenGL texture with VkImage, Vulkan upload/composite
 - `RenderSystem.cpp` - Conditional: call OpenGLRenderer or VulkanRenderer
-- `UI.h/cpp` - ImGui Vulkan backend (`ImGui_ImplVulkan_*`)
 
 **Configuration**:
 - `settings.yaml` - Add `graphics.backend: "opengl" | "vulkan"`
@@ -1139,5 +1137,5 @@ After current OpenGL features are complete and stable. Vulkan is the next major 
 ---
 
 **Document Version**: 3.0 - Migration Analysis
-**Last Updated**: 2026-01-13
+**Last Updated**: 2026-02-13
 **Scope**: High-level analysis with implementation strategy and learning path

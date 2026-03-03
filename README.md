@@ -36,6 +36,20 @@ cmake -DIMHOTEP_LOG_LEVEL=Warning ..
 
 Valid values: `TraceL3`, `TraceL2`, `TraceL1`, `Debug`, `Info`, `Warning`, `Error`, `Critical`, `Off`.
 
+### Automated Testing
+
+Run the automated Tetris benchmark tests with CTest:
+
+```sh
+cd build
+cmake -DIMHOTEP_BUILD_TESTS=ON ..
+make -j8
+ctest --output-on-failure
+```
+
+Current automated suite:
+- `tetris.lua.behavior` - Validates deterministic Lua gameplay contracts (gravity curve, lifecycle/UI state transitions, piece preview layout, and key input routing).
+
 ### External Dependencies
 
 - C++ Compiler (G++)\*
@@ -48,7 +62,6 @@ Valid values: `TraceL3`, `TraceL2`, `TraceL1`, `Debug`, `Info`, `Warning`, `Erro
 - Quill†
 - yaml-cpp‡
 - GLM‡
-- Dear ImGui‡
 - litehtml‡
 - Lua‡
   - lua-cmake‡

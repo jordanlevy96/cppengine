@@ -25,7 +25,7 @@ namespace LuaBindings
 {
     void RegisterEnums(sol::state &lua);     ///< Register InputTypes, CameraDirections, etc.
     void RegisterTypes(sol::state &lua);     ///< Register vec2, vec3, Transform, etc.
-    void RegisterFunctions(sol::state &lua); ///< Register App, Registry, Camera functions
+    void RegisterFunctions(sol::state &lua); ///< Register Game, Registry, Camera functions
 }
 
 /**

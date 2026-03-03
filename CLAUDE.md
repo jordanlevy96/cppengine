@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2026-02-05
+> Last Updated: 2026-02-13
 > Version: 0.1.0
 
 ## Project Overview
@@ -58,7 +58,9 @@
 
 ### Testing Guidelines
 
-- There is no dedicated in-repo test harness at this time. Validate changes by building and running the engine.
+- Run automated tests with CTest: `cd build && ctest --output-on-failure`
+- Primary benchmark test: `tetris.lua.behavior` (Lua gameplay contracts: gravity curve, lifecycle/UI state, piece preview layout, input routing)
+- Validate gameplay/rendering changes manually by building and running the engine.
 - Third-party submodules include their own tests under `external/`; do not run or modify them unless you are updating dependencies.
 
 ### Commit & Pull Request Guidelines
@@ -76,7 +78,8 @@
 ## Architecture at a Glance
 
 ```
-App (controllers/App.cpp)
+Game / Editor entrypoints (src/main.cpp, src/editor/main.cpp)
+├─► EngineCore (shared startup and system wiring)
 ├─► WindowManager (GLFW + OpenGL context)
 ├─► Camera (3D camera for game world)
 ├─► RenderSystem (3D scene rendering)
@@ -107,7 +110,6 @@ App (controllers/App.cpp)
 | **Python + pybind11** | Python bindings   | Git submodule  | In `external/`                  |
 | **python-build-standalone** | Portable Python | Script-downloaded | Via `scripts/package-macos.sh` |
 | **yaml-cpp**          | Config parsing    | Git submodule  | In `external/`                  |
-| **Dear ImGui**        | Debug UI (legacy) | Git submodule  | In `external/`                  |
 
 ### Platform-Specific Setup
 
@@ -212,8 +214,9 @@ For full directive syntax and event handling, see `docs/architecture/UI_SYSTEM.m
 **Existing shaders**:
 
 - `Composite.shader` - HTMLRendererMT UI overlay
-- `Text.shader` - Text rendering (if used)
-- `UI.shader` - Legacy ImGui (deprecated)
+- `Picking.shader` - Editor viewport entity picking
+- `SkyBackground.shader` - Sky/background rendering
+- `TiledBackground.shader` - Procedural tiled backdrop
 
 ### 3. Debugging Multi-Threaded Renderer
 
@@ -311,7 +314,7 @@ target_link_libraries(core PUBLIC newlib)
 imhotep/
 ├── include/          # Headers (.h)
 │   ├── components/   # ECS component definitions (data only)
-│   ├── controllers/  # Singletons (App, Registry, ScriptManager, WindowManager)
+│   ├── controllers/  # Core controllers (EngineCore, Game, Registry, ScriptManager, WindowManager)
 │   ├── systems/      # System implementations (Render, UI, Script, HTML)
 │   └── util/         # Utilities (Shader, Mesh, Camera, etc.)
 ├── src/              # Implementations (.cpp) - mirrors include/
@@ -566,9 +569,9 @@ See `docs/INDEX.md` for full documentation index with status tracking. Always sa
 ```cpp
 #include "util/Logger.h"
 
-LOG_TRACE_L1("HTMLRenderer::LoadHTML called with {} bytes", html.size());
+LOG_TRACE_L1("[HTMLRendererMT] LoadHTML called ({} bytes)", html.size());
 LOG_DEBUG("Loaded {} glyphs in {}ms", count, duration);
-LOG_INFO("HTMLRenderer initialized: {}x{}", width, height);
+LOG_INFO("[HTMLRendererMT] Resize to {}x{}", width, height);
 LOG_WARNING("Font fallback: {} not found, using default", fontName);
 LOG_ERROR("Failed to load shader: {}", path);
 LOG_CRITICAL("OpenGL context creation failed");
@@ -676,7 +679,13 @@ git log --oneline --grep="HTML"
 
 ## Testing & Debugging
 
-**No automated tests exist yet.** Testing is manual:
+**Automated baseline exists via CTest**:
+
+1. Build: `cd build && cmake -DIMHOTEP_BUILD_TESTS=ON .. && make -j8`
+2. Run tests: `ctest --output-on-failure`
+3. Benchmark suite: `tetris.lua.behavior`
+
+**Manual verification remains required for rendering/integration**:
 
 1. Build: `cd build && make`
 2. Run: `./imhotep`
@@ -769,4 +778,4 @@ if (imhotep::Version::IsAtLeast(1, 0)) {
 
 ---
 
-_Last Updated: February 5, 2026_
+_Last Updated: February 13, 2026_

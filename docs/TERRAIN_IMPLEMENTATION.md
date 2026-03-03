@@ -232,7 +232,7 @@ Keep the recompute deterministic (same inputs → same outputs).
 ### Prefer C++ “services” for heavy world systems
 
 Large systems (map streaming, hydrology, automation) should be C++ services exposed to Lua via narrow APIs:
-- use `ServiceRegistry` (see `include/systems/ServiceRegistry.h`) to register `WorldMapService`, `HydrologyService`, etc.
+- register service factories in engine startup code (for example, `WorldMapService`, `HydrologyService`) and expose only narrow Lua-facing APIs
 - Lua scripts remain orchestration/UI and high-level gameplay rules
 
 ### Render loop ownership

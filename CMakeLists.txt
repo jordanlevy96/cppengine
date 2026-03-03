@@ -34,8 +34,6 @@ add_library(core SHARED
     "src/systems/RenderSystem.cpp"
     "src/systems/ScriptSystem.cpp"
     "src/systems/TweenSystem.cpp"
-    "src/systems/UI.cpp"
-    "src/systems/HTMLRenderer.cpp"
     "src/systems/HTMLRendererMT.cpp"
     "src/systems/ReactiveUI.cpp"
     "src/systems/LuaUIState.cpp"
@@ -118,19 +116,6 @@ else() # Linux
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dl -ldl)
 endif()
 
-set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
-
-add_library(imgui
-	${IMGUI_DIR}/imgui.cpp
-	${IMGUI_DIR}/imgui_draw.cpp
-	${IMGUI_DIR}/imgui_tables.cpp
-	${IMGUI_DIR}/imgui_widgets.cpp
-	${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
-	${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-)
-target_include_directories(imgui PUBLIC ${IMGUI_DIR})
-target_link_libraries(imgui PUBLIC glfw)
-
 set(core_INCLUDE_DIRS
     include
     external/headers
@@ -139,13 +124,11 @@ set(core_INCLUDE_DIRS
     external/yaml-cpp/include
     external/litehtml/include
     ${GLFW_DIR}
-    ${IMGUI_DIR}
     ${FREETYPE_INCLUDE_DIRS}
 )
 
 set(core_LINKS
     glfw
-    imgui
     yaml-cpp::yaml-cpp
     litehtml
     quill::quill
@@ -155,11 +138,6 @@ set(core_LINKS
 
 target_include_directories(core PUBLIC ${core_INCLUDE_DIRS})
 target_link_libraries(core PUBLIC ${core_LINKS})
-
-# Suppress duplicate library warnings on macOS (imgui and core both link glfw)
-if(APPLE)
-    target_link_options(core PRIVATE "LINKER:-no_warn_duplicate_libraries")
-endif()
 
 # ============================================================================
 # Lua Scripting - Game logic and UI

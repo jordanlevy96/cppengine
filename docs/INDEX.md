@@ -1,6 +1,6 @@
 # Imhotep Documentation Index
 
-> Last Updated: 2026-02-05
+> Last Updated: 2026-02-13
 
 ## Quick Reference
 
@@ -49,7 +49,7 @@
 ## Document Summaries
 
 ### CLAUDE.md
-Quick-reference for AI assistants and developers: project overview, build instructions, common workflows, file organization. For detailed system docs, see architecture documents.
+Quick-reference for AI assistants and developers: project overview, build instructions, common workflows, file organization, and current dependency inventory. For detailed system docs, see architecture documents.
 
 ### UI_SYSTEM.md
 Canonical reference for the reactive UI system: template directives (v-if, v-for), multi-threaded rendering, event handling, Lua state management, thread safety.
@@ -111,3 +111,4 @@ When modifying docs:
 1. Update "Last Updated" date in document header
 2. Update status in this index
 3. Cross-reference related documents
+4. Remove stale references to deleted/legacy code paths

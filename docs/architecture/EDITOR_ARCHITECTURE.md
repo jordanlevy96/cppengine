@@ -66,7 +66,7 @@ libcore.so (existing):
 
 imhotep (game executable):
 ├─ Links libcore.so
-├─ main() → App::Initialize() → App::Run()
+├─ main() → Game::Initialize() → Game::Run()
 └─ Runs game loop
 
 imhotep-editor (new):
@@ -1066,7 +1066,7 @@ EditorState m_editorState;  // Editor-only (selection, tools, etc.)
 
 ```cpp
 // In Editor::Run()
-App::GetInstance().Run();  // Deadlock! Both have event loops
+Game::GetInstance().Run();  // Deadlock! Both have event loops
 ```
 
 ✅ **Correct**:
@@ -1078,7 +1078,7 @@ void Editor::Render() {
 }
 ```
 
-**Why**: The editor has its own main loop. Don't invoke the game's App::Run() - that's a blocking call with its own event loop. Instead, directly render the scene in the viewport.
+**Why**: The editor has its own main loop. Don't invoke `Game::Run()` from editor code because it blocks with its own event loop. Render the scene directly in the editor viewport instead.
 
 ---
 
@@ -1114,8 +1114,8 @@ editorState->SetValue("viewportTexture", texId);
 ❌ **Wrong**:
 
 ```cpp
-#include "systems/UI.h"  // Old ImGui code
-ui->RenderWindow();
+// Re-introducing legacy immediate-mode debug UI
+legacyDebugUI->RenderWindow();
 ```
 
 ✅ **Correct**:

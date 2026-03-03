@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Lists key functions with line numbers for efficient code navigation
   - Includes thread safety notes, performance metrics, integration context
   - Documented pattern in CLAUDE.md for Claude Code efficiency
+- **Automated Tetris benchmark tests** via CTest
+  - Added `imhotep-tetris-tests` Lua behavior test runner
+  - Added `tetris.lua.behavior` CTest entry
+  - Validates gravity curve, lifecycle/UI state transitions, piece preview layout, and input routing
 
 ### Performance
 - **Baseline metrics established**: UI rendering at 3.2ms average (68% under 10ms budget)
@@ -46,9 +50,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed obsolete plan files (superseded by implementation)
 - Cleaned time estimates from architecture docs per project philosophy
 - Updated CLAUDE.md with quick-stats pattern and usage examples
+- Updated dependency docs after legacy renderer/UI cleanup
 
 ### Changed
 - Reduced per-frame UI/renderer log spam by downgrading noisy logs
+
+### Removed
+- Legacy single-threaded `HTMLRenderer` implementation and header (fully replaced by `HTMLRendererMT`)
+- Legacy ImGui wrapper (`systems/UI.h/.cpp`) and related CMake wiring
+- Unused `ServiceRegistry` prototype header
+- Unused legacy shaders `Text.shader` and `UI.shader`
 
 ---
 
