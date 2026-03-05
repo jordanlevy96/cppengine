@@ -1,0 +1,472 @@
+/**
+ * @file EngineUnitTests.cpp
+ * @brief C++ unit tests for engine subsystems (no graphics required)
+ *
+ * Tests ExpressionCache (Lua expression compilation/evaluation)
+ * and FrameTiming (frame timing, accumulators, simulation speed).
+ */
+
+#include "systems/ExpressionCache.h"
+#include "util/FrameTiming.h"
+#include "util/Logger.h"
+
+#include <iostream>
+#include <string>
+#include <cmath>
+#include <thread>
+#include <chrono>
+
+// ============================================================================
+// Minimal test harness
+// ============================================================================
+
+static int g_passed = 0;
+static int g_failed = 0;
+
+#define TEST(name) \
+    static void Test_##name(); \
+    struct TestReg_##name { TestReg_##name() { RunTest(#name, Test_##name); } }; \
+    static void Test_##name()
+
+static void RunTest(const char* name, void (*fn)())
+{
+    try
+    {
+        fn();
+        std::cout << "  PASS: " << name << std::endl;
+        g_passed++;
+    }
+    catch (const std::exception& e)
+    {
+        std::cout << "  FAIL: " << name << " — " << e.what() << std::endl;
+        g_failed++;
+    }
+    catch (...)
+    {
+        std::cout << "  FAIL: " << name << " — unknown exception" << std::endl;
+        g_failed++;
+    }
+}
+
+#define ASSERT_TRUE(expr) \
+    do { if (!(expr)) throw std::runtime_error("ASSERT_TRUE failed: " #expr); } while(0)
+
+#define ASSERT_FALSE(expr) \
+    do { if (expr) throw std::runtime_error("ASSERT_FALSE failed: " #expr); } while(0)
+
+#define ASSERT_EQ(a, b) \
+    do { if ((a) != (b)) { \
+        throw std::runtime_error( \
+            std::string("ASSERT_EQ failed: ") + #a + " != " + #b + \
+            " (" + std::to_string(a) + " vs " + std::to_string(b) + ")"); \
+    } } while(0)
+
+#define ASSERT_STR_EQ(a, b) \
+    do { if ((a) != (b)) { \
+        throw std::runtime_error( \
+            std::string("ASSERT_STR_EQ failed: \"") + (a) + "\" != \"" + (b) + "\""); \
+    } } while(0)
+
+#define ASSERT_NEAR(a, b, tol) \
+    do { if (std::abs((a) - (b)) > (tol)) { \
+        throw std::runtime_error( \
+            std::string("ASSERT_NEAR failed: ") + std::to_string(a) + " vs " + std::to_string(b)); \
+    } } while(0)
+
+// ============================================================================
+// ExpressionCache Tests
+// ============================================================================
+
+static void RunExpressionCacheTests()
+{
+    std::cout << "\n--- ExpressionCache ---" << std::endl;
+
+    sol::state lua;
+    lua.open_libraries(sol::lib::base, sol::lib::math, sol::lib::string);
+
+    // Test: Initialize
+    {
+        ExpressionCache cache;
+        ASSERT_FALSE(cache.IsInitialized());
+        cache.Initialize(&lua);
+        ASSERT_TRUE(cache.IsInitialized());
+        ASSERT_EQ(cache.Size(), (size_t)0);
+        std::cout << "  PASS: Initialize" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Compile and cache hit
+    {
+        ExpressionCache cache;
+        cache.Initialize(&lua);
+
+        uint32_t id1 = cache.GetOrCompile("1 + 2");
+        ASSERT_TRUE(id1 != UINT32_MAX);
+        ASSERT_EQ(cache.Size(), (size_t)1);
+
+        uint32_t id2 = cache.GetOrCompile("1 + 2");
+        ASSERT_EQ(id1, id2); // Cache hit — same ID
+
+        uint32_t id3 = cache.GetOrCompile("3 + 4");
+        ASSERT_TRUE(id3 != id1); // Different expression — new ID
+        ASSERT_EQ(cache.Size(), (size_t)2);
+
+        auto [hits, misses] = cache.GetStats();
+        ASSERT_EQ(hits, (uint64_t)1);   // One cache hit (second "1 + 2")
+        ASSERT_EQ(misses, (uint64_t)2); // Two cache misses (first "1 + 2" + "3 + 4")
+
+        std::cout << "  PASS: CompileAndCacheHit" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Evaluate integer expression
+    {
+        ExpressionCache cache;
+        cache.Initialize(&lua);
+
+        sol::table env = lua.create_table();
+        env["x"] = 10;
+        env["y"] = 20;
+
+        uint32_t id = cache.GetOrCompile("x + y");
+        std::string result = cache.EvaluateAsString(id, env);
+        ASSERT_STR_EQ(result, "30");
+
+        std::cout << "  PASS: EvaluateInteger" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Evaluate string expression
+    {
+        ExpressionCache cache;
+        cache.Initialize(&lua);
+
+        sol::table env = lua.create_table();
+        env["name"] = "Tetris";
+
+        uint32_t id = cache.GetOrCompile("name");
+        std::string result = cache.EvaluateAsString(id, env);
+        ASSERT_STR_EQ(result, "Tetris");
+
+        std::cout << "  PASS: EvaluateString" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Evaluate boolean expression
+    {
+        ExpressionCache cache;
+        cache.Initialize(&lua);
+
+        sol::table env = lua.create_table();
+        env["score"] = 100;
+
+        uint32_t id = cache.GetOrCompile("score > 50");
+        ASSERT_TRUE(cache.EvaluateAsBool(id, env));
+
+        uint32_t id2 = cache.GetOrCompile("score < 50");
+        ASSERT_FALSE(cache.EvaluateAsBool(id2, env));
+
+        std::cout << "  PASS: EvaluateBool" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Evaluate double expression
+    {
+        ExpressionCache cache;
+        cache.Initialize(&lua);
+
+        sol::table env = lua.create_table();
+        env["pi"] = 3.14159;
+
+        uint32_t id = cache.GetOrCompile("pi");
+        std::string result = cache.EvaluateAsString(id, env);
+        ASSERT_STR_EQ(result, "3.14");
+
+        std::cout << "  PASS: EvaluateDouble" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Evaluate nested table access (data.score pattern)
+    {
+        ExpressionCache cache;
+        cache.Initialize(&lua);
+
+        sol::table env = lua.create_table();
+        sol::table data = lua.create_table();
+        data["score"] = 42;
+        data["level"] = 5;
+        env["data"] = data;
+
+        uint32_t id = cache.GetOrCompile("data.score");
+        std::string result = cache.EvaluateAsString(id, env);
+        ASSERT_STR_EQ(result, "42");
+
+        uint32_t id2 = cache.GetOrCompile("data.level > 3");
+        ASSERT_TRUE(cache.EvaluateAsBool(id2, env));
+
+        std::cout << "  PASS: EvaluateNestedTable" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Invalid expression returns UINT32_MAX
+    {
+        ExpressionCache cache;
+        cache.Initialize(&lua);
+
+        uint32_t id = cache.GetOrCompile("!!!invalid syntax");
+        ASSERT_EQ(id, UINT32_MAX);
+
+        std::cout << "  PASS: InvalidExpression" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Evaluate with invalid ID
+    {
+        ExpressionCache cache;
+        cache.Initialize(&lua);
+
+        sol::table env = lua.create_table();
+        std::string result = cache.EvaluateAsString(999, env);
+        ASSERT_STR_EQ(result, "");
+
+        bool boolResult = cache.EvaluateAsBool(999, env);
+        ASSERT_FALSE(boolResult);
+
+        std::cout << "  PASS: InvalidExprId" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Dependency analysis
+    {
+        ExpressionCache cache;
+        cache.Initialize(&lua);
+
+        uint32_t id = cache.GetOrCompile("data.score");
+        const auto& deps = cache.GetDependencies(id);
+        ASSERT_TRUE(deps.count("data.score") > 0);
+        ASSERT_TRUE(deps.count("data") > 0);
+
+        std::cout << "  PASS: DependencyAnalysis" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Clear resets cache
+    {
+        ExpressionCache cache;
+        cache.Initialize(&lua);
+
+        cache.GetOrCompile("1 + 1");
+        cache.GetOrCompile("2 + 2");
+        ASSERT_EQ(cache.Size(), (size_t)2);
+
+        cache.Clear();
+        ASSERT_EQ(cache.Size(), (size_t)0);
+
+        auto [hits, misses] = cache.GetStats();
+        ASSERT_EQ(hits, (uint64_t)0);
+        ASSERT_EQ(misses, (uint64_t)0);
+
+        std::cout << "  PASS: Clear" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Not initialized returns error
+    {
+        ExpressionCache cache;
+        // Don't call Initialize
+        uint32_t id = cache.GetOrCompile("1 + 1");
+        ASSERT_EQ(id, UINT32_MAX);
+
+        std::cout << "  PASS: NotInitialized" << std::endl;
+        g_passed++;
+    }
+}
+
+// ============================================================================
+// FrameTiming Tests
+// ============================================================================
+
+static void RunFrameTimingTests()
+{
+    std::cout << "\n--- FrameTiming ---" << std::endl;
+
+    // Test: Fixed delta calculation
+    {
+        FrameTiming timing(FrameTimingMode::FIXED, 60.0);
+        ASSERT_NEAR(timing.GetFixedDelta(), 1000.0 / 60.0, 0.01);
+
+        FrameTiming timing30(FrameTimingMode::FIXED, 30.0);
+        ASSERT_NEAR(timing30.GetFixedDelta(), 1000.0 / 30.0, 0.01);
+
+        std::cout << "  PASS: FixedDeltaCalculation" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Fixed step accumulation
+    {
+        FrameTiming timing(FrameTimingMode::FIXED, 60.0);
+
+        // Before any Update(), accumulator is 0 — no steps
+        ASSERT_FALSE(timing.ShouldUpdateFixedStep());
+
+        // Sleep to build up time, then Update
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        timing.Update();
+
+        // Should have accumulated ~20ms, enough for one 16.67ms step
+        ASSERT_TRUE(timing.ShouldUpdateFixedStep());
+
+        std::cout << "  PASS: FixedStepAccumulation" << std::endl;
+        g_passed++;
+    }
+
+    // Test: ShouldUpdateFixedStep returns false in VARIABLE mode
+    {
+        FrameTiming timing(FrameTimingMode::VARIABLE, 60.0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        timing.Update();
+        ASSERT_FALSE(timing.ShouldUpdateFixedStep());
+
+        std::cout << "  PASS: FixedStepWrongMode" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Variable mode simulation accumulation
+    {
+        FrameTiming timing(FrameTimingMode::VARIABLE, 60.0, 60.0);
+        timing.SetSimulationMultiplier(1.0f);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        timing.Update();
+
+        // At 1x speed, ~20ms accumulated, one 16.67ms sim step
+        ASSERT_TRUE(timing.ShouldUpdateSimulation());
+
+        std::cout << "  PASS: VariableSimAccumulation" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Paused simulation (multiplier = 0)
+    {
+        FrameTiming timing(FrameTimingMode::VARIABLE, 60.0, 60.0);
+        timing.SetSimulationMultiplier(0.0f);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        timing.Update();
+
+        // Paused — no simulation updates
+        ASSERT_FALSE(timing.ShouldUpdateSimulation());
+
+        std::cout << "  PASS: PausedSimulation" << std::endl;
+        g_passed++;
+    }
+
+    // Test: ShouldRenderFrame in variable mode
+    {
+        FrameTiming timing(FrameTimingMode::VARIABLE, 60.0, 60.0);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        timing.Update();
+
+        // ~20ms elapsed >= 16.67ms render frame time
+        ASSERT_TRUE(timing.ShouldRenderFrame());
+
+        std::cout << "  PASS: VariableRenderFrame" << std::endl;
+        g_passed++;
+    }
+
+    // Test: ShouldRenderFrame always true in FIXED mode
+    {
+        FrameTiming timing(FrameTimingMode::FIXED, 60.0);
+        ASSERT_TRUE(timing.ShouldRenderFrame());
+
+        std::cout << "  PASS: FixedAlwaysRenders" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Simple mode — delta only, no accumulators
+    {
+        FrameTiming timing(FrameTimingMode::SIMPLE);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        timing.Update();
+
+        // Delta should be roughly 10ms (allow variance for scheduling)
+        ASSERT_TRUE(timing.GetDelta() >= 0.0);
+        // No fixed step in SIMPLE mode
+        ASSERT_FALSE(timing.ShouldUpdateFixedStep());
+        // Always renders in non-VARIABLE modes
+        ASSERT_TRUE(timing.ShouldRenderFrame());
+
+        std::cout << "  PASS: SimpleMode" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Reset clears accumulators
+    {
+        FrameTiming timing(FrameTimingMode::FIXED, 60.0);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        timing.Update();
+        ASSERT_TRUE(timing.ShouldUpdateFixedStep());
+
+        timing.Reset();
+
+        // After reset, accumulator should be 0
+        ASSERT_FALSE(timing.ShouldUpdateFixedStep());
+
+        std::cout << "  PASS: Reset" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Simulation multiplier getter/setter
+    {
+        FrameTiming timing(FrameTimingMode::VARIABLE, 60.0);
+
+        ASSERT_NEAR(timing.GetSimulationMultiplier(), 1.0f, 0.001f);
+
+        timing.SetSimulationMultiplier(2.0f);
+        ASSERT_NEAR(timing.GetSimulationMultiplier(), 2.0f, 0.001f);
+
+        timing.SetSimulationMultiplier(0.0f);
+        ASSERT_NEAR(timing.GetSimulationMultiplier(), 0.0f, 0.001f);
+
+        std::cout << "  PASS: SimMultiplier" << std::endl;
+        g_passed++;
+    }
+
+    // Test: VSync getter/setter
+    {
+        FrameTiming timing(FrameTimingMode::FIXED, 60.0);
+
+        timing.SetVSync(true);
+        ASSERT_TRUE(timing.IsVSyncEnabled());
+
+        timing.SetVSync(false);
+        ASSERT_FALSE(timing.IsVSyncEnabled());
+
+        std::cout << "  PASS: VSync" << std::endl;
+        g_passed++;
+    }
+}
+
+// ============================================================================
+// Main
+// ============================================================================
+
+int main()
+{
+    // Initialize logger (required by ExpressionCache and FrameTiming)
+    imhotep::Logger::GetInstance().Initialize("logs/engine-unit-tests.log");
+
+    std::cout << "=== Engine Unit Tests ===" << std::endl;
+
+    RunExpressionCacheTests();
+    RunFrameTimingTests();
+
+    std::cout << "\n--- Results ---" << std::endl;
+    std::cout << "  Passed: " << g_passed << std::endl;
+    std::cout << "  Failed: " << g_failed << std::endl;
+
+    return g_failed > 0 ? 1 : 0;
+}

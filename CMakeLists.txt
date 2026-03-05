@@ -322,6 +322,77 @@ target_link_libraries(imhotep-editor PRIVATE core)
 target_include_directories(imhotep-editor PRIVATE ${core_INCLUDE_DIRS})
 
 # ============================================================================
+# Automated Tests
+# ============================================================================
+option(IMHOTEP_BUILD_TESTS "Build automated tests (CTests)" ON)
+
+if(IMHOTEP_BUILD_TESTS)
+    enable_testing()
+
+    add_executable(imhotep-tetris-tests
+        "tests/TetrisLuaTests.cpp"
+    )
+    target_include_directories(imhotep-tetris-tests PRIVATE
+        external/sol2/include
+        external/lua-cmake/upstream
+    )
+    target_link_libraries(imhotep-tetris-tests PRIVATE
+        lua
+        sol2
+    )
+    target_compile_definitions(imhotep-tetris-tests PRIVATE
+        IMHOTEP_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+    )
+
+    add_test(
+        NAME tetris.lua.behavior
+        COMMAND imhotep-tetris-tests
+    )
+
+    # Engine C++ unit tests (headless — ExpressionCache + FrameTiming)
+    add_executable(imhotep-engine-tests
+        "tests/EngineUnitTests.cpp"
+        "src/systems/ExpressionCache.cpp"
+        "src/util/FrameTiming.cpp"
+        "src/util/Logger.cpp"
+    )
+    target_include_directories(imhotep-engine-tests PRIVATE
+        include
+        external/sol2/include
+        external/lua-cmake/upstream
+    )
+    target_link_libraries(imhotep-engine-tests PRIVATE
+        lua
+        sol2
+        quill::quill
+    )
+    target_compile_definitions(imhotep-engine-tests PRIVATE
+        IMHOTEP_LOG_LEVEL_STR="${IMHOTEP_LOG_LEVEL}"
+    )
+
+    add_test(
+        NAME engine.unit
+        COMMAND imhotep-engine-tests
+    )
+
+    # Engine smoke test: boots full engine, runs 10 frames, exits
+    add_test(
+        NAME engine.smoke
+        COMMAND imhotep --smoke-test
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+    set_tests_properties(engine.smoke PROPERTIES TIMEOUT 30)
+
+    # Engine click test: simulates START GAME button click, verifies state change
+    add_test(
+        NAME engine.click
+        COMMAND imhotep --click-test
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+    set_tests_properties(engine.click PROPERTIES TIMEOUT 30)
+endif()
+
+# ============================================================================
 # Installation Configuration (for distributable builds)
 # ============================================================================
 # CMake install() commands define where files go when running:

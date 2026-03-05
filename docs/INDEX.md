@@ -1,6 +1,6 @@
 # Imhotep Documentation Index
 
-> Last Updated: 2026-02-13
+> Last Updated: 2026-03-04
 
 ## Quick Reference
 
@@ -22,6 +22,7 @@
 | [EDITOR_ARCHITECTURE.md](architecture/EDITOR_ARCHITECTURE.md) | Editor design, all implementation phases | Phase 1 Complete |
 | [EDITOR_VIEWPORT.md](architecture/EDITOR_VIEWPORT.md) | Viewport rendering, texture transfer, click handling | Partial |
 | [TRANSFORM_PIPELINE.md](architecture/TRANSFORM_PIPELINE.md) | Hierarchical transform refactor plan | Planned |
+| [TESTING.md](architecture/TESTING.md) | Three-tier test strategy, extending tests | Stable |
 | [VULKAN_MIGRATION.md](architecture/VULKAN_MIGRATION.md) | OpenGL to Vulkan migration analysis | Research |
 | [TERRAIN_IMPLEMENTATION.md](TERRAIN_IMPLEMENTATION.md) | EU/Factorio-style world map implementation notes | Partial |
 
@@ -79,6 +80,14 @@ Editor viewport system:
 ### TRANSFORM_PIPELINE.md
 Transform system refactor for proper hierarchy support:
 - Phase 1-5 all planned (WorldTransform component, HierarchySystem, dirty flags)
+
+### TESTING.md
+Three-tier automated test strategy:
+- **Tier 1 — `engine.smoke`**: Full engine boot + 10 frames via `--smoke-test` flag (needs display)
+- **Tier 1b — `engine.click`**: Click event integration test — verifies HTML element bounds, hit-testing, and Lua event dispatch (needs display)
+- **Tier 2 — `engine.unit`**: Headless C++ unit tests for ExpressionCache (12 tests) and FrameTiming (11 tests)
+- **Tier 3 — `tetris.lua.behavior`**: Lua gameplay contract tests with mocked bindings (8 tests)
+- Includes guides for extending each tier and candidates for future unit tests
 
 ### VULKAN_MIGRATION.md
 Future graphics API migration research: current OpenGL analysis, Vulkan requirements, migration strategy.

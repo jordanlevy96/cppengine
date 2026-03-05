@@ -114,6 +114,21 @@ public:
     void Run();
 
     /**
+     * @brief Run a fixed number of frames then return (for smoke testing)
+     * @param count Number of frames to run
+     */
+    void RunFrames(int count);
+
+    /**
+     * @brief Run click event integration test
+     * @return true if all assertions pass
+     *
+     * Boots engine, waits for UI to render, queries "START GAME" button bounds,
+     * simulates a click, and verifies Lua state changed.
+     */
+    bool RunClickTest();
+
+    /**
      * @brief Signal window to close (exits game loop)
      */
     void CloseWindow();

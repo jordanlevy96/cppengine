@@ -101,6 +101,162 @@ void Game::Run()
     }
 }
 
+void Game::RunFrames(int count)
+{
+    LOG_INFO("Running {} smoke-test frames", count);
+
+    FrameTiming timing(FrameTimingMode::FIXED, conf.targetFPS);
+    glfwSwapInterval(0);
+
+    for (int i = 0; i < count && !m_core.ShouldClose(); i++)
+    {
+        glfwPollEvents();
+        timing.Update();
+        delta = timing.GetDelta();
+
+        scriptManager->ProcessInput();
+
+        while (timing.ShouldUpdateFixedStep())
+        {
+            ScriptSystem::Update(timing.GetFixedDelta());
+        }
+
+        TweenSystem::Update(delta);
+        HierarchySystem::Update();
+        Render();
+        m_core.EndFrame();
+    }
+
+    LOG_INFO("Smoke test complete ({} frames)", count);
+}
+
+bool Game::RunClickTest()
+{
+    LOG_INFO("[ClickTest] Starting click event integration test");
+
+    FrameTiming timing(FrameTimingMode::FIXED, conf.targetFPS);
+    glfwSwapInterval(0);
+
+    // Phase 1: Run frames until interactive elements are populated
+    int x, y, w, h;
+    bool found = false;
+    const int maxWarmupFrames = 60;
+
+    for (int i = 0; i < maxWarmupFrames && !m_core.ShouldClose(); i++)
+    {
+        glfwPollEvents();
+        timing.Update();
+        delta = timing.GetDelta();
+        scriptManager->ProcessInput();
+
+        while (timing.ShouldUpdateFixedStep())
+        {
+            ScriptSystem::Update(timing.GetFixedDelta());
+        }
+
+        TweenSystem::Update(delta);
+        HierarchySystem::Update();
+        Render();
+        m_core.EndFrame();
+
+        // Check if START GAME button is available
+        if (htmlRenderer->TryFindInteractiveElementBoundsByHandler("click", "onStartGame", x, y, w, h))
+        {
+            found = true;
+            LOG_INFO("[ClickTest] Found 'onStartGame' button after {} frames: ({},{}) {}x{}", i + 1, x, y, w, h);
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        LOG_ERROR("[ClickTest] FAIL: 'onStartGame' button not found after {} frames", maxWarmupFrames);
+        return false;
+    }
+
+    // Phase 2: Validate bounding box is reasonable
+    if (w <= 0 || h <= 0)
+    {
+        LOG_ERROR("[ClickTest] FAIL: Button has invalid dimensions: {}x{}", w, h);
+        return false;
+    }
+
+    LOG_INFO("[ClickTest] PASS: Button bounds are valid ({}x{})", w, h);
+
+    // Phase 3: Verify pre-state (game not started)
+    ReactiveUI &reactiveUI = ReactiveUI::GetInstance();
+    auto luaState = reactiveUI.GetLuaState();
+    if (!luaState)
+    {
+        LOG_ERROR("[ClickTest] FAIL: LuaUIState is null");
+        return false;
+    }
+
+    sol::object preValue = luaState->GetValue("data.gameStarted");
+    if (preValue.valid() && preValue.is<bool>() && preValue.as<bool>() == true)
+    {
+        LOG_ERROR("[ClickTest] FAIL: data.gameStarted was already true before click");
+        return false;
+    }
+
+    LOG_INFO("[ClickTest] PASS: data.gameStarted is false before click");
+
+    // Phase 4: Simulate click at center of button
+    // TryFindInteractiveElementBoundsByHandler returns framebuffer coords.
+    // HandleClickEvent expects window coords and converts internally.
+    // Reverse the framebuffer→window scale to get correct window coords.
+    int winW, winH, fbW, fbH;
+    glfwGetWindowSize(windowManager->window, &winW, &winH);
+    glfwGetFramebufferSize(windowManager->window, &fbW, &fbH);
+
+    float centerFbX = x + w / 2.0f;
+    float centerFbY = y + h / 2.0f;
+    float windowX = centerFbX * static_cast<float>(winW) / static_cast<float>(fbW);
+    float windowY = centerFbY * static_cast<float>(winH) / static_cast<float>(fbH);
+
+    LOG_INFO("[ClickTest] Clicking at window ({:.0f},{:.0f}) → fb ({:.0f},{:.0f})", windowX, windowY, centerFbX, centerFbY);
+
+    bool handled = htmlRenderer->HandleClickEvent(windowX, windowY, 0);
+    if (!handled)
+    {
+        LOG_ERROR("[ClickTest] FAIL: HandleClickEvent returned false (click not consumed)");
+        return false;
+    }
+
+    LOG_INFO("[ClickTest] PASS: Click was handled by an interactive element");
+
+    // Phase 5: Run a few more frames to let state propagate
+    for (int i = 0; i < 5 && !m_core.ShouldClose(); i++)
+    {
+        glfwPollEvents();
+        timing.Update();
+        delta = timing.GetDelta();
+        scriptManager->ProcessInput();
+
+        while (timing.ShouldUpdateFixedStep())
+        {
+            ScriptSystem::Update(timing.GetFixedDelta());
+        }
+
+        TweenSystem::Update(delta);
+        HierarchySystem::Update();
+        Render();
+        m_core.EndFrame();
+    }
+
+    // Phase 6: Verify post-state (game started)
+    sol::object postValue = luaState->GetValue("data.gameStarted");
+    if (!postValue.valid() || !postValue.is<bool>() || postValue.as<bool>() != true)
+    {
+        LOG_ERROR("[ClickTest] FAIL: data.gameStarted is not true after click");
+        return false;
+    }
+
+    LOG_INFO("[ClickTest] PASS: data.gameStarted is true after click");
+    LOG_INFO("[ClickTest] All assertions passed");
+    return true;
+}
+
 void Game::RunFixedLoop()
 {
     LOG_INFO("Starting FIXED loop (60 FPS)");
