@@ -86,7 +86,8 @@ TetrisGrid = {
     model = nil,
     shader = nil,
 
-    -- Initialized in ready
+    -- Initialized in ready / setupPlayfield
+    playfieldReady = false,
     cube = nil,
     grid = {},
     activeTetrimino = nil,  -- Tetrimino instance (OOP)
@@ -162,20 +163,22 @@ TetrisGrid = {
 
     ready = function(self)
         RequireModules()
-        -- Initialize grid
+        self.cube = CreateRenderComponent(self.shader, self.model)
+    end,
+
+    setupPlayfield = function(self)
+        -- Initialize grid array with current constants
+        self.grid = {}
         for i = 0, C.GRID_WIDTH - 1 do
             self.grid[i] = {}
             for j = 0, C.GRID_HEIGHT - 1 do
                 self.grid[i][j] = C.GRID_EMPTY_CELL
             end
         end
-
-        self.cube = CreateRenderComponent(self.shader, self.model)
-        TetrisGrid:setCamera()
-        TetrisGrid:renderBorder()
-
-        -- Generate first next piece
+        self:setCamera()
+        self:renderBorder()
         self.nextPieceType = selectRandomTetrimino()
+        self.playfieldReady = true
     end,
 
     setCamera = function(self)
@@ -971,6 +974,11 @@ TetrisGrid = {
     -- ========================================================================
 
     process = function(self, delta)
+        -- Wait for playfield setup before processing
+        if not self.playfieldReady then
+            return
+        end
+
         -- Wait for game to start before spawning tetriminos
         if not GameModule or not GameModule.isStarted then
             return
@@ -1069,13 +1077,25 @@ TetrisGrid = {
     -- ========================================================================
 
     reset = function(self)
-        -- Destroy all entities in the grid
-        for x = 0, C.GRID_WIDTH - 1 do
-            for y = 0, C.GRID_HEIGHT - 1 do
-                if self.grid[x][y] ~= C.GRID_EMPTY_CELL then
-                    DestroyEntity(self.grid[x][y])
-                    self.grid[x][y] = C.GRID_EMPTY_CELL
+        -- Destroy all entities in the existing grid (iterate old dimensions)
+        if self.grid then
+            for x, col in pairs(self.grid) do
+                if type(col) == "table" then
+                    for y, cell in pairs(col) do
+                        if cell ~= C.GRID_EMPTY_CELL then
+                            DestroyEntity(cell)
+                        end
+                    end
                 end
+            end
+        end
+
+        -- Re-init grid array for current dimensions (handles mode switching)
+        self.grid = {}
+        for x = 0, C.GRID_WIDTH - 1 do
+            self.grid[x] = {}
+            for y = 0, C.GRID_HEIGHT - 1 do
+                self.grid[x][y] = C.GRID_EMPTY_CELL
             end
         end
 

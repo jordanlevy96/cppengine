@@ -204,9 +204,14 @@ OnKeyPress = function(key)
     if key == "ESCAPE" then
         GameManager.window:CloseWindow()
     elseif key == "ENTER" then
-        -- Start the game when ENTER is pressed
+        -- Start standard game when ENTER is pressed
         if game and not game.isStarted then
-            game:start()
+            game:start("standard")
+        end
+    elseif key == "M" then
+        -- Start mini game when M is pressed (startup screen only)
+        if game and not game.isStarted then
+            game:start("mini")
         end
     elseif key == "SPACE" then
         -- Hard drop - instantly drop piece to bottom

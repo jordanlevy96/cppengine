@@ -168,4 +168,26 @@ TetrisConstants.SRS_KICKS_I = {
     ["0>3"] = {{0,0}, {-1,0}, {2,0},  {-1,2},  {2,-1}},
 }
 
+-- ----------------------------------------------------------------------------
+-- MODE PRESETS
+-- ----------------------------------------------------------------------------
+TetrisConstants.ACTIVE_MODE = "standard"
+
+TetrisConstants.MODES = {
+    standard = { GRID_WIDTH = 10, GRID_HEIGHT = 20, CAMERA_PADDING = 2 },
+    mini     = { GRID_WIDTH = 4,  GRID_HEIGHT = 20, CAMERA_PADDING = 4 },
+}
+
+function TetrisConstants.ApplyMode(mode)
+    local preset = TetrisConstants.MODES[mode]
+    if not preset then return false end
+    for k, v in pairs(preset) do
+        TetrisConstants[k] = v
+    end
+    TetrisConstants.SPAWN_COLUMN = math.floor(TetrisConstants.GRID_WIDTH / 2) - 2
+    TetrisConstants.SPAWN_ROW = TetrisConstants.GRID_HEIGHT - 4
+    TetrisConstants.ACTIVE_MODE = mode
+    return true
+end
+
 return TetrisConstants

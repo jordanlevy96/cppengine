@@ -12,6 +12,16 @@ local function ResolveGrid()
     return nil
 end
 
+local function ResolveConstants()
+    if SceneModules and SceneModules.constants then
+        return SceneModules.constants
+    end
+    if TetrisConstants then
+        return TetrisConstants
+    end
+    return nil
+end
+
 local TetrisGame = {
     _contract = {
         role = "game",
@@ -23,8 +33,17 @@ local TetrisGame = {
     isPaused = false,
 
     -- Initialize game (called from input handlers or UI events)
-    start = function(self)
-        print("[TetrisGame] Starting game")
+    -- mode: optional string ("standard" or "mini"), defaults to "standard"
+    start = function(self, mode)
+        mode = mode or "standard"
+        print("[TetrisGame] Starting game (mode: " .. mode .. ")")
+
+        -- Apply mode preset before anything else
+        local C = ResolveConstants()
+        if C and C.ApplyMode then
+            C.ApplyMode(mode)
+        end
+
         self.isStarted = true
         self.isGameOver = false
         self.isPaused = false
@@ -40,10 +59,16 @@ local TetrisGame = {
         self:updatePiecePreview("data.hp", nil)
         RefreshUI()
 
-        -- Reset the grid
+        -- Setup or reset the grid for current mode
         local grid = ResolveGrid()
         if grid then
-            grid:reset()
+            if not grid.playfieldReady then
+                grid:setupPlayfield()
+            else
+                grid:reset()
+                grid:setCamera()
+                grid:renderBorder()
+            end
         end
     end,
 

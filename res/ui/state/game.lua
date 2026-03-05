@@ -82,7 +82,15 @@ return {
             print("START GAME clicked!")
             local game = SceneModules and SceneModules.game or TetrisGame
             if game and not game.isStarted then
-                game:start()
+                game:start("standard")
+            end
+        end,
+
+        onStartMini = function(self)
+            print("START MINI clicked!")
+            local game = SceneModules and SceneModules.game or TetrisGame
+            if game and not game.isStarted then
+                game:start("mini")
             end
         end,
 

@@ -152,10 +152,21 @@ bool TestTetrisGameLifecycle()
     lua.set_function("RefreshUI", [&]()
                      { ++refreshCount; });
 
+    // Stub TetrisConstants with ApplyMode
+    sol::table constants = lua.create_table();
+    constants.set_function("ApplyMode", [](const std::string &) { return true; });
+    lua["TetrisConstants"] = constants;
+
+    int setupPlayfieldCalls = 0;
     int resetCalls = 0;
     sol::table grid = lua.create_table();
+    grid["playfieldReady"] = false;
+    grid.set_function("setupPlayfield", [&](sol::table self)
+                      { ++setupPlayfieldCalls; self["playfieldReady"] = true; });
     grid.set_function("reset", [&](sol::table)
                       { ++resetCalls; });
+    grid.set_function("setCamera", [](sol::table) {});
+    grid.set_function("renderBorder", [](sol::table) {});
     lua["TetrisGrid"] = grid;
 
     sol::table game = lua.script_file(ScriptPath("res/scripts/games/tetris/TetrisGame.lua"));
@@ -165,6 +176,7 @@ bool TestTetrisGameLifecycle()
     sol::protected_function pause = game["pause"];
     sol::protected_function resume = game["resume"];
 
+    // First start: should call setupPlayfield (not reset) since playfieldReady=false
     sol::protected_function_result startResult = start(game);
     if (!ExpectTrue(testName, startResult.valid(), "start() failed"))
         return false;
@@ -173,7 +185,7 @@ bool TestTetrisGameLifecycle()
         return false;
     if (!ExpectEq(testName, game["isPaused"].get<bool>(), false, "isPaused should be false after start"))
         return false;
-    if (!ExpectEq(testName, resetCalls, 1, "grid:reset() should be called once by start"))
+    if (!ExpectEq(testName, setupPlayfieldCalls, 1, "grid:setupPlayfield() should be called once on first start"))
         return false;
     if (!ExpectEq(testName, uiState["data.gameStarted"].get<bool>(), true, "UI data.gameStarted should be true"))
         return false;
@@ -279,7 +291,7 @@ bool TestTetrisInputKeyRouting()
     game["isStarted"] = false;
     game["isPaused"] = false;
     game["isGameOver"] = false;
-    game.set_function("start", [&](sol::table self)
+    game.set_function("start", [&](sol::table self, sol::optional<std::string>)
                       {
                           ++startCalls;
                           self["isStarted"] = true;
@@ -433,6 +445,61 @@ bool TestTetrisConstantsSRSKickCompleteness()
         if (!ExpectEq(testName, count, 5, "I kick " + t + " should have 5 offsets"))
             return false;
     }
+
+    return true;
+}
+
+bool TestTetrisMiniConstants()
+{
+    const std::string testName = "TetrisConstants.MiniMode";
+    sol::state lua;
+    RegisterBaseBindings(lua);
+
+    sol::table constants = lua.script_file(ScriptPath("res/scripts/games/tetris/TetrisConstants.lua"));
+    lua["TetrisConstants"] = constants;
+
+    // Verify defaults (standard mode)
+    if (!ExpectEq(testName, constants["GRID_WIDTH"].get<int>(), 10, "Default GRID_WIDTH should be 10"))
+        return false;
+    if (!ExpectEq(testName, constants["SPAWN_COLUMN"].get<int>(), 3, "Default SPAWN_COLUMN should be 3"))
+        return false;
+
+    // Apply mini mode
+    sol::protected_function applyMode = constants["ApplyMode"];
+    sol::protected_function_result r1 = applyMode("mini");
+    if (!ExpectTrue(testName, r1.valid(), "ApplyMode('mini') should not error"))
+        return false;
+    if (!ExpectEq(testName, r1.get<bool>(), true, "ApplyMode('mini') should return true"))
+        return false;
+
+    if (!ExpectEq(testName, constants["GRID_WIDTH"].get<int>(), 4, "Mini GRID_WIDTH should be 4"))
+        return false;
+    if (!ExpectEq(testName, constants["GRID_HEIGHT"].get<int>(), 20, "Mini GRID_HEIGHT should be 20"))
+        return false;
+    if (!ExpectEq(testName, constants["SPAWN_COLUMN"].get<int>(), 0, "Mini SPAWN_COLUMN should be 0"))
+        return false;
+    if (!ExpectEq(testName, constants["CAMERA_PADDING"].get<int>(), 4, "Mini CAMERA_PADDING should be 4"))
+        return false;
+    if (!ExpectEq(testName, constants["ACTIVE_MODE"].get<std::string>(), std::string("mini"), "ACTIVE_MODE should be 'mini'"))
+        return false;
+
+    // Roundtrip back to standard
+    sol::protected_function_result r2 = applyMode("standard");
+    if (!ExpectTrue(testName, r2.valid(), "ApplyMode('standard') should not error"))
+        return false;
+    if (!ExpectEq(testName, constants["GRID_WIDTH"].get<int>(), 10, "Standard GRID_WIDTH should be 10"))
+        return false;
+    if (!ExpectEq(testName, constants["SPAWN_COLUMN"].get<int>(), 3, "Standard SPAWN_COLUMN should be 3"))
+        return false;
+    if (!ExpectEq(testName, constants["ACTIVE_MODE"].get<std::string>(), std::string("standard"), "ACTIVE_MODE should be 'standard'"))
+        return false;
+
+    // Invalid mode should return false
+    sol::protected_function_result r3 = applyMode("bogus");
+    if (!ExpectTrue(testName, r3.valid(), "ApplyMode('bogus') should not error"))
+        return false;
+    if (!ExpectEq(testName, r3.get<bool>(), false, "ApplyMode('bogus') should return false"))
+        return false;
 
     return true;
 }
@@ -685,6 +752,7 @@ int main()
     const std::vector<TestCase> tests = {
         {"TetrisConstants.GravityCurve", &TestTetrisConstantsGravity},
         {"TetrisConstants.SRSKickCompleteness", &TestTetrisConstantsSRSKickCompleteness},
+        {"TetrisConstants.MiniMode", &TestTetrisMiniConstants},
         {"TetriminoData.ShapeIntegrity", &TestTetriminoDataShapeIntegrity},
         {"TetrisGame.LifecycleAndUI", &TestTetrisGameLifecycle},
         {"TetrisGame.PiecePreviewLayout", &TestTetrisGamePiecePreview},
