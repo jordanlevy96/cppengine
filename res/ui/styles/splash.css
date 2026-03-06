@@ -1,0 +1,71 @@
+/* Splash screen - Egyptian-themed boot screen for Imhotep Engine */
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #141210;
+  width: 1400px;
+  height: 840px;
+  overflow: hidden;
+}
+
+.splash-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.splash-content {
+  text-align: center;
+  margin-bottom: 100px;
+}
+
+.splash-title {
+  font-family: "Papyrus", "Times New Roman", serif;
+  font-size: 96px;
+  font-weight: bold;
+  color: #c9a84c;
+  letter-spacing: 24px;
+  text-align: center;
+}
+
+.splash-subtitle {
+  font-family: "Papyrus", "Times New Roman", serif;
+  font-size: 28px;
+  font-weight: normal;
+  color: #a08838;
+  letter-spacing: 18px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.splash-loading {
+  font-family: "Papyrus", "Times New Roman", serif;
+  font-size: 18px;
+  color: #8a7d5a;
+  letter-spacing: 6px;
+  text-align: center;
+  margin-top: 80px;
+}
+
+.splash-border-top,
+.splash-border-bottom {
+  width: 400px;
+  height: 2px;
+  background-color: #6b5c2e;
+  position: absolute;
+  left: 50%;
+  margin-left: -200px;
+}
+
+.splash-border-top {
+  top: 150px;
+}
+
+.splash-border-bottom {
+  top: 450px;
+}

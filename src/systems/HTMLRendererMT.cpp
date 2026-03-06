@@ -1428,6 +1428,12 @@ bool HTMLRendererMT::TryFindInteractiveElementBoundsByHandler(const std::string 
     return false;
 }
 
+bool HTMLRendererMT::HasCompletedFirstRender() const
+{
+    std::lock_guard<std::mutex> lock(m_bufferMutex);
+    return m_frontBuffer.frameNumber > 0;
+}
+
 void HTMLRendererMT::UpdateHoverState(float x, float y)
 {
     // Convert window coordinates to framebuffer coordinates

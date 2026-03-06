@@ -26,6 +26,7 @@
  */
 
 #include "controllers/EngineCore.h"
+#include "systems/SplashScreen.h"
 #include "util/Logger.h"
 #include "util/ConfigLoader.h"
 #include "util/Version.h"
@@ -149,10 +150,21 @@ bool EngineCore::Initialize(const std::string &logPath, const std::string &appNa
         return false;
     }
 
+    // Show splash immediately after GL context is ready
+    ShowSplash();
+
     if (!InitializeHTMLRenderer())
     {
         LOG_CRITICAL("Failed to initialize HTMLRenderer");
         return false;
+    }
+
+    // Pump splash between init steps to keep it visible
+    if (IsSplashActive())
+    {
+        glfwPollEvents();
+        RenderSplash();
+        glfwSwapBuffers(m_windowManager->window);
     }
 
     if (!InitializeScriptManager())
@@ -161,16 +173,37 @@ bool EngineCore::Initialize(const std::string &logPath, const std::string &appNa
         return false;
     }
 
+    if (IsSplashActive())
+    {
+        glfwPollEvents();
+        RenderSplash();
+        glfwSwapBuffers(m_windowManager->window);
+    }
+
     if (!InitializeRegistry())
     {
         LOG_CRITICAL("Failed to initialize Registry");
         return false;
     }
 
+    if (IsSplashActive())
+    {
+        glfwPollEvents();
+        RenderSplash();
+        glfwSwapBuffers(m_windowManager->window);
+    }
+
     if (!InitializeUI(htmlPath, cssPath, luaStatePath, templateName))
     {
         LOG_CRITICAL("Failed to initialize UI");
         return false;
+    }
+
+    if (IsSplashActive())
+    {
+        glfwPollEvents();
+        RenderSplash();
+        glfwSwapBuffers(m_windowManager->window);
     }
 
     return true;
@@ -448,4 +481,51 @@ bool EngineCore::ShouldClose() const
         return true;
     }
     return glfwWindowShouldClose(m_windowManager->window);
+}
+
+void EngineCore::ShowSplash()
+{
+    if (!m_windowInitialized || !m_windowManager)
+        return;
+
+    int fbWidth, fbHeight;
+    glfwGetFramebufferSize(m_windowManager->window, &fbWidth, &fbHeight);
+
+    m_splashScreen = std::make_unique<SplashScreen>();
+    if (m_splashScreen->Initialize("../res/textures/splash.png", fbWidth, fbHeight))
+    {
+        // Render first frame immediately and swap so the splash is visible
+        m_splashScreen->Render();
+        glfwSwapBuffers(m_windowManager->window);
+        LOG_INFO("[EngineCore] Splash screen displayed");
+    }
+    else
+    {
+        // Non-fatal: splash is optional
+        m_splashScreen.reset();
+        LOG_WARNING("[EngineCore] Splash screen unavailable, continuing without it");
+    }
+}
+
+void EngineCore::RenderSplash()
+{
+    if (m_splashScreen && m_splashScreen->IsReady())
+    {
+        m_splashScreen->Render();
+    }
+}
+
+bool EngineCore::IsSplashActive() const
+{
+    return m_splashScreen && m_splashScreen->IsReady();
+}
+
+void EngineCore::DismissSplash()
+{
+    if (m_splashScreen)
+    {
+        m_splashScreen->Shutdown();
+        m_splashScreen.reset();
+        LOG_INFO("[EngineCore] Splash screen dismissed");
+    }
 }

@@ -134,6 +134,12 @@ public:
     void CloseWindow();
 
     /**
+     * @brief Enable test mode (skips splash minimum display time)
+     * @param enabled true to skip splash branding delay
+     */
+    void SetTestMode(bool enabled) { m_testMode = enabled; }
+
+    /**
      * @brief Set simulation speed multiplier
      * @param speed Desired simulation speed
      * @note Only affects VARIABLE game mode
@@ -192,6 +198,7 @@ private:
 
     SimulationSpeed m_simSpeed = SimulationSpeed::NORMAL; ///< Current sim speed
     GameMode m_gameMode = GameMode::FIXED;                ///< Current loop mode
+    bool m_testMode = false;                              ///< Skip splash delay in test mode
 
     // FPS tracking
     int m_frameCount = 0;                                           ///< Frames since last FPS update

@@ -44,6 +44,7 @@ add_library(core SHARED
     "src/systems/SceneLoader.cpp"
     "src/systems/TiledBackgroundRenderer.cpp"
     "src/systems/SkyBackgroundRenderer.cpp"
+    "src/systems/SplashScreen.cpp"
     "src/util/ConfigLoader.cpp"
     "src/util/FileIO.cpp"
     "src/util/PathResolver.cpp"

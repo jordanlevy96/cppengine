@@ -22,6 +22,8 @@
 
 extern "C" void stbi_set_flip_vertically_on_load(int flag);
 
+class SplashScreen;
+
 /**
  * @brief Core engine subsystems initialization helper
  *
@@ -145,6 +147,30 @@ public:
      */
     bool ShouldClose() const;
 
+    // Splash screen management
+    /**
+     * @brief Show splash screen (loads PNG and renders first frame)
+     * @note Call after InitializeWindow() succeeds
+     */
+    void ShowSplash();
+
+    /**
+     * @brief Render one splash frame (no swap)
+     * @note Caller must swap buffers after this call
+     */
+    void RenderSplash();
+
+    /**
+     * @brief Check if splash is currently active
+     * @return true if splash was shown and not yet dismissed
+     */
+    bool IsSplashActive() const;
+
+    /**
+     * @brief Dismiss splash and release its GL resources
+     */
+    void DismissSplash();
+
     // Accessor methods for subsystems
     WindowManager *GetWindowManager() const { return m_windowManager; }
     HTMLRendererMT *GetHTMLRenderer() const { return m_htmlRenderer; }
@@ -168,6 +194,7 @@ private:
     // Owned state
     Camera *m_camera = nullptr; ///< 3D perspective camera (owned by EngineCore)
     std::shared_ptr<LuaUIState> m_luaState;
+    std::unique_ptr<SplashScreen> m_splashScreen; ///< Boot splash (created/destroyed during init)
 
     // Timing
     std::chrono::high_resolution_clock::time_point m_lastFrameTime;

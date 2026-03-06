@@ -20,6 +20,11 @@ int main(int argc, char* argv[])
 
     Game &game = Game::GetInstance();
 
+    if (smokeTest || clickTest)
+    {
+        game.SetTestMode(true);
+    }
+
     if (!game.Initialize())
     {
         return 1;

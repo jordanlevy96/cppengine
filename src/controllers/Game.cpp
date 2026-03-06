@@ -54,6 +54,39 @@ bool Game::Initialize()
     registry = m_core.GetRegistry();
     scriptManager = m_core.GetScriptManager();
 
+    // Hold splash until HTML renderer completes first frame
+    if (m_core.IsSplashActive())
+    {
+        double minSplashSeconds = m_testMode ? 0.0 : 1.0;
+        auto splashStart = std::chrono::high_resolution_clock::now();
+
+        LOG_INFO("[Game] Holding splash (min {:.1f}s, testMode={})", minSplashSeconds, m_testMode);
+
+        while (!m_core.ShouldClose())
+        {
+            glfwPollEvents();
+
+            auto elapsed = std::chrono::duration<double>(
+                std::chrono::high_resolution_clock::now() - splashStart).count();
+
+            bool rendererReady = htmlRenderer->HasCompletedFirstRender();
+            bool timeReady = elapsed >= minSplashSeconds;
+
+            if (rendererReady && timeReady)
+            {
+                LOG_INFO("[Game] Splash hold complete ({:.2f}s, rendererReady={})", elapsed, rendererReady);
+                break;
+            }
+
+            m_core.RenderSplash();
+            glfwSwapBuffers(windowManager->window);
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(8));
+        }
+
+        m_core.DismissSplash();
+    }
+
     // Initialize FPS tracking
     m_fpsUpdateTime = std::chrono::high_resolution_clock::now();
 

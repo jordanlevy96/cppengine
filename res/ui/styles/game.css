@@ -131,7 +131,7 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        background: rgba(0, 0, 0, 0.95);
+        background: rgba(5, 2, 18, 0.97);
         z-index: 1000;
     }
     .gameover-screen {
@@ -161,11 +161,11 @@
         z-index: 900;
     }
     .startup-title {
-        font-size: 72px;
+        font-size: 84px;
         font-weight: bold;
-        color: #00ff00;
-        margin-bottom: 40px;
-        text-shadow: 0 0 20px #00ff00;
+        color: #00ffff;
+        margin-bottom: 50px;
+        text-shadow: 0 0 7px #00ffff, 0 0 30px #00ffff, 0 0 60px #ff00ff, 0 0 100px #ff00ff;
     }
     .gameover-title {
         font-size: 72px;
@@ -210,22 +210,42 @@
         box-shadow: 0 0 25px #00ff00;
     }
     .start-button {
-        padding: 20px 60px;
-        font-size: 32px;
+        padding: 18px 60px;
+        font-size: 30px;
         font-family: monospace;
-        background: transparent;
-        color: #00ff00;
-        border: 4px solid #00ff00;
+        background: rgba(0, 255, 255, 0.06);
+        color: #00ffff;
+        border: 3px solid #00ffff;
         cursor: pointer;
         transition: all 0.3s;
-        box-shadow: 0 0 20px #00ff00;
+        box-shadow: 0 0 18px rgba(0, 255, 255, 0.5);
+        margin: 12px;
+        text-shadow: 0 0 8px #00ffff;
     }
     .start-button:hover {
-        background: rgba(0,255,0,0.15);
-        box-shadow: 0 0 30px #00ff00;
+        background: rgba(0, 255, 255, 0.18);
+        box-shadow: 0 0 35px rgba(0, 255, 255, 0.7);
+    }
+    .start-button-alt {
+        padding: 18px 60px;
+        font-size: 30px;
+        font-family: monospace;
+        background: rgba(255, 0, 255, 0.06);
+        color: #ff00ff;
+        border: 3px solid #ff00ff;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 0 18px rgba(255, 0, 255, 0.5);
+        margin: 12px;
+        text-shadow: 0 0 8px #ff00ff;
+    }
+    .start-button-alt:hover {
+        background: rgba(255, 0, 255, 0.18);
+        box-shadow: 0 0 35px rgba(255, 0, 255, 0.7);
     }
     .instructions {
         margin-top: 40px;
-        font-size: 20px;
-        color: #00aa00;
+        font-size: 18px;
+        color: #9988cc;
+        text-shadow: 0 0 5px rgba(153, 136, 204, 0.3);
     }

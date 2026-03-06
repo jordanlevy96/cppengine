@@ -174,6 +174,13 @@ public:
                                                  int &height) const;
 
     /**
+     * @brief Check whether the render thread has completed at least one frame
+     * @return true if the front buffer contains a rendered frame
+     * @note Thread-safe (locks m_bufferMutex)
+     */
+    bool HasCompletedFirstRender() const;
+
+    /**
      * @brief Get event handlers map (thread-safe copy)
      * @return Map of element ID → {eventType → handlerExpression}
      * @note Set by ReactiveUI after template evaluation
@@ -268,7 +275,7 @@ private:
     // Frame buffers (double buffered)
     FrameBuffer m_frontBuffer;          ///< Read by main thread (protected by m_bufferMutex)
     FrameBuffer m_backBuffer;           ///< Written by render thread (exclusive ownership)
-    std::mutex m_bufferMutex;           ///< Protects buffer swap
+    mutable std::mutex m_bufferMutex;   ///< Protects buffer swap
     uint64_t m_nextFrameNumber = 0;     ///< Monotonic counter for frame versioning (render thread only)
     uint64_t m_lastFrameNumber = 0;     ///< Last uploaded frame number (main thread only)
 
