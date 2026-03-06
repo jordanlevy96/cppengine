@@ -21,11 +21,11 @@ game:
   resourcePath: ../res/
   logPath: ../logs/tetris.log
   appName: VaporwaveTetris
-  scenePath: scenes/TetrisScene.yaml
+  scenePath: games/tetris/scenes/TetrisScene.yaml
   debug: true
-  htmlPath: ui/templates/game.html
-  cssPath: ui/styles/game.css
-  luaStatePath: ui/state/game.lua
+  htmlPath: games/tetris/ui/templates/game.html
+  cssPath: games/tetris/ui/styles/game.css
+  luaStatePath: games/tetris/ui/state/game.lua
   templateName: VaporwaveTetris
 
 window:

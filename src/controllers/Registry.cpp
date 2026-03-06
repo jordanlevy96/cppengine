@@ -274,7 +274,7 @@ bool Registry::LoadScene(const std::string &src)
                         // Load the script and call the ready function
                         // Be careful with this ready call, if it relies on stuff that hasn't been initialized yet, it'll fail.
 
-                        const std::string &scriptSrc = (const std::string &)(res) + "scripts/" + componentNode["script"].as<std::string>();
+                        const std::string &scriptSrc = (const std::string &)(res) + componentNode["script"].as<std::string>();
                         sm.Run(scriptSrc);
                         sol::table scriptClass = sm.GetLuaTable(name);
                         scriptClass["__entityId"] = id;

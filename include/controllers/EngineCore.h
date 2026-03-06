@@ -45,7 +45,7 @@ public:
 
     /**
      * @brief Initialize core engine subsystems
-     * @param configPath Path to config file (e.g., "res/conf/settings.yaml")
+     * @param configPath Path to config file (e.g., "res/games/tetris/conf/settings.yaml")
      * @param conf Configuration struct
      * @param cam 3D camera pointer
      * @return true if successful, false otherwise

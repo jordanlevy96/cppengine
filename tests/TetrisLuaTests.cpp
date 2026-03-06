@@ -113,7 +113,7 @@ bool TestTetrisConstantsGravity()
     sol::state lua;
     RegisterBaseBindings(lua);
 
-    sol::table constants = lua.script_file(ScriptPath("res/scripts/games/tetris/TetrisConstants.lua"));
+    sol::table constants = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisConstants.lua"));
     lua["TetrisConstants"] = constants;
 
     sol::protected_function getGravity = constants["GetGravitySpeed"];
@@ -169,7 +169,7 @@ bool TestTetrisGameLifecycle()
     grid.set_function("renderBorder", [](sol::table) {});
     lua["TetrisGrid"] = grid;
 
-    sol::table game = lua.script_file(ScriptPath("res/scripts/games/tetris/TetrisGame.lua"));
+    sol::table game = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisGame.lua"));
     lua["TetrisGame"] = game;
 
     sol::protected_function start = game["start"];
@@ -222,7 +222,7 @@ bool TestTetrisGamePiecePreview()
                      { uiState[key] = value; });
     lua.set_function("RefreshUI", []() {});
 
-    sol::table game = lua.script_file(ScriptPath("res/scripts/games/tetris/TetrisGame.lua"));
+    sol::table game = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisGame.lua"));
     lua["TetrisGame"] = game;
 
     sol::protected_function updatePiecePreview = game["updatePiecePreview"];
@@ -312,7 +312,7 @@ bool TestTetrisInputKeyRouting()
     grid.set_function("holdPiece", [](sol::table) {});
     lua["TetrisGrid"] = grid;
 
-    sol::table inputModule = lua.script_file(ScriptPath("res/scripts/games/tetris/TetrisInput.lua"));
+    sol::table inputModule = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisInput.lua"));
 
     PushKeyEvent(lua, "ENTER");
     PushKeyEvent(lua, "SPACE");
@@ -345,7 +345,7 @@ bool TestTetriminoDataShapeIntegrity()
     sol::state lua;
     RegisterBaseBindings(lua);
 
-    sol::table data = lua.script_file(ScriptPath("res/scripts/games/tetris/TetriminoData.lua"));
+    sol::table data = lua.script_file(ScriptPath("res/games/tetris/scripts/TetriminoData.lua"));
 
     const std::vector<std::string> pieces = {"I", "O", "T", "J", "L", "S", "Z"};
 
@@ -405,7 +405,7 @@ bool TestTetrisConstantsSRSKickCompleteness()
     sol::state lua;
     RegisterBaseBindings(lua);
 
-    sol::table constants = lua.script_file(ScriptPath("res/scripts/games/tetris/TetrisConstants.lua"));
+    sol::table constants = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisConstants.lua"));
 
     // All 8 rotation transitions that must exist
     const std::vector<std::string> transitions = {
@@ -455,7 +455,7 @@ bool TestTetrisMiniConstants()
     sol::state lua;
     RegisterBaseBindings(lua);
 
-    sol::table constants = lua.script_file(ScriptPath("res/scripts/games/tetris/TetrisConstants.lua"));
+    sol::table constants = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisConstants.lua"));
     lua["TetrisConstants"] = constants;
 
     // Verify defaults (standard mode)
@@ -510,10 +510,10 @@ bool TestTetrisGridCollisionDetection()
     sol::state lua;
     RegisterBaseBindings(lua);
 
-    sol::table constants = lua.script_file(ScriptPath("res/scripts/games/tetris/TetrisConstants.lua"));
+    sol::table constants = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisConstants.lua"));
     lua["TetrisConstants"] = constants;
 
-    sol::table tetriminoData = lua.script_file(ScriptPath("res/scripts/games/tetris/TetriminoData.lua"));
+    sol::table tetriminoData = lua.script_file(ScriptPath("res/games/tetris/scripts/TetriminoData.lua"));
     lua["TetriminoData"] = tetriminoData;
 
     // Stub engine functions that TetrisGrid calls at load time
@@ -583,10 +583,10 @@ bool TestTetrisGridCollisionDetection()
     lua["TetrisGame"] = game;
 
     // Load Tetrimino module (needed by TetrisGrid)
-    sol::table tetrimino = lua.script_file(ScriptPath("res/scripts/games/tetris/Tetrimino.lua"));
+    sol::table tetrimino = lua.script_file(ScriptPath("res/games/tetris/scripts/Tetrimino.lua"));
     lua["Tetrimino"] = tetrimino;
 
-    sol::table grid = lua.script_file(ScriptPath("res/scripts/games/tetris/TetrisGrid.lua"));
+    sol::table grid = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisGrid.lua"));
 
     // Initialize the grid array (normally done by ready(), but that needs full engine)
     int gridWidth = constants["GRID_WIDTH"].get<int>();

@@ -38,12 +38,12 @@
 #include <chrono>
 #include <thread>
 
-bool Game::Initialize()
+bool Game::Initialize(const std::string& configPath)
 {
     std::cout << "[Game] Starting initialization..." << std::endl;
 
     // Load config and initialize EngineCore
-    if (!m_core.Initialize("../res/conf/settings.yaml", conf, &cam))
+    if (!m_core.Initialize(configPath, conf, &cam))
     {
         return false;
     }

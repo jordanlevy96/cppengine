@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Engine/Game Separation**: Tetris resources namespaced under `res/games/tetris/`
+  - Moved settings.yaml, TetrisScene.yaml, Lua scripts, and UI templates/styles/state
+  - `Game::Initialize()` accepts a config path parameter (default: `res/games/tetris/conf/settings.yaml`)
+  - Added `--config <path>` CLI argument for specifying game config at launch
+  - Removed hardcoded `"scripts/"` prefix from SceneLoader and Registry; scene YAML paths are now relative to `resourcePath`
+
 ### Added
 - **Bundled Python Distribution**: Support for distributing games with a portable Python runtime
   - `PathResolver` utility for runtime environment detection (dev vs installed .app bundle)

@@ -83,7 +83,7 @@ bool SceneLoader::LoadScripts(const std::string &scenePath)
             std::vector<std::string> scriptPaths;
             for (const auto &scriptPath : m_sceneYAML["scripts"])
             {
-                scriptPaths.push_back(res + "scripts/" + scriptPath.as<std::string>());
+                scriptPaths.push_back(res + scriptPath.as<std::string>());
             }
 
             sol::state &lua = ScriptManager::GetInstance().GetLuaState();

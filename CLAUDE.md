@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2026-02-13
+> Last Updated: 2026-03-05
 > Version: 0.1.0
 
 ## Project Overview
@@ -44,6 +44,7 @@
 - Run the engine from the build directory:
   ```sh
   ./imhotep
+  ./imhotep --config ../res/games/tetris/conf/settings.yaml  # explicit config
   ```
 - Initialize submodules when setting up a fresh clone:
   ```sh
@@ -319,12 +320,18 @@ imhotep/
 │   └── util/         # Utilities (Shader, Mesh, Camera, etc.)
 ├── src/              # Implementations (.cpp) - mirrors include/
 ├── res/              # Runtime resources
-│   ├── ui/           # HTML templates, Lua UI state
+│   ├── ui/           # Engine UI templates (splash, fps, editor)
 │   │   └── state/    # Lua state files (fps.lua, etc.)
 │   ├── shaders/      # GLSL shaders
-│   ├── scenes/       # YAML scene definitions
-│   ├── conf/         # YAML config (settings.yaml)
-│   └── scripts/      # Game Lua scripts (Tetris*.lua)
+│   ├── scenes/       # Engine scene definitions (MainScene, EditorTest)
+│   ├── conf/         # Engine config (editor_settings.yaml, tetriminos.yaml)
+│   ├── scripts/      # Engine Lua scripts (input, backgrounds, init)
+│   └── games/        # Game-specific resources (namespaced)
+│       └── tetris/   # Tetris game
+│           ├── conf/     # settings.yaml
+│           ├── scenes/   # TetrisScene.yaml
+│           ├── scripts/  # Tetris*.lua game scripts
+│           └── ui/       # game.html, game.css, game.lua
 ├── scripts/          # Build/packaging scripts
 │   └── package-macos.sh  # macOS .app bundle packaging
 ├── docs/             # Documentation
@@ -658,9 +665,9 @@ git log --oneline --grep="HTML"
 
 ## Project Structure Quick Reference
 
-**Need to add a UI element?** → `res/ui/state/*.lua` + template in `res/ui/**.html` or `res/ui/styles/*.css`
+**Need to add a UI element?** → `res/ui/state/*.lua` + template in `res/ui/**.html` or `res/ui/styles/*.css` (engine); `res/games/<name>/ui/` (game-specific)
 **Need to render something 3D?** → Create entity with `Transform` + `RenderComponent`
-**Need game logic?** → Lua script in `res/scripts/`
+**Need game logic?** → Lua script in `res/games/<name>/scripts/`
 **Need to change window/input?** → `controllers/WindowManager.cpp`
 **Need to modify rendering pipeline?** → `systems/RenderSystem.cpp`
 **Need to change UI rendering?** → `systems/HTMLRendererMT.cpp` (thread-safe!)
@@ -778,4 +785,4 @@ if (imhotep::Version::IsAtLeast(1, 0)) {
 
 ---
 
-_Last Updated: February 13, 2026_
+_Last Updated: March 5, 2026_

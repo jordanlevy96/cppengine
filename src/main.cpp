@@ -1,11 +1,13 @@
 #include <controllers/Game.h>
 #include <cstring>
+#include <string>
 
 int main(int argc, char* argv[])
 {
-    // Check for test flags
+    // Check for flags
     bool smokeTest = false;
     bool clickTest = false;
+    std::string configPath = "../res/games/tetris/conf/settings.yaml";
     for (int i = 1; i < argc; i++)
     {
         if (std::strcmp(argv[i], "--smoke-test") == 0)
@@ -16,6 +18,10 @@ int main(int argc, char* argv[])
         {
             clickTest = true;
         }
+        else if (std::strcmp(argv[i], "--config") == 0 && i + 1 < argc)
+        {
+            configPath = argv[++i];
+        }
     }
 
     Game &game = Game::GetInstance();
@@ -25,7 +31,7 @@ int main(int argc, char* argv[])
         game.SetTestMode(true);
     }
 
-    if (!game.Initialize())
+    if (!game.Initialize(configPath))
     {
         return 1;
     }

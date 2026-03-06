@@ -57,7 +57,7 @@
  * - Camera controls
  * - Game-specific key bindings
  *
- * **Example Lua Handler** (res/scripts/games/tetris/TetrisInput.lua):
+ * **Example Lua Handler** (res/games/tetris/scripts/TetrisInput.lua):
  * ```lua
  * function HandleInput()
  *     for i, event in ipairs(EventQueue) do

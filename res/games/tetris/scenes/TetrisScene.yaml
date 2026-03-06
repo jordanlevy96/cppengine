@@ -7,11 +7,11 @@ capabilities:
 
 # Game-specific scripts loaded before entities (in order)
 scripts:
-  - "games/tetris/TetrisConstants.lua"
-  - "games/tetris/TetriminoData.lua"
-  - "games/tetris/Tetrimino.lua"
-  - "games/tetris/TetrisGame.lua"
-  - "games/tetris/TetrisInput.lua"
+  - "games/tetris/scripts/TetrisConstants.lua"
+  - "games/tetris/scripts/TetriminoData.lua"
+  - "games/tetris/scripts/Tetrimino.lua"
+  - "games/tetris/scripts/TetrisGame.lua"
+  - "games/tetris/scripts/TetrisInput.lua"
 
 scene:
   objects:
@@ -27,24 +27,24 @@ scene:
     - name: "TetrisGrid"
       components:
         - type: "LuaScript"
-          script: "games/tetris/TetrisGrid.lua"
+          script: "games/tetris/scripts/TetrisGrid.lua"
           shader: "OutlinedCube.shader"
           model: "cube.obj"
 
     - name: "SkyBackground"
       components:
         - type: "LuaScript"
-          script: "backgrounds/SkyBackground.lua"
+          script: "scripts/backgrounds/SkyBackground.lua"
 
     - name: "TiledBackground"
       components:
         - type: "LuaScript"
-          script: "backgrounds/TiledBackground.lua"
+          script: "scripts/backgrounds/TiledBackground.lua"
 
     - name: "FlyingProps"
       components:
         - type: "LuaScript"
-          script: "backgrounds/FlyingProps.lua"
+          script: "scripts/backgrounds/FlyingProps.lua"
           shader: "Basic.shader"
           models: "pyramid.obj,octahedron.obj,tetrahedron.obj,cube.obj"
           spawnRate: 0.75
