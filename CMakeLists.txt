@@ -66,6 +66,9 @@ set(OpenGL_GL_PREFERENCE "GLVND")
 find_package(OpenGL REQUIRED)
 find_package(Freetype REQUIRED)
 
+# Enable PIC for all submodules (required on Linux where they link into core.so)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_subdirectory(external/yaml-cpp)
 add_subdirectory(external/sol2)
 add_subdirectory(external/litehtml)
