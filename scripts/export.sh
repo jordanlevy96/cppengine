@@ -177,7 +177,7 @@ elif [ "$OS" = "linux" ]; then
 
 elif [ "$OS" = "windows" ]; then
     OUTPUT="$DIST_DIR/${APP_NAME}-windows.zip"
-    (cd "$INSTALL_DIR" && zip -r "$OUTPUT" "$APP_NAME")
+    (cd "$INSTALL_DIR" && 7z a -tzip "$OUTPUT" "$APP_NAME")
 
     echo ""
     echo "=== Done ==="
