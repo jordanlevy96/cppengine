@@ -17,6 +17,8 @@ project(imhotep VERSION 0.1.0)
 # /bigobj: ScriptManager.cpp exceeds default section limit
 if(MSVC)
     add_compile_options(/Zc:preprocessor /bigobj)
+    # Export all symbols from core.dll so MSVC generates the import library (.lib)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
 set(IMHOTEP_GAME_NAME "imhotep" CACHE STRING "Output binary name")
