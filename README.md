@@ -26,19 +26,25 @@ make
 ./imhotep
 ```
 
-### Logging Verbosity
+### Build Options
 
-Configure the default log level at build time:
+| CMake Variable | Default | Description |
+|---|---|---|
+| `IMHOTEP_GAME_NAME` | `imhotep` | Output binary name (e.g., `VaporQube`) |
+| `IMHOTEP_GAME_CONFIG` | `games/vaporqube/conf/settings.yaml` | Game config path relative to `res/` |
+| `IMHOTEP_ENABLE_PYTHON` | `ON` | Enable Python scripting (requires pybind11) |
+| `IMHOTEP_BUILD_TESTS` | `OFF` | Build test executables |
+| `IMHOTEP_LOG_LEVEL` | `Info` | Build-time log verbosity |
+
+Example with options:
 
 ```sh
-cmake -DIMHOTEP_LOG_LEVEL=Warning ..
+cmake -DIMHOTEP_ENABLE_PYTHON=OFF -DIMHOTEP_BUILD_TESTS=ON ..
 ```
-
-Valid values: `TraceL3`, `TraceL2`, `TraceL1`, `Debug`, `Info`, `Warning`, `Error`, `Critical`, `Off`.
 
 ### Automated Testing
 
-Run the automated Tetris benchmark tests with CTest:
+Run the automated test suite with CTest:
 
 ```sh
 cd build
@@ -48,7 +54,10 @@ ctest --output-on-failure
 ```
 
 Current automated suite:
-- `tetris.lua.behavior` - Validates deterministic Lua gameplay contracts (gravity curve, lifecycle/UI state transitions, piece preview layout, and key input routing).
+- `vaporqube.lua.behavior` - Validates deterministic Lua gameplay contracts (gravity curve, lifecycle/UI state transitions, piece preview layout, and key input routing).
+- `engine.unit` - ExpressionCache unit tests.
+- `engine.smoke` - Engine boots and renders 10 frames without crashing.
+- `engine.click` - End-to-end UI click event integration test.
 
 ### External Dependencies
 
@@ -105,14 +114,28 @@ cmake \
   ..
 ```
 
-### Distribution Build (macOS)
+### Distribution Builds
 
-To create a distributable `.app` bundle with bundled Python:
+Build a distributable package for the current platform:
 
 ```sh
-chmod +x scripts/package-macos.sh
-./scripts/package-macos.sh
-open build-release/dist/Imhotep.app
+./scripts/export.sh --game vaporqube
 ```
 
-This downloads a portable Python runtime, installs packages (pandas, matplotlib, numpy), and creates a self-contained app bundle.
+| Platform | Output |
+|---|---|
+| macOS | `dist/VaporQube-macos.dmg` |
+| Linux | `dist/VaporQube-linux.tar.gz` |
+| Windows | `dist/VaporQube-windows.zip` |
+
+The script reads `appName` from the game's `settings.yaml` to name the output.
+
+To build without Python scripting support:
+
+```sh
+./scripts/export.sh --game vaporqube --skip-python
+```
+
+On macOS with Python enabled, a portable Python runtime is downloaded automatically.
+
+**CI**: Push a `v*` tag to trigger GitHub Actions builds for all 3 platforms. Artifacts are attached to the GitHub Release.
