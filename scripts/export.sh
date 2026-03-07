@@ -113,15 +113,22 @@ fi
 echo "=== Configuring ==="
 cmake -B "$BUILD_DIR" -S "$PROJECT_ROOT" "${CMAKE_FLAGS[@]}"
 
+# MSVC multi-config generators ignore CMAKE_BUILD_TYPE;
+# must pass --config to build/install instead
+BUILD_CONFIG_FLAG=""
+if [ "$OS" = "windows" ]; then
+    BUILD_CONFIG_FLAG="--config Release"
+fi
+
 echo ""
 echo "=== Building ==="
-cmake --build "$BUILD_DIR" -j"$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
+cmake --build "$BUILD_DIR" $BUILD_CONFIG_FLAG -j"$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
 
 echo ""
 echo "=== Installing ==="
 INSTALL_DIR="$BUILD_DIR/install"
 rm -rf "$INSTALL_DIR"
-cmake --install "$BUILD_DIR" --prefix "$INSTALL_DIR"
+cmake --install "$BUILD_DIR" --prefix "$INSTALL_DIR" $BUILD_CONFIG_FLAG
 
 # ----- Post-process per platform -----
 echo ""
