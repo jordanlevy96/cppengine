@@ -12,10 +12,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(imhotep VERSION 0.1.0)
 
-# MSVC: enable conformant preprocessor for correct __VA_ARGS__ handling
-# Required by Quill logging macros (MacroMetadata constexpr initialization)
+# MSVC: conformant preprocessor + large object file support
+# /Zc:preprocessor: correct __VA_ARGS__ handling (required by Quill logging macros)
+# /bigobj: ScriptManager.cpp exceeds default section limit
 if(MSVC)
-    add_compile_options(/Zc:preprocessor)
+    add_compile_options(/Zc:preprocessor /bigobj)
 endif()
 
 set(IMHOTEP_GAME_NAME "imhotep" CACHE STRING "Output binary name")

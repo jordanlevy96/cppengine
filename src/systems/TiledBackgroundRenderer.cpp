@@ -512,9 +512,9 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
 
         const float latDist = std::abs(glm::dot(rel, rightXZ));
         out = Candidate{
-            .key = TileKey{n.lod, n.x, n.y},
-            .forwardDist = fwdDist,
-            .lateralDist = latDist};
+            TileKey{n.lod, n.x, n.y},
+            fwdDist,
+            latDist};
         return true;
     };
 
@@ -641,7 +641,7 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
         const float tileSize = GetTileWorldSizeForLOD(c.key.lod);
         const float splitThreshold = tileSize * m_config.lodSplitFactor;
         const float priority = (splitThreshold - c.forwardDist);
-        heap.push(HeapItem{.priority = priority, .cand = c});
+        heap.push(HeapItem{priority, c});
     };
 
     for (int ty = clampedY0; ty <= clampedY1; ty++)
@@ -649,7 +649,7 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
         for (int tx = clampedX0; tx <= clampedX1; tx++)
         {
             Candidate c{};
-            if (!computeCandidate(Node{.lod = rootLod, .x = tx, .y = ty}, c))
+            if (!computeCandidate(Node{rootLod, tx, ty}, c))
             {
                 continue;
             }
@@ -714,10 +714,10 @@ void TiledBackgroundRenderer::SelectVisibleTiles(Camera *camera, std::vector<Til
         const int cy = parent.key.y * 2;
 
         const Node children[4] = {
-            Node{.lod = childLod, .x = cx + 0, .y = cy + 0},
-            Node{.lod = childLod, .x = cx + 1, .y = cy + 0},
-            Node{.lod = childLod, .x = cx + 0, .y = cy + 1},
-            Node{.lod = childLod, .x = cx + 1, .y = cy + 1},
+            Node{childLod, cx + 0, cy + 0},
+            Node{childLod, cx + 1, cy + 0},
+            Node{childLod, cx + 0, cy + 1},
+            Node{childLod, cx + 1, cy + 1},
         };
 
         for (const Node &ch : children)
@@ -1237,11 +1237,11 @@ void TiledBackgroundRenderer::Render(Camera *camera, float deltaMs)
         const float tileSize = GetTileWorldSizeForLOD(key.lod);
         const glm::vec2 originXZ(key.x * tileSize, key.y * tileSize);
         instances.push_back(TileInstance{
-            .originXZ = originXZ,
-            .layer = static_cast<float>(slot),
-            .hasData = 0.0f,
-            .tileWorldSize = tileSize,
-            .skirtMask = static_cast<float>(skirtMask)});
+            originXZ,
+            static_cast<float>(slot),
+            0.0f,
+            tileSize,
+            static_cast<float>(skirtMask)});
     }
 
     UploadPendingTiles();
