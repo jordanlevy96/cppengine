@@ -122,7 +122,7 @@ fi
 
 echo ""
 echo "=== Building ==="
-cmake --build "$BUILD_DIR" $BUILD_CONFIG_FLAG -j"$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
+cmake --build "$BUILD_DIR" $BUILD_CONFIG_FLAG --target imhotep --target core -j"$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
 
 echo ""
 echo "=== Installing ==="
