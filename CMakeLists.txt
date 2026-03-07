@@ -79,7 +79,7 @@ set(QUILL_DISABLE_NON_PREFIXED_MACROS ON CACHE BOOL "Disable Quill's non-prefixe
 FetchContent_Declare(
     quill
     GIT_REPOSITORY https://github.com/odygrd/quill.git
-    GIT_TAG        v7.4.0
+    GIT_TAG        v11.0.2
 )
 FetchContent_MakeAvailable(quill)
 

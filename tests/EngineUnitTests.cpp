@@ -468,5 +468,6 @@ int main()
     std::cout << "  Passed: " << g_passed << std::endl;
     std::cout << "  Failed: " << g_failed << std::endl;
 
+    imhotep::Logger::GetInstance().Shutdown();
     return g_failed > 0 ? 1 : 0;
 }
