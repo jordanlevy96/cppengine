@@ -1,6 +1,6 @@
--- TetrisGrid
+-- GameGrid
 --
--- Grid management and game logic for Tetris
+-- Grid management and game logic for VaporQube
 
 local function ResolveModule(role, fallback)
     if SceneModules and SceneModules[role] then
@@ -9,10 +9,10 @@ local function ResolveModule(role, fallback)
     return fallback
 end
 
-local C = ResolveModule("constants", TetrisConstants)
+local C = ResolveModule("constants", GameConstants)
 local TetriminoModule = ResolveModule("entity", Tetrimino)
 local TetriminoDataModule = ResolveModule("data", TetriminoData)
-local GameModule = ResolveModule("game", TetrisGame)
+local GameModule = ResolveModule("game", GameLogic)
 
 local function InitModules(ctx)
     if ctx then
@@ -22,7 +22,7 @@ local function InitModules(ctx)
         GameModule = ctx.game or GameModule
     end
     if not C then
-        C = ResolveModule("constants", TetrisConstants)
+        C = ResolveModule("constants", GameConstants)
     end
     if not TetriminoModule then
         TetriminoModule = ResolveModule("entity", Tetrimino)
@@ -31,22 +31,22 @@ local function InitModules(ctx)
         TetriminoDataModule = ResolveModule("data", TetriminoData)
     end
     if not GameModule then
-        GameModule = ResolveModule("game", TetrisGame)
+        GameModule = ResolveModule("game", GameLogic)
     end
 end
 
 local function RequireModules()
     if not C then
-        error("TetrisGrid missing constants module")
+        error("GameGrid missing constants module")
     end
     if not TetriminoModule then
-        error("TetrisGrid missing entity module")
+        error("GameGrid missing entity module")
     end
     if not TetriminoDataModule then
-        error("TetrisGrid missing data module")
+        error("GameGrid missing data module")
     end
     if not GameModule then
-        error("TetrisGrid missing game module")
+        error("GameGrid missing game module")
     end
 end
 
@@ -77,7 +77,7 @@ end
 -- TETRIS GRID CLASS
 -- ============================================================================
 
-TetrisGrid = {
+GameGrid = {
     _contract = {
         role = "grid",
         requires = {"constants", "data", "entity", "game"}
@@ -1153,4 +1153,4 @@ TetrisGrid = {
     end
 }
 
-return TetrisGrid
+return GameGrid

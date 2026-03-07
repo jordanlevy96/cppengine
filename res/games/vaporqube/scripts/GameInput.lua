@@ -1,9 +1,9 @@
 -- ============================================================================
--- TetrisInput.lua
--- Tetris-specific input handling
+-- GameInput.lua
+-- Game-specific input handling
 -- ============================================================================
 
-local TetrisInput = {
+local GameInput = {
     _contract = {
         role = "input",
         requires = {"constants", "game"},
@@ -34,8 +34,8 @@ local function ResolveConstants()
     if not constants then
         if SceneModules and SceneModules.constants then
             constants = SceneModules.constants
-        elseif TetrisConstants then
-            constants = TetrisConstants
+        elseif GameConstants then
+            constants = GameConstants
         end
     end
     return constants
@@ -45,8 +45,8 @@ local function ResolveGame()
     if not gameModule then
         if SceneModules and SceneModules.game then
             gameModule = SceneModules.game
-        elseif TetrisGame then
-            gameModule = TetrisGame
+        elseif GameLogic then
+            gameModule = GameLogic
         end
     end
     return gameModule
@@ -56,14 +56,14 @@ local function ResolveGrid()
     if not gridModule then
         if SceneModules and SceneModules.grid then
             gridModule = SceneModules.grid
-        elseif TetrisGrid then
-            gridModule = TetrisGrid
+        elseif GameGrid then
+            gridModule = GameGrid
         end
     end
     return gridModule
 end
 
-TetrisInput.init = function(self, ctx)
+GameInput.init = function(self, ctx)
     if ctx then
         constants = ctx.constants or constants
         gameModule = ctx.game or gameModule
@@ -231,7 +231,7 @@ OnKeyPress = function(key)
         if grid then
             grid:rotateTetrimino(Rotations.CW)
         end
-    -- LEFT/RIGHT handled by DAS polling in TetrisGrid.process()
+    -- LEFT/RIGHT handled by DAS polling in GameGrid.process()
     elseif key == "C" then
         if grid then
             grid:holdPiece()
@@ -239,10 +239,10 @@ OnKeyPress = function(key)
     end
 end
 
-log_info("Loaded TetrisInput.lua")
+log_info("Loaded GameInput.lua")
 
-TetrisInput.handleInput = function(self)
+GameInput.handleInput = function(self)
     HandleInput()
 end
 
-return TetrisInput
+return GameInput

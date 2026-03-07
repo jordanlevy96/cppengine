@@ -1,6 +1,6 @@
--- TetrisConstants
+-- GameConstants
 --
--- Configuration constants for Tetris game
+-- Configuration constants for VaporQube game
 -- TODO: Better data management for scene data
 
 --[[
@@ -41,7 +41,7 @@ Grid Storage:
 ================================================================================
 ]]--
 
-local TetrisConstants = {
+local GameConstants = {
     _contract = {
         role = "constants"
     }
@@ -52,15 +52,15 @@ local TetrisConstants = {
 -- ----------------------------------------------------------------------------
 -- Standard Tetris playfield dimensions (official guideline).
 -- Grid is 0-indexed: columns [0, 9], rows [0, 19].
-TetrisConstants.GRID_WIDTH = 10
-TetrisConstants.GRID_HEIGHT = 20
+GameConstants.GRID_WIDTH = 10
+GameConstants.GRID_HEIGHT = 20
 
 -- Actual rendered size of cube meshes in world units.
 -- The cube.obj model has vertices from -1 to +1, making it 2x2x2 units at default scale.
-TetrisConstants.CUBE_SIZE = 2
+GameConstants.CUBE_SIZE = 2
 
 -- Sentinel value indicating an empty grid cell (no tetrimino block present).
-TetrisConstants.GRID_EMPTY_CELL = -1
+GameConstants.GRID_EMPTY_CELL = -1
 
 -- ----------------------------------------------------------------------------
 -- SPAWN CONFIGURATION
@@ -68,74 +68,74 @@ TetrisConstants.GRID_EMPTY_CELL = -1
 -- Tetriminos spawn near the top-center of the grid.
 -- Horizontal: Center column minus 1 (accounts for 4-wide I-tetrimino).
 -- Vertical: 4 rows from top (standard Tetris spawn height, allows visibility).
-TetrisConstants.SPAWN_COLUMN = math.floor(TetrisConstants.GRID_WIDTH / 2) - 2  -- Evaluates to 3 for width=10
-TetrisConstants.SPAWN_ROW = TetrisConstants.GRID_HEIGHT - 4                    -- Evaluates to 16 for height=20
+GameConstants.SPAWN_COLUMN = math.floor(GameConstants.GRID_WIDTH / 2) - 2  -- Evaluates to 3 for width=10
+GameConstants.SPAWN_ROW = GameConstants.GRID_HEIGHT - 4                    -- Evaluates to 16 for height=20
 
 -- ----------------------------------------------------------------------------
 -- RENDERING CONFIGURATION
 -- ----------------------------------------------------------------------------
 -- Border color
-TetrisConstants.BORDER_COLOR = vec3(1.0, 0.0, 0.8)
+GameConstants.BORDER_COLOR = vec3(1.0, 0.0, 0.8)
 
 -- Camera field of view in degrees.
-TetrisConstants.CAMERA_FOV_DEGREES = 45
+GameConstants.CAMERA_FOV_DEGREES = 45
 
 -- Extra padding around grid dimensions for camera framing calculation.
-TetrisConstants.CAMERA_PADDING = 2
+GameConstants.CAMERA_PADDING = 2
 
 -- Z-axis offset to position camera away from grid plane.
-TetrisConstants.CAMERA_Z_OFFSET = 1
+GameConstants.CAMERA_Z_OFFSET = 1
 
 -- ----------------------------------------------------------------------------
 -- GAMEPLAY CONFIGURATION
 -- ----------------------------------------------------------------------------
 -- Legacy fixed speed (deprecated - use GetGravitySpeed instead)
-TetrisConstants.MOVE_SPEED_MS = 200
+GameConstants.MOVE_SPEED_MS = 200
 
 -- NES-inspired gravity curve (milliseconds per cell drop)
-TetrisConstants.GRAVITY_TABLE = {
+GameConstants.GRAVITY_TABLE = {
     [1]  = 800,  [2]  = 717,  [3]  = 633,  [4]  = 550,  [5]  = 467,
     [6]  = 383,  [7]  = 300,  [8]  = 217,  [9]  = 133,  [10] = 100,
     [11] = 83,   [12] = 83,   [13] = 67,   [14] = 67,   [15] = 50,
     [16] = 50,   [17] = 33,   [18] = 33,   [19] = 17,   [20] = 17,
 }
 
-function TetrisConstants.GetGravitySpeed(level)
+function GameConstants.GetGravitySpeed(level)
     if level >= 20 then return 17 end
-    return TetrisConstants.GRAVITY_TABLE[level] or 800
+    return GameConstants.GRAVITY_TABLE[level] or 800
 end
 
 -- Lock delay constants
-TetrisConstants.LOCK_DELAY_MS = 500         -- Grace period after landing (ms)
-TetrisConstants.LOCK_DELAY_MAX_RESETS = 15  -- Max move/rotate resets while grounded
+GameConstants.LOCK_DELAY_MS = 500         -- Grace period after landing (ms)
+GameConstants.LOCK_DELAY_MAX_RESETS = 15  -- Max move/rotate resets while grounded
 
 -- DAS (Delayed Auto Shift) constants
-TetrisConstants.DAS_DELAY_MS = 170          -- Initial delay before auto-repeat (ms)
-TetrisConstants.DAS_ARR_MS = 50             -- Auto-repeat rate once DAS charges (ms)
+GameConstants.DAS_DELAY_MS = 170          -- Initial delay before auto-repeat (ms)
+GameConstants.DAS_ARR_MS = 50             -- Auto-repeat rate once DAS charges (ms)
 
 -- Rounding offset for converting floating-point positions to integer grid indices.
 -- Using 0.5 ensures proper rounding (e.g., 2.3 + 0.5 = 2.8 → floor → 2).
-TetrisConstants.GRID_POSITION_ROUNDING_OFFSET = 0.5
+GameConstants.GRID_POSITION_ROUNDING_OFFSET = 0.5
 
 -- ----------------------------------------------------------------------------
 -- ROTATION MATRIX CONFIGURATION
 -- ----------------------------------------------------------------------------
 -- Tetriminos use 4×4 rotation matrices (matching C++ implementation).
 -- Valid indices: 0 to ROTATION_MATRIX_SIZE - 1 (i.e., 0 to 3).
-TetrisConstants.ROTATION_MATRIX_SIZE = 4
+GameConstants.ROTATION_MATRIX_SIZE = 4
 
 -- ----------------------------------------------------------------------------
 -- TETRIMINO-SPECIFIC CONFIGURATION
 -- ----------------------------------------------------------------------------
 -- Tetrimino cube spacing within the 4x4 matrix (matches C++ spacingX/Y).
-TetrisConstants.TETRIMINO_SPACING = 2.0
+GameConstants.TETRIMINO_SPACING = 2.0
 
 -- Rotation angles in degrees
-TetrisConstants.ROTATION_ANGLE_CW = 90.0
-TetrisConstants.ROTATION_ANGLE_CCW = -90.0
+GameConstants.ROTATION_ANGLE_CW = 90.0
+GameConstants.ROTATION_ANGLE_CCW = -90.0
 
 -- Euler axis for tetrimino rotation (yaw/Z axis - rotates in XY plane)
-TetrisConstants.ROTATION_AXIS = vec3(0, 0, 1)
+GameConstants.ROTATION_AXIS = vec3(0, 0, 1)
 
 -- ----------------------------------------------------------------------------
 -- SRS WALL KICK DATA
@@ -145,7 +145,7 @@ TetrisConstants.ROTATION_AXIS = vec3(0, 0, 1)
 -- Offsets are in grid units (positive X = right, positive Y = up)
 
 -- Wall kicks for J, L, S, T, Z pieces
-TetrisConstants.SRS_KICKS_JLSTZ = {
+GameConstants.SRS_KICKS_JLSTZ = {
     ["0>1"] = {{0,0}, {-1,0}, {-1,1},  {0,-2}, {-1,-2}},
     ["1>0"] = {{0,0}, {1,0},  {1,-1},  {0,2},  {1,2}},
     ["1>2"] = {{0,0}, {1,0},  {1,-1},  {0,2},  {1,2}},
@@ -157,7 +157,7 @@ TetrisConstants.SRS_KICKS_JLSTZ = {
 }
 
 -- Wall kicks for I piece (different offset table)
-TetrisConstants.SRS_KICKS_I = {
+GameConstants.SRS_KICKS_I = {
     ["0>1"] = {{0,0}, {-2,0}, {1,0},  {-2,-1}, {1,2}},
     ["1>0"] = {{0,0}, {2,0},  {-1,0}, {2,1},   {-1,-2}},
     ["1>2"] = {{0,0}, {-1,0}, {2,0},  {-1,2},  {2,-1}},
@@ -171,23 +171,23 @@ TetrisConstants.SRS_KICKS_I = {
 -- ----------------------------------------------------------------------------
 -- MODE PRESETS
 -- ----------------------------------------------------------------------------
-TetrisConstants.ACTIVE_MODE = "standard"
+GameConstants.ACTIVE_MODE = "standard"
 
-TetrisConstants.MODES = {
+GameConstants.MODES = {
     standard = { GRID_WIDTH = 10, GRID_HEIGHT = 20, CAMERA_PADDING = 2 },
     mini     = { GRID_WIDTH = 4,  GRID_HEIGHT = 20, CAMERA_PADDING = 4 },
 }
 
-function TetrisConstants.ApplyMode(mode)
-    local preset = TetrisConstants.MODES[mode]
+function GameConstants.ApplyMode(mode)
+    local preset = GameConstants.MODES[mode]
     if not preset then return false end
     for k, v in pairs(preset) do
-        TetrisConstants[k] = v
+        GameConstants[k] = v
     end
-    TetrisConstants.SPAWN_COLUMN = math.floor(TetrisConstants.GRID_WIDTH / 2) - 2
-    TetrisConstants.SPAWN_ROW = TetrisConstants.GRID_HEIGHT - 4
-    TetrisConstants.ACTIVE_MODE = mode
+    GameConstants.SPAWN_COLUMN = math.floor(GameConstants.GRID_WIDTH / 2) - 2
+    GameConstants.SPAWN_ROW = GameConstants.GRID_HEIGHT - 4
+    GameConstants.ACTIVE_MODE = mode
     return true
 end
 
-return TetrisConstants
+return GameConstants

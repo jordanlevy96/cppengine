@@ -31,7 +31,7 @@ namespace ConfigLoader
      *
      * @code
      * Config conf;
-     * if (ConfigLoader::LoadConfig("../res/games/tetris/conf/settings.yaml", conf)) {
+     * if (ConfigLoader::LoadConfig("../res/games/vaporqube/conf/settings.yaml", conf)) {
      *     // Use conf.WindowWidth, conf.AppName, etc.
      * }
      * @endcode

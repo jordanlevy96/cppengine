@@ -18,8 +18,8 @@ local function ResolveDependencies()
     if not C then
         if SceneModules and SceneModules.constants then
             C = SceneModules.constants
-        elseif TetrisConstants then
-            C = TetrisConstants
+        elseif GameConstants then
+            C = GameConstants
         end
     end
     if not Data then

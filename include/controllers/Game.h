@@ -100,7 +100,7 @@ public:
      * @return true if initialization succeeded, false on failure
      * @note Loads config from settings.yaml, initializes logging, window, systems
      */
-    bool Initialize(const std::string& configPath = "../res/games/tetris/conf/settings.yaml");
+    bool Initialize(const std::string& configPath = "../res/games/vaporqube/conf/settings.yaml");
 
     /**
      * @brief Shutdown all engine systems and cleanup resources

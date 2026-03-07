@@ -57,7 +57,7 @@
  * - Camera controls
  * - Game-specific key bindings
  *
- * **Example Lua Handler** (res/games/tetris/scripts/TetrisInput.lua):
+ * **Example Lua Handler** (res/games/vaporqube/scripts/GameInput.lua):
  * ```lua
  * function HandleInput()
  *     for i, event in ipairs(EventQueue) do

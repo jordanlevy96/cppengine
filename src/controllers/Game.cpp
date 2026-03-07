@@ -1,6 +1,6 @@
 /**
  * @file Game.cpp
- * @brief Main game loop implementation (Tetris) using EngineCore
+ * @brief Main game loop implementation (VaporQube) using EngineCore
  * @lines ~285
  *
  * Purpose: Implements core game loop with fixed/variable timestep options.

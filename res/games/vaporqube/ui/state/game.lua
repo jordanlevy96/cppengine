@@ -19,7 +19,7 @@ return {
         gameOver = false,         -- Controls game over screen
         gamePaused = false,       -- Controls pause screen
 
-        -- Tetris game stats
+        -- Game stats
         score = 0,
         lines = 0,
         level = 1,
@@ -80,7 +80,7 @@ return {
     methods = {
         onStartGame = function(self)
             print("START GAME clicked!")
-            local game = SceneModules and SceneModules.game or TetrisGame
+            local game = SceneModules and SceneModules.game or GameLogic
             if game and not game.isStarted then
                 game:start("standard")
             end
@@ -88,7 +88,7 @@ return {
 
         onStartMini = function(self)
             print("START MINI clicked!")
-            local game = SceneModules and SceneModules.game or TetrisGame
+            local game = SceneModules and SceneModules.game or GameLogic
             if game and not game.isStarted then
                 game:start("mini")
             end
@@ -96,7 +96,7 @@ return {
 
         onRestart = function(self)
             print("RESTART clicked!")
-            local game = SceneModules and SceneModules.game or TetrisGame
+            local game = SceneModules and SceneModules.game or GameLogic
             if game then
                 game:reset()
             end
@@ -104,7 +104,7 @@ return {
 
         onMainMenu = function(self)
             print("MAIN MENU clicked!")
-            local game = SceneModules and SceneModules.game or TetrisGame
+            local game = SceneModules and SceneModules.game or GameLogic
             if game then
                 game:returnToMenu()
             end

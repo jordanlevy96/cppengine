@@ -11,9 +11,9 @@ scene:
           shader: "Basic.shader"
           model: "cube.obj"
 
-    - name: "TetrisGrid"
+    - name: "GameGrid"
       components:
         - type: "LuaScript"
-          script: "games/tetris/scripts/TetrisGrid.lua"
+          script: "games/vaporqube/scripts/GameGrid.lua"
           shader: "OutlinedCube.shader"
           model: "cube.obj"

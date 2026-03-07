@@ -19,14 +19,14 @@ input:
 
 game:
   resourcePath: ../res/
-  logPath: ../logs/tetris.log
-  appName: VaporwaveTetris
-  scenePath: games/tetris/scenes/TetrisScene.yaml
+  logPath: ../logs/vaporqube.log
+  appName: VaporQube
+  scenePath: games/vaporqube/scenes/Scene.yaml
   debug: true
-  htmlPath: games/tetris/ui/templates/game.html
-  cssPath: games/tetris/ui/styles/game.css
-  luaStatePath: games/tetris/ui/state/game.lua
-  templateName: VaporwaveTetris
+  htmlPath: games/vaporqube/ui/templates/game.html
+  cssPath: games/vaporqube/ui/styles/game.css
+  luaStatePath: games/vaporqube/ui/state/game.lua
+  templateName: VaporQube
 
 window:
   targetFPS: 60

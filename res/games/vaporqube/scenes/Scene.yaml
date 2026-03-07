@@ -1,4 +1,4 @@
-name: "TetrisScene"
+name: "VaporQubeScene"
 
 # Engine capabilities required by scene modules
 capabilities:
@@ -7,11 +7,11 @@ capabilities:
 
 # Game-specific scripts loaded before entities (in order)
 scripts:
-  - "games/tetris/scripts/TetrisConstants.lua"
-  - "games/tetris/scripts/TetriminoData.lua"
-  - "games/tetris/scripts/Tetrimino.lua"
-  - "games/tetris/scripts/TetrisGame.lua"
-  - "games/tetris/scripts/TetrisInput.lua"
+  - "games/vaporqube/scripts/GameConstants.lua"
+  - "games/vaporqube/scripts/TetriminoData.lua"
+  - "games/vaporqube/scripts/Tetrimino.lua"
+  - "games/vaporqube/scripts/GameLogic.lua"
+  - "games/vaporqube/scripts/GameInput.lua"
 
 scene:
   objects:
@@ -24,10 +24,10 @@ scene:
           shader: "Basic.shader"
           model: "cube.obj"
 
-    - name: "TetrisGrid"
+    - name: "GameGrid"
       components:
         - type: "LuaScript"
-          script: "games/tetris/scripts/TetrisGrid.lua"
+          script: "games/vaporqube/scripts/GameGrid.lua"
           shader: "OutlinedCube.shader"
           model: "cube.obj"
 

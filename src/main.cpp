@@ -7,7 +7,7 @@ int main(int argc, char* argv[])
     // Check for flags
     bool smokeTest = false;
     bool clickTest = false;
-    std::string configPath = "../res/games/tetris/conf/settings.yaml";
+    std::string configPath = "../res/games/vaporqube/conf/settings.yaml";
     for (int i = 1; i < argc; i++)
     {
         if (std::strcmp(argv[i], "--smoke-test") == 0)

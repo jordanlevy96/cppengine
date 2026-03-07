@@ -1,4 +1,4 @@
--- TetrisGame.lua
+-- GameLogic.lua
 -- Main game controller - handles lifecycle and UI state updates
 -- Replaces C++ Game::StartGame(), ResetGame(), ReturnToMainMenu()
 
@@ -6,8 +6,8 @@ local function ResolveGrid()
     if SceneModules and SceneModules.grid then
         return SceneModules.grid
     end
-    if TetrisGrid then
-        return TetrisGrid
+    if GameGrid then
+        return GameGrid
     end
     return nil
 end
@@ -16,13 +16,13 @@ local function ResolveConstants()
     if SceneModules and SceneModules.constants then
         return SceneModules.constants
     end
-    if TetrisConstants then
-        return TetrisConstants
+    if GameConstants then
+        return GameConstants
     end
     return nil
 end
 
-local TetrisGame = {
+local GameLogic = {
     _contract = {
         role = "game",
         needs = {"ui"}
@@ -36,7 +36,7 @@ local TetrisGame = {
     -- mode: optional string ("standard" or "mini"), defaults to "standard"
     start = function(self, mode)
         mode = mode or "standard"
-        print("[TetrisGame] Starting game (mode: " .. mode .. ")")
+        print("[GameLogic] Starting game (mode: " .. mode .. ")")
 
         -- Apply mode preset before anything else
         local C = ResolveConstants()
@@ -74,7 +74,7 @@ local TetrisGame = {
 
     -- Reset game (keep playing, reset stats)
     reset = function(self)
-        print("[TetrisGame] Resetting game")
+        print("[GameLogic] Resetting game")
         self.isStarted = true
         self.isGameOver = false
         self.isPaused = false
@@ -97,7 +97,7 @@ local TetrisGame = {
 
     -- Return to main menu
     returnToMenu = function(self)
-        print("[TetrisGame] Returning to main menu")
+        print("[GameLogic] Returning to main menu")
         self.isStarted = false
         self.isGameOver = false
         self.isPaused = false
@@ -120,7 +120,7 @@ local TetrisGame = {
 
     -- Game over (show game over screen)
     gameOver = function(self, finalScore)
-        print("[TetrisGame] Game Over - Score: " .. finalScore)
+        print("[GameLogic] Game Over - Score: " .. finalScore)
         self.isGameOver = true
         self.isPaused = false
 
@@ -223,4 +223,4 @@ local TetrisGame = {
     end
 }
 
-return TetrisGame
+return GameLogic

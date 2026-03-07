@@ -1,20 +1,20 @@
 /**
- * @file TetrisLuaTests.cpp
- * @brief Automated Lua behavior tests for Tetris scripts
+ * @file GameLuaTests.cpp
+ * @brief Automated Lua behavior tests for VaporQube scripts
  * @lines ~600
  *
- * Purpose: Establish a stable automated benchmark for Tetris gameplay logic.
+ * Purpose: Establish a stable automated benchmark for VaporQube gameplay logic.
  * Validates key script contracts without requiring OpenGL or window creation.
  *
  * Key functions:
- * - TestTetrisConstantsGravity() - Validates gravity curve invariants (line ~106)
- * - TestTetrisConstantsSRSKickCompleteness() - Validates all 8 SRS kick transitions exist (line ~138)
+ * - TestGameConstantsGravity() - Validates gravity curve invariants (line ~106)
+ * - TestGameConstantsSRSKickCompleteness() - Validates all 8 SRS kick transitions exist (line ~138)
  * - TestTetriminoDataShapeIntegrity() - Validates all 7 pieces have 4 states with 4 blocks each (line ~106)
- * - TestTetrisGameLifecycle() - Validates start/reset/pause UI state transitions (line ~198)
- * - TestTetrisGamePiecePreview() - Validates next/hold piece preview rendering data (line ~258)
- * - TestTetrisInputKeyRouting() - Validates input event dispatch to game/grid actions (line ~299)
- * - TestTetrisGridCollisionDetection() - Validates wall/floor/block collision (line ~385)
- * - TestTetrisGridScoringFormulas() - Validates scoring math for lines, T-spins, combos (line ~510)
+ * - TestGameLogicLifecycle() - Validates start/reset/pause UI state transitions (line ~198)
+ * - TestGameLogicPiecePreview() - Validates next/hold piece preview rendering data (line ~258)
+ * - TestGameInputKeyRouting() - Validates input event dispatch to game/grid actions (line ~299)
+ * - TestGameGridCollisionDetection() - Validates wall/floor/block collision (line ~385)
+ * - TestGameGridScoringFormulas() - Validates scoring math for lines, T-spins, combos (line ~510)
  */
 
 #include <sol/sol.hpp>
@@ -107,14 +107,14 @@ bool ExpectEq(const std::string &testName, const T &actual, const T &expected, c
     return true;
 }
 
-bool TestTetrisConstantsGravity()
+bool TestGameConstantsGravity()
 {
-    const std::string testName = "TetrisConstants.GravityCurve";
+    const std::string testName = "GameConstants.GravityCurve";
     sol::state lua;
     RegisterBaseBindings(lua);
 
-    sol::table constants = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisConstants.lua"));
-    lua["TetrisConstants"] = constants;
+    sol::table constants = lua.script_file(ScriptPath("res/games/vaporqube/scripts/GameConstants.lua"));
+    lua["GameConstants"] = constants;
 
     sol::protected_function getGravity = constants["GetGravitySpeed"];
 
@@ -139,9 +139,9 @@ bool TestTetrisConstantsGravity()
     return true;
 }
 
-bool TestTetrisGameLifecycle()
+bool TestGameLogicLifecycle()
 {
-    const std::string testName = "TetrisGame.LifecycleAndUI";
+    const std::string testName = "GameLogic.LifecycleAndUI";
     sol::state lua;
     RegisterBaseBindings(lua);
 
@@ -152,10 +152,10 @@ bool TestTetrisGameLifecycle()
     lua.set_function("RefreshUI", [&]()
                      { ++refreshCount; });
 
-    // Stub TetrisConstants with ApplyMode
+    // Stub GameConstants with ApplyMode
     sol::table constants = lua.create_table();
     constants.set_function("ApplyMode", [](const std::string &) { return true; });
-    lua["TetrisConstants"] = constants;
+    lua["GameConstants"] = constants;
 
     int setupPlayfieldCalls = 0;
     int resetCalls = 0;
@@ -167,10 +167,10 @@ bool TestTetrisGameLifecycle()
                       { ++resetCalls; });
     grid.set_function("setCamera", [](sol::table) {});
     grid.set_function("renderBorder", [](sol::table) {});
-    lua["TetrisGrid"] = grid;
+    lua["GameGrid"] = grid;
 
-    sol::table game = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisGame.lua"));
-    lua["TetrisGame"] = game;
+    sol::table game = lua.script_file(ScriptPath("res/games/vaporqube/scripts/GameLogic.lua"));
+    lua["GameLogic"] = game;
 
     sol::protected_function start = game["start"];
     sol::protected_function pause = game["pause"];
@@ -211,9 +211,9 @@ bool TestTetrisGameLifecycle()
     return true;
 }
 
-bool TestTetrisGamePiecePreview()
+bool TestGameLogicPiecePreview()
 {
-    const std::string testName = "TetrisGame.PiecePreviewLayout";
+    const std::string testName = "GameLogic.PiecePreviewLayout";
     sol::state lua;
     RegisterBaseBindings(lua);
 
@@ -222,8 +222,8 @@ bool TestTetrisGamePiecePreview()
                      { uiState[key] = value; });
     lua.set_function("RefreshUI", []() {});
 
-    sol::table game = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisGame.lua"));
-    lua["TetrisGame"] = game;
+    sol::table game = lua.script_file(ScriptPath("res/games/vaporqube/scripts/GameLogic.lua"));
+    lua["GameLogic"] = game;
 
     sol::protected_function updatePiecePreview = game["updatePiecePreview"];
     sol::protected_function_result previewResult = updatePiecePreview(game, std::string("data.np"), std::string("I"));
@@ -252,9 +252,9 @@ void PushKeyEvent(sol::state &lua, const std::string &key)
     queue[nextIndex] = event;
 }
 
-bool TestTetrisInputKeyRouting()
+bool TestGameInputKeyRouting()
 {
-    const std::string testName = "TetrisInput.KeyRouting";
+    const std::string testName = "GameInput.KeyRouting";
     sol::state lua;
     RegisterBaseBindings(lua);
 
@@ -300,7 +300,7 @@ bool TestTetrisInputKeyRouting()
                       { ++togglePauseCalls; });
     game.set_function("reset", [](sol::table) {});
     game.set_function("returnToMenu", [](sol::table) {});
-    lua["TetrisGame"] = game;
+    lua["GameLogic"] = game;
 
     int hardDropCalls = 0;
     sol::table grid = lua.create_table();
@@ -310,9 +310,9 @@ bool TestTetrisInputKeyRouting()
     grid.set_function("softDrop", [](sol::table) {});
     grid.set_function("rotateTetrimino", [](sol::table, sol::object) {});
     grid.set_function("holdPiece", [](sol::table) {});
-    lua["TetrisGrid"] = grid;
+    lua["GameGrid"] = grid;
 
-    sol::table inputModule = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisInput.lua"));
+    sol::table inputModule = lua.script_file(ScriptPath("res/games/vaporqube/scripts/GameInput.lua"));
 
     PushKeyEvent(lua, "ENTER");
     PushKeyEvent(lua, "SPACE");
@@ -345,7 +345,7 @@ bool TestTetriminoDataShapeIntegrity()
     sol::state lua;
     RegisterBaseBindings(lua);
 
-    sol::table data = lua.script_file(ScriptPath("res/games/tetris/scripts/TetriminoData.lua"));
+    sol::table data = lua.script_file(ScriptPath("res/games/vaporqube/scripts/TetriminoData.lua"));
 
     const std::vector<std::string> pieces = {"I", "O", "T", "J", "L", "S", "Z"};
 
@@ -399,13 +399,13 @@ bool TestTetriminoDataShapeIntegrity()
     return true;
 }
 
-bool TestTetrisConstantsSRSKickCompleteness()
+bool TestGameConstantsSRSKickCompleteness()
 {
-    const std::string testName = "TetrisConstants.SRSKickCompleteness";
+    const std::string testName = "GameConstants.SRSKickCompleteness";
     sol::state lua;
     RegisterBaseBindings(lua);
 
-    sol::table constants = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisConstants.lua"));
+    sol::table constants = lua.script_file(ScriptPath("res/games/vaporqube/scripts/GameConstants.lua"));
 
     // All 8 rotation transitions that must exist
     const std::vector<std::string> transitions = {
@@ -449,14 +449,14 @@ bool TestTetrisConstantsSRSKickCompleteness()
     return true;
 }
 
-bool TestTetrisMiniConstants()
+bool TestGameConstantsMiniMode()
 {
-    const std::string testName = "TetrisConstants.MiniMode";
+    const std::string testName = "GameConstants.MiniMode";
     sol::state lua;
     RegisterBaseBindings(lua);
 
-    sol::table constants = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisConstants.lua"));
-    lua["TetrisConstants"] = constants;
+    sol::table constants = lua.script_file(ScriptPath("res/games/vaporqube/scripts/GameConstants.lua"));
+    lua["GameConstants"] = constants;
 
     // Verify defaults (standard mode)
     if (!ExpectEq(testName, constants["GRID_WIDTH"].get<int>(), 10, "Default GRID_WIDTH should be 10"))
@@ -504,19 +504,19 @@ bool TestTetrisMiniConstants()
     return true;
 }
 
-bool TestTetrisGridCollisionDetection()
+bool TestGameGridCollisionDetection()
 {
-    const std::string testName = "TetrisGrid.CollisionDetection";
+    const std::string testName = "GameGrid.CollisionDetection";
     sol::state lua;
     RegisterBaseBindings(lua);
 
-    sol::table constants = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisConstants.lua"));
-    lua["TetrisConstants"] = constants;
+    sol::table constants = lua.script_file(ScriptPath("res/games/vaporqube/scripts/GameConstants.lua"));
+    lua["GameConstants"] = constants;
 
-    sol::table tetriminoData = lua.script_file(ScriptPath("res/games/tetris/scripts/TetriminoData.lua"));
+    sol::table tetriminoData = lua.script_file(ScriptPath("res/games/vaporqube/scripts/TetriminoData.lua"));
     lua["TetriminoData"] = tetriminoData;
 
-    // Stub engine functions that TetrisGrid calls at load time
+    // Stub engine functions that GameGrid calls at load time
     lua.set_function("RegisterEntity", []() { return 1; });
     lua.set_function("DestroyEntity", [](int) {});
     lua.set_function("GetTransform", [&lua](int)
@@ -556,7 +556,7 @@ bool TestTetrisGridCollisionDetection()
     lua.set_function("SetUIValue", [](const std::string &, sol::object) {});
     lua.set_function("RefreshUI", []() {});
 
-    // Stub GameManager for TetrisGrid.ready
+    // Stub GameManager for GameGrid.ready
     sol::table camera = lua.create_table();
     camera["fov"] = 45.0;
     camera.set_function("SetPerspective", [](sol::table, double) {});
@@ -572,7 +572,7 @@ bool TestTetrisGridCollisionDetection()
     gm["window"] = window;
     lua["GameManager"] = gm;
 
-    // Stub TetrisGame so TetrisGrid can resolve it
+    // Stub GameLogic so GameGrid can resolve it
     sol::table game = lua.create_table();
     game["isStarted"] = false;
     game["isPaused"] = false;
@@ -580,13 +580,13 @@ bool TestTetrisGridCollisionDetection()
     game.set_function("updateHoldUI", [](sol::table, sol::object) {});
     game.set_function("gameOver", [](sol::table, int) {});
     game.set_function("showNotification", [](sol::table, const std::string &, const std::string &) {});
-    lua["TetrisGame"] = game;
+    lua["GameLogic"] = game;
 
-    // Load Tetrimino module (needed by TetrisGrid)
-    sol::table tetrimino = lua.script_file(ScriptPath("res/games/tetris/scripts/Tetrimino.lua"));
+    // Load Tetrimino module (needed by GameGrid)
+    sol::table tetrimino = lua.script_file(ScriptPath("res/games/vaporqube/scripts/Tetrimino.lua"));
     lua["Tetrimino"] = tetrimino;
 
-    sol::table grid = lua.script_file(ScriptPath("res/games/tetris/scripts/TetrisGrid.lua"));
+    sol::table grid = lua.script_file(ScriptPath("res/games/vaporqube/scripts/GameGrid.lua"));
 
     // Initialize the grid array (normally done by ready(), but that needs full engine)
     int gridWidth = constants["GRID_WIDTH"].get<int>();
@@ -661,14 +661,14 @@ bool TestTetrisGridCollisionDetection()
     return true;
 }
 
-bool TestTetrisGridScoringFormulas()
+bool TestGameGridScoringFormulas()
 {
-    const std::string testName = "TetrisGrid.ScoringFormulas";
+    const std::string testName = "GameGrid.ScoringFormulas";
     sol::state lua;
     RegisterBaseBindings(lua);
 
     // We test scoring by running the formula directly in Lua
-    // This avoids needing the full TetrisGrid entity system
+    // This avoids needing the full GameGrid entity system
     lua.script(R"(
         function CalculateScore(cleared, level, isTSpin, combo)
             local points = 0
@@ -750,15 +750,15 @@ int main()
     };
 
     const std::vector<TestCase> tests = {
-        {"TetrisConstants.GravityCurve", &TestTetrisConstantsGravity},
-        {"TetrisConstants.SRSKickCompleteness", &TestTetrisConstantsSRSKickCompleteness},
-        {"TetrisConstants.MiniMode", &TestTetrisMiniConstants},
+        {"GameConstants.GravityCurve", &TestGameConstantsGravity},
+        {"GameConstants.SRSKickCompleteness", &TestGameConstantsSRSKickCompleteness},
+        {"GameConstants.MiniMode", &TestGameConstantsMiniMode},
         {"TetriminoData.ShapeIntegrity", &TestTetriminoDataShapeIntegrity},
-        {"TetrisGame.LifecycleAndUI", &TestTetrisGameLifecycle},
-        {"TetrisGame.PiecePreviewLayout", &TestTetrisGamePiecePreview},
-        {"TetrisInput.KeyRouting", &TestTetrisInputKeyRouting},
-        {"TetrisGrid.CollisionDetection", &TestTetrisGridCollisionDetection},
-        {"TetrisGrid.ScoringFormulas", &TestTetrisGridScoringFormulas},
+        {"GameLogic.LifecycleAndUI", &TestGameLogicLifecycle},
+        {"GameLogic.PiecePreviewLayout", &TestGameLogicPiecePreview},
+        {"GameInput.KeyRouting", &TestGameInputKeyRouting},
+        {"GameGrid.CollisionDetection", &TestGameGridCollisionDetection},
+        {"GameGrid.ScoringFormulas", &TestGameGridScoringFormulas},
     };
 
     int passed = 0;

@@ -3,9 +3,9 @@
 -- ============================================================================
 
 -- Camera field of view limits for scroll zoom functionality.
--- FOV_MAX matches TetrisConstants.CAMERA_FOV_DEGREES (default camera FOV).
+-- FOV_MAX matches GameConstants.CAMERA_FOV_DEGREES (default camera FOV).
 FOV_MIN = 1
-FOV_MAX = TetrisConstants.CAMERA_FOV_DEGREES
+FOV_MAX = GameConstants.CAMERA_FOV_DEGREES
 
 -- Directional movement vectors for lateral tetrimino movement.
 -- X-axis: -1 = left, +1 = right; Y-axis: 0 = no vertical movement.
@@ -107,15 +107,15 @@ OnKeyPress = function(key)
     local camera = GameManager.camera
 
     -- Game Over Screen Handlers
-    if TetrisGrid.gameOver then
+    if GameGrid.gameOver then
         if key == "R" then
             -- Restart the game
-            TetrisGrid:reset()
+            GameGrid:reset()
             GameStarted = true
             GameManager:ResetGame()
         elseif key == "M" then
             -- Return to main menu
-            TetrisGrid:reset()
+            GameGrid:reset()
             GameStarted = false
             GameManager:ReturnToMainMenu()
         elseif key == "ESCAPE" then
@@ -132,7 +132,7 @@ OnKeyPress = function(key)
         -- Start the game when ENTER is pressed
         if not GameStarted then
             GameStarted = true
-            TetrisGrid:reset()  -- Reset grid before starting
+            GameGrid:reset()  -- Reset grid before starting
             GameManager:StartGame()
         end
     elseif key == "SPACE" then
@@ -146,13 +146,13 @@ OnKeyPress = function(key)
     elseif key == "D" then
         camera:Move(CameraDirections.RIGHT, GameManager.delta)
     elseif key == "Z" then
-        TetrisGrid:rotateTetrimino(Rotations.CCW)
+        GameGrid:rotateTetrimino(Rotations.CCW)
     elseif key == "X" or key == "UP" then
-        TetrisGrid:rotateTetrimino(Rotations.CW)
+        GameGrid:rotateTetrimino(Rotations.CW)
     elseif key == "LEFT" then
-        TetrisGrid:moveTetriminoLateral(DIRECTION_LEFT)
+        GameGrid:moveTetriminoLateral(DIRECTION_LEFT)
     elseif key == "RIGHT" then
-        TetrisGrid:moveTetriminoLateral(DIRECTION_RIGHT)
+        GameGrid:moveTetriminoLateral(DIRECTION_RIGHT)
     elseif key == "P" then
         -- TODO: pause
     end

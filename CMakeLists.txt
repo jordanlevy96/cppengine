@@ -330,24 +330,24 @@ option(IMHOTEP_BUILD_TESTS "Build automated tests (CTests)" ON)
 if(IMHOTEP_BUILD_TESTS)
     enable_testing()
 
-    add_executable(imhotep-tetris-tests
-        "tests/TetrisLuaTests.cpp"
+    add_executable(imhotep-game-tests
+        "tests/GameLuaTests.cpp"
     )
-    target_include_directories(imhotep-tetris-tests PRIVATE
+    target_include_directories(imhotep-game-tests PRIVATE
         external/sol2/include
         external/lua-cmake/upstream
     )
-    target_link_libraries(imhotep-tetris-tests PRIVATE
+    target_link_libraries(imhotep-game-tests PRIVATE
         lua
         sol2
     )
-    target_compile_definitions(imhotep-tetris-tests PRIVATE
+    target_compile_definitions(imhotep-game-tests PRIVATE
         IMHOTEP_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
     )
 
     add_test(
-        NAME tetris.lua.behavior
-        COMMAND imhotep-tetris-tests
+        NAME vaporqube.lua.behavior
+        COMMAND imhotep-game-tests
     )
 
     # Engine C++ unit tests (headless — ExpressionCache + FrameTiming)
