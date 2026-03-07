@@ -295,6 +295,7 @@ bool Registry::LoadScene(const std::string &src)
                         ScriptComponent sc = ScriptComponent(name, scriptClass);
                         RegisterComponent<ScriptComponent>(id, sc);
                     }
+#ifdef USE_PYTHON_SCRIPTING
                     else if (componentType == "PythonScript")
                     {
                         const std::string &scriptName = componentNode["script"].as<std::string>();
@@ -315,6 +316,7 @@ bool Registry::LoadScene(const std::string &src)
                         ScriptComponent sc = ScriptComponent(name, scriptClass);
                         RegisterComponent<ScriptComponent>(id, sc);
                     }
+#endif
                 }
             }
         }
@@ -337,6 +339,7 @@ void Registry::AttachScript(EntityID entityId, const std::string &name, sol::tab
     r->RegisterComponent<ScriptComponent>(entityId, sc);
 }
 
+#ifdef USE_PYTHON_SCRIPTING
 void Registry::AttachScript(EntityID entityId, const std::string &name, py::object pythonClass)
 {
     ScriptComponent sc = ScriptComponent(name, pythonClass);
@@ -344,6 +347,7 @@ void Registry::AttachScript(EntityID entityId, const std::string &name, py::obje
     Registry *r = &GetInstance();
     r->RegisterComponent<ScriptComponent>(entityId, sc);
 }
+#endif
 
 std::shared_ptr<RenderComponent> Registry::CreateRenderComponent(const std::string &shaderSrc, const std::string &meshSrc)
 {

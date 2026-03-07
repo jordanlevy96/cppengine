@@ -333,6 +333,7 @@ public:
      */
     static void AttachScript(EntityID entityId, const std::string &name, sol::table luaClass);
 
+#ifdef USE_PYTHON_SCRIPTING
     /**
      * @brief Attach Python script to entity
      * @param entityId Entity ID
@@ -340,6 +341,7 @@ public:
      * @param pythonClass Python class object
      */
     static void AttachScript(EntityID entityId, const std::string &name, py::object pythonClass);
+#endif
 
 private:
     EntityID i = 0;  ///< Next entity ID counter

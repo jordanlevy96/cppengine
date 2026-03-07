@@ -80,6 +80,7 @@ static void PrintMat4(const glm::mat4 &matrix)
     }
 }
 
+#ifdef USE_PYTHON_SCRIPTING
 #include <pybind11/pybind11.h>
 #include <iomanip>
 
@@ -175,3 +176,4 @@ static void PrintFormatted(const std::string &key, const py::handle &value, int 
         std::cout << indentation << std::left << std::setw(20) << key << " : " << value_str << std::endl;
     }
 }
+#endif // USE_PYTHON_SCRIPTING

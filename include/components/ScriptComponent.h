@@ -7,10 +7,14 @@
 
 #include <string>
 #include <sol/sol.hpp>
+#ifdef USE_PYTHON_SCRIPTING
 #include <pybind11/pybind11.h>
+#endif
 #include "util/Logger.h"
 
+#ifdef USE_PYTHON_SCRIPTING
 namespace py = pybind11;
+#endif
 
 /**
  * @brief Scripting language type discriminator
@@ -81,7 +85,9 @@ struct ScriptComponent
     ScriptType Type;   ///< Language discriminator (Lua or Python)
 
     sol::table LuaClass;     ///< Lua script instance (valid if Type == Lua)
+#ifdef USE_PYTHON_SCRIPTING
     py::object PythonClass;  ///< Python script instance (valid if Type == Python)
+#endif
 
     /**
      * @brief Construct Lua script component
@@ -103,6 +109,7 @@ struct ScriptComponent
         }
     }
 
+#ifdef USE_PYTHON_SCRIPTING
     /**
      * @brief Construct Python script component
      * @param name Script identifier
@@ -113,6 +120,7 @@ struct ScriptComponent
         : Name(name), Type(ScriptType::Python), PythonClass(pythonClass)
     {
     }
+#endif
 
     /**
      * @brief Cleanup script resources
