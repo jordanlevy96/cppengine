@@ -205,13 +205,10 @@ std::string ExpressionCache::EvaluateAsString(uint32_t exprId, sol::table& env)
     {
         return obj.as<std::string>();
     }
-    else if (obj.is<int>())
-    {
-        return std::to_string(obj.as<int>());
-    }
     else if (obj.is<double>())
     {
-        // Format doubles without excessive precision
+        // Check double before int — Lua numbers are all doubles,
+        // and sol2's is<int>() returns true for any number (truncating).
         double val = obj.as<double>();
         if (val == static_cast<int>(val))
         {
