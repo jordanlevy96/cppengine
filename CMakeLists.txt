@@ -12,6 +12,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(imhotep VERSION 0.1.0)
 
+# MSVC: enable conformant preprocessor for correct __VA_ARGS__ handling
+# Required by Quill logging macros (MacroMetadata constexpr initialization)
+if(MSVC)
+    add_compile_options(/Zc:preprocessor)
+endif()
+
 set(IMHOTEP_GAME_NAME "imhotep" CACHE STRING "Output binary name")
 set(IMHOTEP_GAME_CONFIG "games/vaporqube/conf/settings.yaml" CACHE STRING "Game config path relative to res/")
 
