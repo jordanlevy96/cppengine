@@ -12,7 +12,9 @@
 #include "systems/HTMLRendererMT.h"
 #include "util/Config.h"
 #include <memory>
+#ifdef USE_PYTHON_SCRIPTING
 #include <pybind11/pybind11.h>
+#endif
 
 /**
  * @brief Simulation speed multipliers for strategy games
@@ -81,6 +83,7 @@ public:
         return instance;
     }
 
+#ifdef USE_PYTHON_SCRIPTING
     /**
      * @brief Get Python-wrapped singleton instance
      * @return Python object wrapping Game instance
@@ -91,6 +94,7 @@ public:
         static py::object instance = py::cast(&GetInstance(), py::return_value_policy::reference);
         return instance;
     }
+#endif
 
     Game(Game const &) = delete;
     void operator=(Game const &) = delete;

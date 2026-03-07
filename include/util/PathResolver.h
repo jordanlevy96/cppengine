@@ -8,8 +8,8 @@
  *
  * Quick-stats (Public API):
  * - GetExecutableDir() - Returns absolute path to executable's directory
- * - IsInstalledBundle() - True if running from .app bundle
- * - GetResourcePath() - Resolves res/ location based on runtime environment
+ * - IsInstalledBundle() - True if running from installed bundle (.app on macOS, res/ next to exe on Win/Linux)
+ * - GetResourcePath() - Resolves res/ location based on runtime environment (macOS bundle, Win/Linux flat dir, or dev mode)
  * - GetBundledPythonHome() - Returns bundled Python path or empty string
  */
 
@@ -26,14 +26,14 @@ namespace PathResolver
     std::string GetExecutableDir();
 
     /**
-     * @brief Check if running from an installed macOS app bundle
-     * @return True if path contains .app/Contents/MacOS and Resources/res exists
+     * @brief Check if running from an installed bundle
+     * @return True if running from .app bundle (macOS) or res/ exists next to exe (Win/Linux)
      */
     bool IsInstalledBundle();
 
     /**
      * @brief Get the resource path based on runtime environment
-     * @return Path to res/ directory (bundle: ../Resources/res/, dev: ../res/)
+     * @return Path to res/ directory (macOS bundle: ../Resources/res/, Win/Linux installed: ./res/, dev: ../res/)
      */
     std::string GetResourcePath();
 

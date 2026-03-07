@@ -1,4 +1,5 @@
 #include <controllers/Game.h>
+#include "util/PathResolver.h"
 #include <cstring>
 #include <string>
 
@@ -7,7 +8,7 @@ int main(int argc, char* argv[])
     // Check for flags
     bool smokeTest = false;
     bool clickTest = false;
-    std::string configPath = "../res/games/vaporqube/conf/settings.yaml";
+    std::string configPath;
     for (int i = 1; i < argc; i++)
     {
         if (std::strcmp(argv[i], "--smoke-test") == 0)
@@ -22,6 +23,16 @@ int main(int argc, char* argv[])
         {
             configPath = argv[++i];
         }
+    }
+
+    // Resolve config path if not explicitly specified
+    if (configPath.empty())
+    {
+#ifdef IMHOTEP_GAME_CONFIG
+        configPath = PathResolver::GetResourcePath() + IMHOTEP_GAME_CONFIG;
+#else
+        configPath = "../res/games/vaporqube/conf/settings.yaml";
+#endif
     }
 
     Game &game = Game::GetInstance();

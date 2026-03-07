@@ -12,6 +12,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(imhotep VERSION 0.1.0)
 
+set(IMHOTEP_GAME_NAME "imhotep" CACHE STRING "Output binary name")
+set(IMHOTEP_GAME_CONFIG "games/vaporqube/conf/settings.yaml" CACHE STRING "Game config path relative to res/")
+
 # Log verbosity (TraceL3, TraceL2, TraceL1, Debug, Info, Warning, Error, Critical, Off)
 set(IMHOTEP_LOG_LEVEL "Info" CACHE STRING "Default log verbosity for Quill")
 
@@ -114,7 +117,7 @@ elseif(WIN32)
 else() # Linux
     add_subdirectory(external/glad)
     find_package(glfw3 REQUIRED) # may need to be installed with brew
-    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dl -ldl)
+    target_link_libraries(core PRIVATE dl)
 endif()
 
 set(core_INCLUDE_DIRS
@@ -157,6 +160,9 @@ target_compile_definitions(core PUBLIC USE_LUA_SCRIPTING)
 # ============================================================================
 # Python Scripting - Data analytics, etc.
 # ============================================================================
+option(IMHOTEP_ENABLE_PYTHON "Enable Python scripting" ON)
+
+if(IMHOTEP_ENABLE_PYTHON)
 # NOTE: You may see linker warnings about '/usr/local/opt/openssl@1.1/lib' not found.
 # This is harmless - it comes from the Python library's embedded link flags and
 # the path may not exist on all systems. The warning can be ignored.
@@ -309,7 +315,11 @@ target_compile_definitions(core PUBLIC USE_PYTHON_SCRIPTING)
 pybind11_add_module(engine src/controllers/python/engine_bindings.cpp)
 target_link_libraries(engine PUBLIC core)
 
+endif() # IMHOTEP_ENABLE_PYTHON
+
 add_executable(imhotep src/main.cpp)
+set_target_properties(imhotep PROPERTIES OUTPUT_NAME "${IMHOTEP_GAME_NAME}")
+target_compile_definitions(imhotep PRIVATE IMHOTEP_GAME_CONFIG="${IMHOTEP_GAME_CONFIG}")
 target_link_libraries(imhotep PRIVATE core)
 
 # Editor executable
@@ -411,7 +421,7 @@ option(IMHOTEP_BUILD_BUNDLE "Build macOS app bundle (for distribution)" OFF)
 if(APPLE AND IMHOTEP_BUILD_BUNDLE)
     set_target_properties(imhotep PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_BUNDLE_NAME "Imhotep"
+        MACOSX_BUNDLE_BUNDLE_NAME "${IMHOTEP_GAME_NAME}"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         # INSTALL_RPATH tells the executable where to find dylibs at runtime
@@ -426,41 +436,90 @@ if(APPLE AND IMHOTEP_BUILD_BUNDLE)
     )
 
     # Engine Python module needs rpath for finding core library
-    set_target_properties(engine PROPERTIES
-        INSTALL_RPATH "@loader_path"
-        BUILD_WITH_INSTALL_RPATH TRUE
-    )
+    if(IMHOTEP_ENABLE_PYTHON)
+        set_target_properties(engine PROPERTIES
+            INSTALL_RPATH "@loader_path"
+            BUILD_WITH_INSTALL_RPATH TRUE
+        )
+    endif()
+endif()
+
+# Linux RPATH
+if(NOT APPLE AND NOT WIN32)
+    set_target_properties(imhotep PROPERTIES INSTALL_RPATH "$ORIGIN" BUILD_WITH_INSTALL_RPATH TRUE)
+    set_target_properties(core PROPERTIES INSTALL_RPATH "$ORIGIN" BUILD_WITH_INSTALL_RPATH TRUE)
 endif()
 
 # --- Install Targets ---
-install(TARGETS imhotep
-    BUNDLE DESTINATION .                    # .app goes to install root
-    RUNTIME DESTINATION bin                 # Non-bundle goes to bin/
-)
+if(APPLE AND IMHOTEP_BUILD_BUNDLE)
+    # macOS .app bundle layout
+    install(TARGETS imhotep
+        BUNDLE DESTINATION .
+    )
 
-install(TARGETS core engine
-    LIBRARY DESTINATION $<IF:$<PLATFORM_ID:Darwin>,imhotep.app/Contents/Frameworks,lib>
-)
+    install(TARGETS core
+        LIBRARY DESTINATION ${IMHOTEP_GAME_NAME}.app/Contents/Frameworks
+    )
 
-# --- Install Resources ---
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/res/
-    DESTINATION $<IF:$<PLATFORM_ID:Darwin>,imhotep.app/Contents/Resources/res,share/imhotep/res>
-    PATTERN ".DS_Store" EXCLUDE
-    PATTERN "__pycache__" EXCLUDE
-)
+    if(IMHOTEP_ENABLE_PYTHON)
+        install(TARGETS engine
+            LIBRARY DESTINATION ${IMHOTEP_GAME_NAME}.app/Contents/Frameworks
+        )
+    endif()
+
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/res/
+        DESTINATION ${IMHOTEP_GAME_NAME}.app/Contents/Resources/res
+        PATTERN ".DS_Store" EXCLUDE
+        PATTERN "__pycache__" EXCLUDE
+    )
+else()
+    # Windows/Linux flat directory layout
+    install(TARGETS imhotep
+        RUNTIME DESTINATION ${IMHOTEP_GAME_NAME}
+    )
+
+    install(TARGETS core
+        LIBRARY DESTINATION ${IMHOTEP_GAME_NAME}
+        RUNTIME DESTINATION ${IMHOTEP_GAME_NAME}
+    )
+
+    if(IMHOTEP_ENABLE_PYTHON)
+        install(TARGETS engine
+            LIBRARY DESTINATION ${IMHOTEP_GAME_NAME}
+            RUNTIME DESTINATION ${IMHOTEP_GAME_NAME}
+        )
+    endif()
+
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/res/
+        DESTINATION ${IMHOTEP_GAME_NAME}/res
+        PATTERN ".DS_Store" EXCLUDE
+        PATTERN "__pycache__" EXCLUDE
+    )
+endif()
 
 # --- Optional: Bundled Python ---
 option(IMHOTEP_BUNDLE_PYTHON "Bundle Python runtime for distribution" OFF)
 set(IMHOTEP_PYTHON_BUNDLE_PATH "" CACHE PATH "Path to portable Python installation")
 
-if(IMHOTEP_BUNDLE_PYTHON AND EXISTS "${IMHOTEP_PYTHON_BUNDLE_PATH}")
+if(IMHOTEP_ENABLE_PYTHON AND IMHOTEP_BUNDLE_PYTHON AND EXISTS "${IMHOTEP_PYTHON_BUNDLE_PATH}")
     message(STATUS "Bundling Python from: ${IMHOTEP_PYTHON_BUNDLE_PATH}")
-    install(DIRECTORY ${IMHOTEP_PYTHON_BUNDLE_PATH}/
-        DESTINATION $<IF:$<PLATFORM_ID:Darwin>,imhotep.app/Contents/Resources/python,share/imhotep/python>
-        PATTERN "__pycache__" EXCLUDE
-        PATTERN "*.pyc" EXCLUDE
-        PATTERN "test" EXCLUDE
-        PATTERN "tests" EXCLUDE
-        PATTERN "pip*" EXCLUDE
-    )
+    if(APPLE AND IMHOTEP_BUILD_BUNDLE)
+        install(DIRECTORY ${IMHOTEP_PYTHON_BUNDLE_PATH}/
+            DESTINATION ${IMHOTEP_GAME_NAME}.app/Contents/Resources/python
+            PATTERN "__pycache__" EXCLUDE
+            PATTERN "*.pyc" EXCLUDE
+            PATTERN "test" EXCLUDE
+            PATTERN "tests" EXCLUDE
+            PATTERN "pip*" EXCLUDE
+        )
+    else()
+        install(DIRECTORY ${IMHOTEP_PYTHON_BUNDLE_PATH}/
+            DESTINATION ${IMHOTEP_GAME_NAME}/python
+            PATTERN "__pycache__" EXCLUDE
+            PATTERN "*.pyc" EXCLUDE
+            PATTERN "test" EXCLUDE
+            PATTERN "tests" EXCLUDE
+            PATTERN "pip*" EXCLUDE
+        )
+    endif()
 endif()

@@ -9,11 +9,15 @@
 #include "util/debug.h"
 #include "util/Logger.h"
 #include <sol/sol.hpp>
+#ifdef USE_PYTHON_SCRIPTING
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
+#endif
 #include <iostream>
 
+#ifdef USE_PYTHON_SCRIPTING
 namespace py = pybind11;
+#endif
 
 static const std::string &EVENT_QUEUE = "EventQueue";     ///< Lua global for input queue
 static const std::string &HANDLE_INPUT_F = "HandleInput"; ///< Lua input handler function name
@@ -106,6 +110,7 @@ public:
         return lua[className];
     };
 
+#ifdef USE_PYTHON_SCRIPTING
     // Python-specific methods
     template <typename T>
     void AddToList(const std::string &name, const T &value)
@@ -181,6 +186,7 @@ public:
             std::cerr << "Python error: " << e.what() << std::endl;
         }
     }
+#endif
 
     void ProcessInput();
 
@@ -197,13 +203,17 @@ public:
 private:
     ScriptManager() {};
 
+#ifdef USE_PYTHON_SCRIPTING
     /**
      * @brief Configure Python environment before interpreter starts
      * @note MUST be called before py::scoped_interpreter is created
      *       Sets PYTHONHOME/PYTHONPATH for bundled distribution support
      */
     void PreInitializePython();
+#endif
 
     sol::state lua;
+#ifdef USE_PYTHON_SCRIPTING
     std::unique_ptr<py::scoped_interpreter> guard;
+#endif
 };

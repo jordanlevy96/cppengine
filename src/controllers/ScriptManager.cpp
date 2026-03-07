@@ -871,6 +871,7 @@ namespace LuaBindings
 // Python Scripting
 // ============================================================================
 
+#ifdef USE_PYTHON_SCRIPTING
 void ScriptManager::PreInitializePython()
 {
     std::string pythonHome = PathResolver::GetBundledPythonHome();
@@ -932,6 +933,7 @@ py::object ScriptManager::ImportModule(const std::string &moduleName)
         return py::module::import(moduleName.c_str());
     }
 }
+#endif // USE_PYTHON_SCRIPTING
 
 // ============================================================================
 // Initialization & Shutdown - Lua and Python
@@ -1043,6 +1045,7 @@ void ScriptManager::Initialize()
     LOG_TRACE_L1("Lua: Running init.lua");
     Run(Game::GetInstance().conf.ResourcePath + "scripts/init.lua");
 
+#ifdef USE_PYTHON_SCRIPTING
     // Initialize Python
     PreInitializePython();
     guard = std::make_unique<py::scoped_interpreter>();
@@ -1056,6 +1059,7 @@ void ScriptManager::Initialize()
     buffer << file.rdbuf();
     std::string script_content = buffer.str();
     py::exec(script_content, py::globals());
+#endif
 
     LOG_INFO("INIT - ScriptManager: SUCCESS");
 }
@@ -1066,6 +1070,7 @@ void ScriptManager::Shutdown()
     lua["GameManager"] = sol::lua_nil;
     lua.collect_garbage();
 
+#ifdef USE_PYTHON_SCRIPTING
     // Shutdown Python
     try
     {
@@ -1092,4 +1097,5 @@ void ScriptManager::Shutdown()
     guard.reset(); // End the Python interpreter
 
     LOG_INFO("SHUTDOWN - Python");
+#endif
 }

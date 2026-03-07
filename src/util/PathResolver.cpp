@@ -8,7 +8,7 @@
  *
  * Key functions:
  * - GetExecutableDir() - Platform-specific executable path detection (line ~25)
- * - IsInstalledBundle() - macOS .app bundle detection (line ~55)
+ * - IsInstalledBundle() - Installed bundle detection: .app on macOS, res/ next to exe on Win/Linux (line ~55)
  * - GetResourcePath() - Resource path resolution (line ~70)
  * - GetBundledPythonHome() - Bundled Python detection (line ~80)
  *
@@ -71,9 +71,9 @@ std::string GetExecutableDir()
 
 bool IsInstalledBundle()
 {
-#ifdef __APPLE__
     std::string execDir = GetExecutableDir();
 
+#ifdef __APPLE__
     // Check if we're inside a .app bundle structure
     // Path should contain .app/Contents/MacOS
     if (execDir.find(".app/Contents/MacOS") != std::string::npos)
@@ -81,6 +81,13 @@ bool IsInstalledBundle()
         // Verify Resources/res exists
         fs::path resourcesPath = fs::path(execDir) / ".." / "Resources" / "res";
         return fs::exists(resourcesPath);
+    }
+#else
+    // Windows/Linux: check if res/ exists next to executable
+    fs::path resourcesPath = fs::path(execDir) / "res";
+    if (fs::exists(resourcesPath))
+    {
+        return true;
     }
 #endif
     return false;
@@ -92,10 +99,16 @@ std::string GetResourcePath()
 
     if (IsInstalledBundle())
     {
+#ifdef __APPLE__
         // Bundle mode: executable is in .app/Contents/MacOS/
         // Resources are in .app/Contents/Resources/res/
         fs::path resourcesPath = fs::path(execDir) / ".." / "Resources" / "res";
         return fs::canonical(resourcesPath).string() + "/";
+#else
+        // Windows/Linux: res/ is next to executable
+        fs::path resourcesPath = fs::path(execDir) / "res";
+        return fs::canonical(resourcesPath).string() + "/";
+#endif
     }
 
     // Development mode: assume running from build/ directory
@@ -113,8 +126,12 @@ std::string GetBundledPythonHome()
 
     std::string execDir = GetExecutableDir();
 
-    // Bundle mode: check for bundled Python in Resources/python
+#ifdef __APPLE__
     fs::path pythonPath = fs::path(execDir) / ".." / "Resources" / "python";
+#else
+    fs::path pythonPath = fs::path(execDir) / "python";
+#endif
+
     if (fs::exists(pythonPath))
     {
         return fs::canonical(pythonPath).string();
