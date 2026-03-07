@@ -244,7 +244,7 @@ void ScriptManager::ProcessInput()
                 sol::optional<sol::function> moduleHandle = inputModule["handleInput"];
                 if (!moduleHandle.has_value())
                 {
-                    moduleHandle = inputModule["HandleInput"];
+                    moduleHandle = inputModule.get<sol::optional<sol::function>>("HandleInput");
                 }
                 if (moduleHandle.has_value())
                 {
