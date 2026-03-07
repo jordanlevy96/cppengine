@@ -73,6 +73,7 @@ CMAKE_FLAGS=(
     -DCMAKE_BUILD_TYPE=Release
     -DIMHOTEP_GAME_NAME="$APP_NAME"
     -DIMHOTEP_GAME_CONFIG="games/$GAME/conf/settings.yaml"
+    -DIMHOTEP_BUILD_TESTS=OFF
 )
 
 # Pass through vcpkg toolchain if set (for Windows CI)
@@ -147,9 +148,11 @@ if [ "$OS" = "macos" ]; then
             "$so" 2>/dev/null || true
     done
 
-    # Create DMG
+    # Create DMG (sleep briefly to avoid "Resource busy" on CI runners)
     OUTPUT="$DIST_DIR/${APP_NAME}-macos.dmg"
     rm -f "$OUTPUT"
+    sync
+    sleep 1
     hdiutil create -volname "$APP_NAME" -srcfolder "$APP_BUNDLE" \
         -ov -format UDZO "$OUTPUT"
 
