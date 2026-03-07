@@ -205,6 +205,9 @@ private:
     int m_frameCount = 0;
     double m_currentFPS = 0.0;
 
+    // Resource path (set by PathResolver, valid for dev/bundle/installed modes)
+    std::string m_resourcePath = "../res/";
+
     // Initialization flags
     bool m_windowInitialized = false;
     bool m_htmlRendererInitialized = false;

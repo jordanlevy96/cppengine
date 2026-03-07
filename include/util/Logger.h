@@ -51,7 +51,7 @@ namespace imhotep
 
     private:
         Logger() = default;
-        ~Logger() { Shutdown(); }
+        ~Logger() = default;
 
         Logger(const Logger &) = delete;
         Logger &operator=(const Logger &) = delete;

@@ -31,6 +31,7 @@
 #include <glad/glad.h>
 #include "systems/HTMLRendererMT.h"
 #include "systems/ReactiveUI.h"
+#include "controllers/Game.h"
 #include "util/Logger.h"
 
 #include <cstring>
@@ -928,7 +929,7 @@ void HTMLRendererMT::Initialize(GLFWwindow *window, int width, int height)
 void HTMLRendererMT::SetupGL()
 {
     // Create composite shader
-    m_compositeShader = new Shader("../res/shaders/Composite.shader");
+    m_compositeShader = new Shader(Game::GetInstance().conf.ResourcePath + "shaders/Composite.shader");
 
     // Create texture for uploading pixels
     glGenTextures(1, &m_texture);

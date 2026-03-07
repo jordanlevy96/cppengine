@@ -13,6 +13,7 @@
  */
 
 #include "systems/SplashScreen.h"
+#include "controllers/Game.h"
 #include "util/Shader.h"
 #include "util/Logger.h"
 
@@ -56,7 +57,7 @@ bool SplashScreen::Initialize(const std::string &pngPath, int viewportWidth, int
     stbi_image_free(pixels);
 
     // Load Composite shader (reuses existing shader file)
-    Shader *shader = new Shader("../res/shaders/Composite.shader");
+    Shader *shader = new Shader(Game::GetInstance().conf.ResourcePath + "shaders/Composite.shader");
     m_shaderProgram = shader->ID;
     // Prevent Shader destructor from deleting the GL program
     shader->ID = 0;

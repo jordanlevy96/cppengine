@@ -29,6 +29,7 @@
 #include "systems/SplashScreen.h"
 #include "util/Logger.h"
 #include "util/ConfigLoader.h"
+#include "util/PathResolver.h"
 #include "util/Version.h"
 #include <GLFW/glfw3.h>
 #include <variant>
@@ -90,6 +91,9 @@ bool EngineCore::Initialize(const std::string &configPath, Config &conf, Camera 
         return false;
     }
 
+    // Override resource path with PathResolver (handles dev, bundle, and installed modes)
+    conf.ResourcePath = PathResolver::GetResourcePath();
+
     std::cout << "[EngineCore] Config loaded successfully" << std::endl;
     std::cout << "[EngineCore] AppName: " << conf.AppName << ", logPath: " << conf.LogPath << std::endl;
 
@@ -110,7 +114,7 @@ bool EngineCore::Initialize(const std::string &configPath, Config &conf, Camera 
     glFrontFace(GL_CW);
 
     // Load scene at the end of initialization (after all systems are ready)
-    if (!LoadScene(conf.ResourcePath + conf.ScenePath))
+    if (!LoadScene(conf.ScenePath))
     {
         LOG_CRITICAL("Failed to load scene: {}", conf.ScenePath);
         return false;
@@ -125,6 +129,7 @@ bool EngineCore::Initialize(const std::string &configPath, Config &conf, Camera 
 
 bool EngineCore::Initialize(Config conf)
 {
+    m_resourcePath = conf.ResourcePath;
     return Initialize(conf.LogPath,
                       conf.AppName,
                       conf.WindowWidth,
@@ -492,7 +497,7 @@ void EngineCore::ShowSplash()
     glfwGetFramebufferSize(m_windowManager->window, &fbWidth, &fbHeight);
 
     m_splashScreen = std::make_unique<SplashScreen>();
-    if (m_splashScreen->Initialize("../res/textures/splash.png", fbWidth, fbHeight))
+    if (m_splashScreen->Initialize(m_resourcePath + "textures/splash.png", fbWidth, fbHeight))
     {
         // Render first frame immediately and swap so the splash is visible
         m_splashScreen->Render();
