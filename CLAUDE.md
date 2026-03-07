@@ -1,6 +1,6 @@
 # CLAUDE.md - AI Assistant Context for Imhotep
 
-> Last Updated: 2026-03-05
+> Last Updated: 2026-03-06
 > Version: 0.1.0
 
 ## Project Overview
@@ -44,7 +44,7 @@
 - Run the engine from the build directory:
   ```sh
   ./imhotep
-  ./imhotep --config ../res/games/tetris/conf/settings.yaml  # explicit config
+  ./imhotep --config ../res/games/vaporqube/conf/settings.yaml  # explicit config
   ```
 - Initialize submodules when setting up a fresh clone:
   ```sh
@@ -60,13 +60,13 @@
 ### Testing Guidelines
 
 - Run automated tests with CTest: `cd build && ctest --output-on-failure`
-- Primary benchmark test: `tetris.lua.behavior` (Lua gameplay contracts: gravity curve, lifecycle/UI state, piece preview layout, input routing)
+- Primary benchmark test: `vaporqube.lua.behavior` (Lua gameplay contracts: gravity curve, lifecycle/UI state, piece preview layout, input routing)
 - Validate gameplay/rendering changes manually by building and running the engine.
 - Third-party submodules include their own tests under `external/`; do not run or modify them unless you are updating dependencies.
 
 ### Commit & Pull Request Guidelines
 
-- Commit messages follow Conventional Commits (examples from history): `feat(tetris): ...`, `docs: ...`.
+- Commit messages follow Conventional Commits (examples from history): `feat(vaporqube): ...`, `docs: ...`.
 - Keep commits focused and scoped to a single feature or fix.
 
 ### Configuration Tips
@@ -109,7 +109,7 @@ Game / Editor entrypoints (src/main.cpp, src/editor/main.cpp)
 | **litehtml**          | HTML/CSS engine   | Git submodule  | In `external/`                  |
 | **Lua + Sol2**        | Lua scripting     | Git submodule  | In `external/`                  |
 | **Python + pybind11** | Python bindings   | Git submodule  | In `external/`                  |
-| **python-build-standalone** | Portable Python | Script-downloaded | Via `scripts/package-macos.sh` |
+| **python-build-standalone** | Portable Python | Script-downloaded | Via `scripts/export.sh` |
 | **yaml-cpp**          | Config parsing    | Git submodule  | In `external/`                  |
 
 ### Platform-Specific Setup
@@ -327,13 +327,13 @@ imhotep/
 │   ├── conf/         # Engine config (editor_settings.yaml, tetriminos.yaml)
 │   ├── scripts/      # Engine Lua scripts (input, backgrounds, init)
 │   └── games/        # Game-specific resources (namespaced)
-│       └── tetris/   # Tetris game
+│       └── vaporqube/# VaporQube game
 │           ├── conf/     # settings.yaml
-│           ├── scenes/   # TetrisScene.yaml
-│           ├── scripts/  # Tetris*.lua game scripts
+│           ├── scenes/   # Scene.yaml
+│           ├── scripts/  # Game*.lua game scripts
 │           └── ui/       # game.html, game.css, game.lua
 ├── scripts/          # Build/packaging scripts
-│   └── package-macos.sh  # macOS .app bundle packaging
+│   └── export.sh     # Cross-platform export (macOS .dmg, Linux .tar.gz, Windows .zip)
 ├── docs/             # Documentation
 │   ├── architecture/ # Current system designs
 │   └── guides/       # How-to guides
@@ -517,7 +517,7 @@ The engine supports bundling a portable Python runtime for distribution:
 - **Config fields** (`Config.h`): `PythonHome`, `PythonPath`, `BundledPython` (parsed from `python:` YAML section)
 - **Engine bindings** (`engine_bindings.cpp`): `engine.getResourcePath()`, `engine.isInstalledBundle()`, `engine.getExecutableDir()`
 - **CMake options**: `IMHOTEP_BUILD_BUNDLE`, `IMHOTEP_BUNDLE_PYTHON`, `IMHOTEP_PYTHON_BUNDLE_PATH`
-- **Packaging**: `scripts/package-macos.sh` (downloads python-build-standalone, creates .app bundle)
+- **Packaging**: `scripts/export.sh` (cross-platform export with optional bundled Python)
 
 See `docs/handoff.bundled-python.md` for full implementation details.
 
@@ -626,14 +626,19 @@ cd external && git submodule update --init --recursive
 cd external && git submodule update --remote
 ```
 
-### Distribution Build (macOS)
+### Distribution Build
 
 ```bash
-# Package as .app bundle with bundled Python
-chmod +x scripts/package-macos.sh
-./scripts/package-macos.sh
-open build-release/dist/Imhotep.app
+# Export for current platform (macOS → .dmg, Linux → .tar.gz, Windows → .zip)
+./scripts/export.sh --game vaporqube
+
+# Export without Python scripting support
+./scripts/export.sh --game vaporqube --skip-python
 ```
+
+Output: `dist/<AppName>-<platform>.<ext>`
+
+**CI**: Push a `v*` tag to trigger GitHub Actions builds for all 3 platforms → artifacts on Releases page.
 
 ### Search & Navigation
 
@@ -690,13 +695,13 @@ git log --oneline --grep="HTML"
 
 1. Build: `cd build && cmake -DIMHOTEP_BUILD_TESTS=ON .. && make -j8`
 2. Run tests: `ctest --output-on-failure`
-3. Benchmark suite: `tetris.lua.behavior`
+3. Benchmark suite: `vaporqube.lua.behavior`
 
 **Manual verification remains required for rendering/integration**:
 
 1. Build: `cd build && make`
 2. Run: `./imhotep`
-3. Play Tetris, observe UI, check console output
+3. Play game, observe UI, check console output
 
 **Debug build**:
 
@@ -785,4 +790,4 @@ if (imhotep::Version::IsAtLeast(1, 0)) {
 
 ---
 
-_Last Updated: March 5, 2026_
+_Last Updated: March 6, 2026_

@@ -10,20 +10,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **Engine/Game Separation**: Tetris resources namespaced under `res/games/tetris/`
-  - Moved settings.yaml, TetrisScene.yaml, Lua scripts, and UI templates/styles/state
-  - `Game::Initialize()` accepts a config path parameter (default: `res/games/tetris/conf/settings.yaml`)
+- **VaporQube Rename**: Renamed game internals from "Tetris" to "VaporQube" with generic script names
+  - `res/games/tetris/` → `res/games/vaporqube/` (directory rename)
+  - Script renames: `TetrisConstants` → `GameConstants`, `TetrisGame` → `GameLogic`, `TetrisInput` → `GameInput`, `TetrisGrid` → `GameGrid`
+  - Scene rename: `TetrisScene.yaml` → `Scene.yaml`
+  - All Lua globals, YAML configs, C++ references, and test files updated
+- **Engine/Game Separation**: Game resources namespaced under `res/games/vaporqube/`
+  - `Game::Initialize()` accepts a config path parameter (default: `res/games/vaporqube/conf/settings.yaml`)
   - Added `--config <path>` CLI argument for specifying game config at launch
   - Removed hardcoded `"scripts/"` prefix from SceneLoader and Registry; scene YAML paths are now relative to `resourcePath`
+- **Python Made Optional**: Python scripting can be disabled at build time
+  - `IMHOTEP_ENABLE_PYTHON` CMake option (default ON)
+  - `#ifdef USE_PYTHON_SCRIPTING` guards in Game.h, ScriptManager.h/.cpp
+- **Cross-Platform Build Config**: Parameterized game name and config path
+  - `IMHOTEP_GAME_NAME` and `IMHOTEP_GAME_CONFIG` CMake cache variables
+  - Compile-time config resolution via PathResolver
+  - Linux RPATH set to `$ORIGIN` for portable installs
 
 ### Added
+- **Cross-Platform Export Script**: `scripts/export.sh` builds distributable packages
+  - macOS → `.dmg`, Linux → `.tar.gz`, Windows → `.zip`
+  - Usage: `./scripts/export.sh --game vaporqube [--skip-python]`
+  - Automatic bundled Python download on macOS
+- **GitHub Actions Release Workflow**: `.github/workflows/release.yml`
+  - Triggered by `v*` tags, builds all 3 platforms
+  - Uploads artifacts to GitHub Releases
+- **PathResolver Cross-Platform Support**: Win/Linux installed mode detection
+  - `IsInstalledBundle()` checks for `res/` adjacent to executable
+  - Platform-specific resource path and bundled Python resolution
 - **Bundled Python Distribution**: Support for distributing games with a portable Python runtime
   - `PathResolver` utility for runtime environment detection (dev vs installed .app bundle)
   - `PreInitializePython()` sets PYTHONHOME/PYTHONPATH before interpreter initialization
   - Config fields for Python (`PythonHome`, `PythonPath`, `BundledPython`) with YAML support
   - Engine bindings: `engine.getResourcePath()`, `engine.isInstalledBundle()`, `engine.getExecutableDir()`
   - CMake install targets for macOS app bundles (`IMHOTEP_BUILD_BUNDLE`, `IMHOTEP_BUNDLE_PYTHON`)
-  - `scripts/package-macos.sh` packaging script for distribution builds
+  - `scripts/export.sh` cross-platform export script for distribution builds
 - **ARM64 Python Auto-Detection**: CMake automatically finds Homebrew ARM64 Python on Apple Silicon
   - Validates Python architecture matches build target to prevent linker errors
   - Multi-source discovery: user-specified → conda → Homebrew ARM64 → system
@@ -41,9 +62,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Lists key functions with line numbers for efficient code navigation
   - Includes thread safety notes, performance metrics, integration context
   - Documented pattern in CLAUDE.md for Claude Code efficiency
-- **Automated Tetris benchmark tests** via CTest
-  - Added `imhotep-tetris-tests` Lua behavior test runner
-  - Added `tetris.lua.behavior` CTest entry
+- **Automated game benchmark tests** via CTest
+  - Added `imhotep-game-tests` Lua behavior test runner
+  - Added `vaporqube.lua.behavior` CTest entry
   - Validates gravity curve, lifecycle/UI state transitions, piece preview layout, and input routing
 
 ### Performance
@@ -380,4 +401,4 @@ The following sections document the chronological development history prior to s
 
 ---
 
-_Last Updated: February 5, 2026_
+_Last Updated: March 6, 2026_
