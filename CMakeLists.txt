@@ -81,42 +81,28 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(quill)
 
 if (APPLE)
-    include(FetchContent)
-
     FetchContent_Declare(
-            GLFW
-            URL https://github.com/glfw/glfw/archive/master.zip
-        )
-
+        GLFW
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG 3.4
+    )
     FetchContent_MakeAvailable(GLFW)
 
-    FetchContent_Declare(
-        GLAD
-        URL https://github.com/Dav1dde/glad/archive/master.zip
-    )
-
-    FetchContent_MakeAvailable(GLAD)
-
 elseif(WIN32)
-    include(FetchContent)
-
     FetchContent_Declare(
-        GLAD
-        URL https://github.com/Dav1dde/glad/archive/master.zip
+        GLFW
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG 3.4
     )
-
-    FetchContent_MakeAvailable(GLAD)
-
-	FetchContent_Declare(
-		GLFW
-		GIT_REPOSITORY https://github.com/glfw/glfw.git
-		GIT_TAG 3.3.8 	
-    )
-	FetchContent_MakeAvailable(GLFW)
+    FetchContent_MakeAvailable(GLFW)
 
 else() # Linux
-    add_subdirectory(external/glad)
-    find_package(glfw3 REQUIRED) # may need to be installed with brew
+    FetchContent_Declare(
+        GLFW
+        GIT_REPOSITORY https://github.com/glfw/glfw.git
+        GIT_TAG 3.4
+    )
+    FetchContent_MakeAvailable(GLFW)
     target_link_libraries(core PRIVATE dl)
 endif()
 

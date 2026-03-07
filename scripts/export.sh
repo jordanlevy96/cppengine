@@ -75,6 +75,11 @@ CMAKE_FLAGS=(
     -DIMHOTEP_GAME_CONFIG="games/$GAME/conf/settings.yaml"
 )
 
+# Pass through vcpkg toolchain if set (for Windows CI)
+if [ -n "$CMAKE_TOOLCHAIN_FILE" ]; then
+    CMAKE_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="$CMAKE_TOOLCHAIN_FILE")
+fi
+
 if [ "$SKIP_PYTHON" = true ]; then
     CMAKE_FLAGS+=(-DIMHOTEP_ENABLE_PYTHON=OFF)
 fi

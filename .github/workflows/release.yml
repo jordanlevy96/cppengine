@@ -71,8 +71,9 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
+        shell: bash
         run: |
-          choco install freetype --yes
+          vcpkg install freetype:x64-windows
 
       - name: Read app name
         id: app
@@ -84,6 +85,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
+          export CMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
           ./scripts/export.sh --game ${{ env.GAME }} --skip-python
 
       - name: Upload artifact
