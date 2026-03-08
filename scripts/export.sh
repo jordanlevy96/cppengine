@@ -155,6 +155,9 @@ if [ "$OS" = "macos" ]; then
             "$so" 2>/dev/null || true
     done
 
+    # Ad-hoc code sign (reduces Gatekeeper friction for unsigned builds)
+    codesign --force --deep --sign - "$APP_BUNDLE"
+
     # Create DMG (sleep briefly to avoid "Resource busy" on CI runners)
     OUTPUT="$DIST_DIR/${APP_NAME}-macos.dmg"
     rm -f "$OUTPUT"
