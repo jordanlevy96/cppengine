@@ -4,6 +4,8 @@
 
 # Build is different per OS
 build
+build-export/
+dist/
 
 # Quill logs
 logs/
@@ -55,3 +57,6 @@ logs/
 
 # Generated terrain tiles (large binary assets)
 res/terrain/
+
+# Temporary files
+Testing/

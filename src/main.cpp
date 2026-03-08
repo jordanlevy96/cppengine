@@ -28,11 +28,12 @@ int main(int argc, char* argv[])
     // Resolve config path if not explicitly specified
     if (configPath.empty())
     {
+        // IMHOTEP_GAME_CONFIG is set by CMake; fallback uses PathResolver for both modes
+        const char *gameConfig = "games/vaporqube/conf/settings.yaml";
 #ifdef IMHOTEP_GAME_CONFIG
-        configPath = PathResolver::GetResourcePath() + IMHOTEP_GAME_CONFIG;
-#else
-        configPath = "../res/games/vaporqube/conf/settings.yaml";
+        gameConfig = IMHOTEP_GAME_CONFIG;
 #endif
+        configPath = PathResolver::GetResourcePath() + gameConfig;
     }
 
     Game &game = Game::GetInstance();

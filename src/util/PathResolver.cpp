@@ -116,6 +116,32 @@ std::string GetResourcePath()
     return "../res/";
 }
 
+std::string GetLogPath(const std::string &appName)
+{
+    if (!IsInstalledBundle())
+    {
+        // Development mode: logs next to build directory
+        return "../logs/";
+    }
+
+#ifdef __APPLE__
+    // macOS: ~/Library/Logs/<AppName>/
+    const char *home = std::getenv("HOME");
+    if (home)
+    {
+        fs::path logDir = fs::path(home) / "Library" / "Logs" / appName;
+        fs::create_directories(logDir);
+        return logDir.string() + "/";
+    }
+#endif
+
+    // Windows/Linux: logs/ next to executable
+    std::string execDir = GetExecutableDir();
+    fs::path logDir = fs::path(execDir) / "logs";
+    fs::create_directories(logDir);
+    return logDir.string() + "/";
+}
+
 std::string GetBundledPythonHome()
 {
     if (!IsInstalledBundle())

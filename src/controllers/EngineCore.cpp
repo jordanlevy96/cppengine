@@ -32,6 +32,7 @@
 #include "util/PathResolver.h"
 #include "util/Version.h"
 #include <GLFW/glfw3.h>
+#include <filesystem>
 #include <variant>
 
 EngineCore::EngineCore()
@@ -91,8 +92,12 @@ bool EngineCore::Initialize(const std::string &configPath, Config &conf, Camera 
         return false;
     }
 
-    // Override resource path with PathResolver (handles dev, bundle, and installed modes)
+    // Override paths with PathResolver (handles dev, bundle, and installed modes)
     conf.ResourcePath = PathResolver::GetResourcePath();
+
+    // Resolve log path: extract filename from config LogPath, combine with resolved log directory
+    std::string logFilename = std::filesystem::path(conf.LogPath).filename().string();
+    conf.LogPath = PathResolver::GetLogPath(conf.AppName) + logFilename;
 
     std::cout << "[EngineCore] Config loaded successfully" << std::endl;
     std::cout << "[EngineCore] AppName: " << conf.AppName << ", logPath: " << conf.LogPath << std::endl;

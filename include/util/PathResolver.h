@@ -38,6 +38,13 @@ namespace PathResolver
     std::string GetResourcePath();
 
     /**
+     * @brief Get writable log directory based on runtime environment
+     * @param appName Application name for directory naming
+     * @return Path ending with / (macOS: ~/Library/Logs/<appName>/, others: logs/ next to exe, dev: ../logs/)
+     */
+    std::string GetLogPath(const std::string &appName);
+
+    /**
      * @brief Get the bundled Python home directory if available
      * @return Path to bundled Python or empty string if not bundled/dev mode
      */
