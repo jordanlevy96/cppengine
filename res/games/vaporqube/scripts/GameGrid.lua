@@ -147,6 +147,9 @@ GameGrid = {
         duration = 1500,        -- How long to show (ms)
     },
 
+    -- Border entity tracking (for cleanup on mode switch)
+    borderEntities = {},
+
     -- Ghost preview state
     ghostPreview = {
         isVisible = false,         -- Is ghost currently shown?
@@ -191,14 +194,37 @@ GameGrid = {
     end,
 
     renderBorder = function(self)
+        -- Destroy any existing border from a previous game/mode before creating new ones
+        self:destroyBorder()
+
+        local color = vec4(self.borderColor.x, self.borderColor.y, self.borderColor.z, 1.0)
+        local lightID = GetEntityByName("light")
+
+        local function addBorderCube(pos)
+            local id = RegisterEntity()
+            local t = GetTransform(id)
+            t.Pos = pos
+            t.Color = color
+            RegisterRenderComponent(id, self.cube)
+            RegisterLighting(id, lightID)
+            table.insert(self.borderEntities, id)
+        end
+
         for y = 0, C.GRID_HEIGHT do
-            CreateCube(self.cube, vec3(-C.CUBE_SIZE, y * C.CUBE_SIZE, 0), self.borderColor) -- Left border
-            CreateCube(self.cube, vec3(C.GRID_WIDTH * C.CUBE_SIZE, y * C.CUBE_SIZE, 0), self.borderColor) -- Right border
+            addBorderCube(vec3(-C.CUBE_SIZE, y * C.CUBE_SIZE, 0))                  -- Left border
+            addBorderCube(vec3(C.GRID_WIDTH * C.CUBE_SIZE, y * C.CUBE_SIZE, 0))    -- Right border
         end
         for x = -1, C.GRID_WIDTH do
-            CreateCube(self.cube, vec3(x * C.CUBE_SIZE, C.GRID_HEIGHT * C.CUBE_SIZE, 0), self.borderColor) -- Top border
-            CreateCube(self.cube, vec3(x * C.CUBE_SIZE, -C.CUBE_SIZE, 0), self.borderColor) -- Bottom border
+            addBorderCube(vec3(x * C.CUBE_SIZE, C.GRID_HEIGHT * C.CUBE_SIZE, 0))   -- Top border
+            addBorderCube(vec3(x * C.CUBE_SIZE, -C.CUBE_SIZE, 0))                  -- Bottom border
         end
+    end,
+
+    destroyBorder = function(self)
+        for _, id in ipairs(self.borderEntities) do
+            DestroyEntity(id)
+        end
+        self.borderEntities = {}
     end,
 
     -- ========================================================================
@@ -1077,6 +1103,9 @@ GameGrid = {
     -- ========================================================================
 
     reset = function(self)
+        -- Destroy border entities (handles mode switching, e.g. mini → standard)
+        self:destroyBorder()
+
         -- Destroy all entities in the existing grid (iterate old dimensions)
         if self.grid then
             for x, col in pairs(self.grid) do
