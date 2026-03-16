@@ -206,13 +206,13 @@ void ScriptManager::AddInputEventToQueue(const InputEvent &event)
             luaEvent["input"] = v;
         } }, event.input);
 
-    sol::table queue = lua["EventQueue"];
-    if (!queue.valid())
+    sol::optional<sol::table> queue = lua["EventQueue"];
+    if (!queue.has_value())
     {
-        LOG_ERROR("[ScriptManager] EventQueue not found in Lua");
+        LOG_DEBUG("[ScriptManager] EventQueue not ready, dropping input event");
         return;
     }
-    queue.add(luaEvent);
+    queue->add(luaEvent);
     LOG_DEBUG("[ScriptManager] Added input event to Lua EventQueue");
 }
 

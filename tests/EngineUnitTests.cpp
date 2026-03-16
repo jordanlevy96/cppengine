@@ -451,6 +451,62 @@ static void RunFrameTimingTests()
 }
 
 // ============================================================================
+// EventQueue Safety Tests
+//
+// Regression for: hang caused by sol::table queue = lua["EventQueue"] when
+// EventQueue is nil (not yet initialized during splash screen glfwPollEvents).
+// The direct assignment panics via sol::default_at_panic → std::terminate →
+// abort() when thrown from a GLFW/Cocoa callback (noexcept context).
+//
+// Fix: use sol::optional<sol::table> — safely returns nullopt instead of panicking.
+// ============================================================================
+
+static void RunEventQueueSafetyTests()
+{
+    std::cout << "\n--- EventQueue Safety (sol::optional regression) ---" << std::endl;
+
+    sol::state lua;
+    lua.open_libraries(sol::lib::base, sol::lib::table);
+
+    // Test: nil global → nullopt, no panic
+    {
+        // EventQueue not set — simulates state before ScriptManager::Initialize()
+        sol::optional<sol::table> queue = lua["EventQueue"];
+        ASSERT_FALSE(queue.has_value());
+
+        std::cout << "  PASS: NilGlobalReturnsNullopt" << std::endl;
+        g_passed++;
+    }
+
+    // Test: valid table global → has_value(), can add entries
+    {
+        lua["EventQueue"] = lua.create_table();
+
+        sol::optional<sol::table> queue = lua["EventQueue"];
+        ASSERT_TRUE(queue.has_value());
+
+        sol::table event = lua.create_table();
+        event["type"] = "mousemove";
+        queue->add(event);
+        ASSERT_EQ(queue->size(), (size_t)1);
+
+        std::cout << "  PASS: ValidTableReturnsValue" << std::endl;
+        g_passed++;
+    }
+
+    // Test: wrong type (number) → nullopt, no panic
+    {
+        lua["EventQueue"] = 42; // overwrite with a non-table
+
+        sol::optional<sol::table> queue = lua["EventQueue"];
+        ASSERT_FALSE(queue.has_value());
+
+        std::cout << "  PASS: WrongTypeReturnsNullopt" << std::endl;
+        g_passed++;
+    }
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -463,6 +519,7 @@ int main()
 
     RunExpressionCacheTests();
     RunFrameTimingTests();
+    RunEventQueueSafetyTests();
 
     std::cout << "\n--- Results ---" << std::endl;
     std::cout << "  Passed: " << g_passed << std::endl;
