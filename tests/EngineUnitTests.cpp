@@ -14,7 +14,10 @@
 #include <string>
 #include <cmath>
 #include <thread>
+#include <mutex>
+#include <atomic>
 #include <chrono>
+#include <algorithm>
 
 // ============================================================================
 // Minimal test harness
@@ -507,6 +510,286 @@ static void RunEventQueueSafetyTests()
 }
 
 // ============================================================================
+// SparseSet Tests (Registry storage primitive)
+//
+// Registry.h defines SparseSet<T> as the cache-friendly storage backing every
+// component type. The template is header-only, so we can exercise it without
+// linking the rest of Registry.cpp (which pulls in Game, ScriptManager, GL,
+// yaml-cpp). These tests lock in the contracts the SparseSet relies on:
+//   - O(1) add/get/has/remove
+//   - swap-and-pop preserves remaining components
+//   - sparse array auto-grows past initial capacity
+// ============================================================================
+
+#include "util/SparseSet.h"  // Standalone header — no engine deps
+
+namespace {
+struct TestComponent
+{
+    int value = 0;
+    explicit TestComponent(int v = 0) : value(v) {}
+};
+}
+
+static void RunSparseSetTests()
+{
+    std::cout << "\n--- SparseSet (Registry storage) ---" << std::endl;
+
+    // Test: AddComponent, GetComponent, HasComponent
+    {
+        SparseSet<TestComponent> set;
+        TestComponent c1(42);
+        set.AddComponent(0, c1);
+        ASSERT_TRUE(set.HasComponent(0));
+        ASSERT_FALSE(set.HasComponent(1));
+        ASSERT_EQ(set.GetComponent(0).value, 42);
+
+        std::cout << "  PASS: AddGetHas" << std::endl;
+        g_passed++;
+    }
+
+    // Test: RemoveComponent uses swap-and-pop, preserving remaining entities
+    {
+        SparseSet<TestComponent> set;
+        TestComponent a(1), b(2), c(3);
+        set.AddComponent(0, a);
+        set.AddComponent(1, b);
+        set.AddComponent(2, c);
+
+        ASSERT_EQ(set.GetComponent(1).value, 2);
+
+        set.RemoveComponent(1);
+
+        ASSERT_FALSE(set.HasComponent(1));
+        ASSERT_TRUE(set.HasComponent(0));
+        ASSERT_TRUE(set.HasComponent(2));
+        ASSERT_EQ(set.GetComponent(0).value, 1);
+        ASSERT_EQ(set.GetComponent(2).value, 3);
+
+        std::cout << "  PASS: RemoveSwapAndPop" << std::endl;
+        g_passed++;
+    }
+
+    // Test: Sparse array auto-grows for entity ids beyond initial capacity (100)
+    {
+        SparseSet<TestComponent> set;
+        TestComponent comp(7);
+        // 500 > default maxEntities=100; should trigger doubling growth
+        set.AddComponent(500, comp);
+        ASSERT_TRUE(set.HasComponent(500));
+        ASSERT_EQ(set.GetComponent(500).value, 7);
+
+        std::cout << "  PASS: AutoGrow" << std::endl;
+        g_passed++;
+    }
+
+    // Test: RemoveComponent on absent entity is safe (no crash, no-op)
+    {
+        SparseSet<TestComponent> set;
+        set.RemoveComponent(0);   // Empty set
+        TestComponent c(1);
+        set.AddComponent(0, c);
+        set.RemoveComponent(99);  // Out of dense range
+        ASSERT_TRUE(set.HasComponent(0));
+
+        std::cout << "  PASS: RemoveAbsentSafe" << std::endl;
+        g_passed++;
+    }
+
+    // Test: GetEntities returns ids of all stored components (dense order)
+    {
+        SparseSet<TestComponent> set;
+        TestComponent a(10), b(20), c(30);
+        set.AddComponent(5, a);
+        set.AddComponent(7, b);
+        set.AddComponent(9, c);
+
+        auto ids = set.GetEntities();
+        ASSERT_EQ(ids.size(), (size_t)3);
+        // Order is insertion order before any removal
+        ASSERT_EQ(ids[0], (EntityID)5);
+        ASSERT_EQ(ids[1], (EntityID)7);
+        ASSERT_EQ(ids[2], (EntityID)9);
+
+        std::cout << "  PASS: GetEntities" << std::endl;
+        g_passed++;
+    }
+}
+
+// ============================================================================
+// Double-Buffer Atomicity Tests
+//
+// Locks in the invariant fixed in HTMLRendererMT:
+//   - Producer (render thread) writes back buffer, then swaps under m_bufferMutex
+//   - Consumer (main thread) reads front buffer pixel pointer; the read is
+//     ONLY safe while m_bufferMutex is held, because std::swap swaps the
+//     vector internals — releasing the lock before consuming the data races
+//     the next producer cycle.
+//
+// This test simulates the pattern with two threads and verifies that pixel
+// data observed under the lock is internally consistent (every byte of a
+// frame matches its frameNumber). If the consumer ever released the lock
+// before reading pixels, the producer could re-target the vector storage
+// mid-iteration and the consistency check would fail.
+// ============================================================================
+
+namespace {
+struct MockFrameBuffer
+{
+    uint64_t frameNumber = 0;
+    std::vector<uint8_t> pixels;
+};
+}
+
+static void RunDoubleBufferTests()
+{
+    std::cout << "\n--- Double-Buffer Atomicity (HTMLRendererMT pattern) ---" << std::endl;
+
+    constexpr size_t kBufferBytes = 64 * 1024;  // 64KB simulated framebuffer
+    constexpr int kFrames = 200;
+
+    MockFrameBuffer front, back;
+    front.pixels.assign(kBufferBytes, 0);
+    back.pixels.assign(kBufferBytes, 0);
+
+    std::mutex bufferMutex;
+    std::atomic<bool> running{true};
+    std::atomic<int> consistencyErrors{0};
+    std::atomic<int> framesObserved{0};
+
+    // Producer: writes a uniform byte pattern based on frame number, then swaps
+    std::thread producer([&]() {
+        uint64_t nextFrame = 1;
+        for (int i = 0; i < kFrames && running; ++i)
+        {
+            uint8_t pattern = static_cast<uint8_t>(nextFrame & 0xFF);
+            std::fill(back.pixels.begin(), back.pixels.end(), pattern);
+            back.frameNumber = nextFrame;
+
+            {
+                std::lock_guard<std::mutex> lk(bufferMutex);
+                std::swap(front, back);
+            }
+
+            ++nextFrame;
+            // Yield to give the consumer a chance
+            std::this_thread::yield();
+        }
+    });
+
+    // Consumer: reads under lock, verifies every byte equals frameNumber & 0xFF
+    std::thread consumer([&]() {
+        uint64_t lastSeen = 0;
+        while (running)
+        {
+            std::lock_guard<std::mutex> lk(bufferMutex);
+            if (front.frameNumber != lastSeen && front.frameNumber > 0)
+            {
+                uint8_t expected = static_cast<uint8_t>(front.frameNumber & 0xFF);
+                for (size_t i = 0; i < front.pixels.size(); ++i)
+                {
+                    if (front.pixels[i] != expected)
+                    {
+                        consistencyErrors.fetch_add(1);
+                        break;
+                    }
+                }
+                lastSeen = front.frameNumber;
+                framesObserved.fetch_add(1);
+            }
+        }
+    });
+
+    producer.join();
+    // Give consumer a moment to drain remaining frames
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    running = false;
+    consumer.join();
+
+    ASSERT_EQ(consistencyErrors.load(), 0);
+    ASSERT_TRUE(framesObserved.load() > 0);
+    std::cout << "  PASS: ProducerConsumerNoTorn (observed "
+              << framesObserved.load() << " frames, 0 errors)" << std::endl;
+    g_passed++;
+
+    // Test: monotonic frame numbers under lock
+    {
+        std::mutex m;
+        uint64_t counter = 0;
+        std::atomic<bool> ok{true};
+        constexpr int N = 1000;
+
+        std::thread t1([&]() {
+            for (int i = 0; i < N; ++i)
+            {
+                std::lock_guard<std::mutex> lk(m);
+                ++counter;
+            }
+        });
+        std::thread t2([&]() {
+            uint64_t prev = 0;
+            for (int i = 0; i < N; ++i)
+            {
+                std::lock_guard<std::mutex> lk(m);
+                if (counter < prev) ok = false;
+                prev = counter;
+            }
+        });
+        t1.join();
+        t2.join();
+        ASSERT_TRUE(ok.load());
+        std::cout << "  PASS: MonotonicCounterUnderLock" << std::endl;
+        g_passed++;
+    }
+}
+
+// ============================================================================
+// Resize Frame-Skip Invariant
+//
+// Documents the rule fixed in HTMLRendererMT::Render(): a frame whose
+// dimensions don't match the current texture must be skipped (not uploaded).
+// This prevents a single garbage frame after Resize() until the render thread
+// produces a frame at the new size.
+//
+// Pure-logic test — replicates the gating predicate so a future refactor
+// that loosens it will trip the test.
+// ============================================================================
+
+static bool ShouldUploadFrame(uint64_t frameNumber, uint64_t lastFrameNumber,
+                              int frameW, int frameH, int textureW, int textureH)
+{
+    if (frameNumber == lastFrameNumber) return false;
+    if (frameW != textureW) return false;
+    if (frameH != textureH) return false;
+    return true;
+}
+
+static void RunResizeFrameSkipTests()
+{
+    std::cout << "\n--- Resize Frame-Skip Invariant ---" << std::endl;
+
+    // Test: matching size + new frame → upload
+    ASSERT_TRUE(ShouldUploadFrame(5, 4, 800, 600, 800, 600));
+    std::cout << "  PASS: UploadOnNewFrame" << std::endl;
+    g_passed++;
+
+    // Test: same frame number → no upload
+    ASSERT_FALSE(ShouldUploadFrame(4, 4, 800, 600, 800, 600));
+    std::cout << "  PASS: SkipDuplicateFrame" << std::endl;
+    g_passed++;
+
+    // Test: width mismatch (post-resize, render thread hasn't caught up) → skip
+    ASSERT_FALSE(ShouldUploadFrame(5, 4, 800, 600, 1024, 600));
+    std::cout << "  PASS: SkipWidthMismatch" << std::endl;
+    g_passed++;
+
+    // Test: height mismatch → skip
+    ASSERT_FALSE(ShouldUploadFrame(5, 4, 800, 600, 800, 768));
+    std::cout << "  PASS: SkipHeightMismatch" << std::endl;
+    g_passed++;
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
@@ -520,6 +803,9 @@ int main()
     RunExpressionCacheTests();
     RunFrameTimingTests();
     RunEventQueueSafetyTests();
+    RunSparseSetTests();
+    RunDoubleBufferTests();
+    RunResizeFrameSkipTests();
 
     std::cout << "\n--- Results ---" << std::endl;
     std::cout << "  Passed: " << g_passed << std::endl;

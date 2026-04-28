@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "util/SparseSet.h"  // EntityID, ENTITY_NULL, SparseSet<T>
+
 #include "components/HierarchyComponent.h"
 #include "components/Lighting.h"
 #include "components/RenderComponent.h"
@@ -26,121 +28,6 @@
 #include "components/WorldTransform.h"
 
 #include <yaml-cpp/yaml.h>
-
-/// Entity unique identifier (size_t index)
-typedef size_t EntityID;
-
-/// Null entity ID constant (used for invalid/unselected entities)
-static const EntityID ENTITY_NULL = static_cast<EntityID>(-1);
-
-/**
- * @brief Cache-friendly sparse set for component storage
- *
- * Provides O(1) add/remove/lookup with dense iteration.
- * Uses two arrays: sparse (EntityID → index) and dense (contiguous components).
- *
- * **Performance:**
- * - AddComponent: O(1) amortized
- * - GetComponent: O(1)
- * - RemoveComponent: O(1) with swap-and-pop
- * - Iteration: Cache-friendly dense array
- *
- * @tparam T Component type to store
- */
-template <typename T>
-struct SparseSet
-{
-public:
-    ~SparseSet<T>()
-    {
-        sparse.clear();
-        dense.clear();
-        entities.clear();
-    };
-
-    /**
-     * @brief Add component to entity
-     * @param entity Entity ID to attach component to
-     * @param component Component data to store
-     * @note Automatically grows sparse array if needed
-     */
-    void AddComponent(EntityID entity, T &component)
-    {
-        while (entity >= maxEntities)
-        {
-            maxEntities *= 2; // Double the maxEntities until it can accommodate the new one
-            sparse.resize(maxEntities, -1);
-        }
-
-        dense.push_back(component);
-        sparse[entity] = dense.size() - 1;
-        entities.push_back(entity);
-    }
-
-    /**
-     * @brief Get component for entity
-     * @param entity Entity ID
-     * @return Reference to component data
-     * @warning No bounds checking - ensure HasComponent() first
-     */
-    T &GetComponent(EntityID entity)
-    {
-        return dense[sparse[entity]];
-    }
-
-    /**
-     * @brief Remove component from entity
-     * @param entity Entity ID
-     * @note Uses swap-and-pop for O(1) removal
-     */
-    void RemoveComponent(EntityID entity)
-    {
-        // Check if the entity is present
-        if (sparse.size() <= entity || sparse[entity] >= dense.size())
-            return;
-
-        // Swap-and-pop to maintain dense packing
-        size_t indexToRemove = sparse[entity];
-        EntityID lastEntity = entities.back();
-
-        // Move last element to removed position
-        dense[indexToRemove] = std::move(dense.back());
-        entities[indexToRemove] = lastEntity;
-
-        // Update sparse mapping for moved entity
-        sparse[lastEntity] = indexToRemove;
-        sparse[entity] = static_cast<size_t>(-1);
-
-        // Remove last elements
-        dense.pop_back();
-        entities.pop_back();
-    }
-
-    /**
-     * @brief Check if entity has this component
-     * @param entity Entity ID
-     * @return true if component exists
-     */
-    bool HasComponent(EntityID entity) const
-    {
-        return entity < sparse.size() &&
-               sparse[entity] != static_cast<size_t>(-1) &&
-               sparse[entity] < dense.size();
-    }
-
-    /**
-     * @brief Get all entities with this component
-     * @return Vector of EntityIDs
-     */
-    std::vector<EntityID> GetEntities() { return entities; };
-
-private:
-    size_t maxEntities = 100;  ///< Dynamic capacity (doubles as needed)
-
-    std::vector<size_t> sparse = std::vector<size_t>(maxEntities, -1);  ///< EntityID → dense index
-    std::vector<T> dense;           ///< Contiguous component storage
-    std::vector<size_t> entities;   ///< Parallel array: dense index → EntityID
-};
 
 /**
  * @brief Entity Component System registry singleton

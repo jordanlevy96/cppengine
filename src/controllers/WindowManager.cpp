@@ -26,7 +26,6 @@
 
 #include "controllers/WindowManager.h"
 #include "controllers/ScriptManager.h"
-#include "controllers/Game.h"
 
 #include <iostream>
 
@@ -463,36 +462,27 @@ void WindowManager::resize_callback(GLFWwindow *window, int fbWidth, int fbHeigh
     // Update OpenGL viewport to match new framebuffer size
     glViewport(0, 0, fbWidth, fbHeight);
 
-    // Broadcast a Resize event to C++ handlers (e.g., HTMLRendererMT, editor viewport sizing).
+    // Broadcast a Resize event to C++ handlers in LIFO priority order.
+    //
+    // Subsystems that care about resize (HTMLRendererMT, editor viewport sizing,
+    // Game's camera projection update) register via RegisterInputHandler() and
+    // receive an InputTypes::Resize event with the new framebuffer dimensions.
+    //
+    // Previously this callback statically downcast glfwGetWindowUserPointer()
+    // to Game* to update the perspective camera — that crashed in the editor
+    // (no user pointer set) and during the splash window before Game stored
+    // its `this` pointer. The cast is gone; Game now registers a Resize
+    // handler in Game::Initialize() instead.
+    InputEvent event;
+    event.type = InputTypes::Resize;
+    event.input = glm::vec2(static_cast<float>(fbWidth), static_cast<float>(fbHeight));
+
+    WindowManager &wm = GetInstance();
+    for (auto it = wm.m_inputHandlers.rbegin(); it != wm.m_inputHandlers.rend(); ++it)
     {
-        InputEvent event;
-        event.type = InputTypes::Resize;
-        event.input = glm::vec2(static_cast<float>(fbWidth), static_cast<float>(fbHeight));
-
-        WindowManager &wm = GetInstance();
-        for (auto it = wm.m_inputHandlers.rbegin(); it != wm.m_inputHandlers.rend(); ++it)
-        {
-            const auto &[id, handler] = *it;
-            (void)id;
-            handler(event);
-        }
-    }
-
-    // Update camera projection if camera exists
-    // Note: Camera uses window size for aspect ratio, not framebuffer size
-    int windowWidth, windowHeight;
-    glfwGetWindowSize(window, &windowWidth, &windowHeight);
-
-    // Get Game instance via user pointer if set
-    void *userPtr = glfwGetWindowUserPointer(window);
-    if (userPtr != nullptr)
-    {
-        Game *game = static_cast<Game *>(userPtr);
-        if (game->cam != nullptr)
-        {
-            game->cam->SetPerspective(game->cam->fov, windowWidth, windowHeight);
-        }
-        // If cam is null, skip silently (common in editor mode).
+        const auto &[id, handler] = *it;
+        (void)id;
+        handler(event);
     }
 }
 

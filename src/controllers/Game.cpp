@@ -90,8 +90,29 @@ bool Game::Initialize(const std::string& configPath)
     // Initialize FPS tracking
     m_fpsUpdateTime = std::chrono::high_resolution_clock::now();
 
-    // Store Game instance in GLFW user pointer for resize callback
-    glfwSetWindowUserPointer(windowManager->window, this);
+    // Register a resize handler that updates the camera's perspective projection.
+    //
+    // Replaces the previous glfwSetWindowUserPointer + static_cast<Game*> in
+    // WindowManager::resize_callback, which crashed in the editor (no user
+    // pointer set) and was unsafe during the splash window before Game stored
+    // its `this` pointer. We use the InputEvent::Resize broadcast already
+    // fanned out by WindowManager.
+    windowManager->RegisterInputHandler([this](const InputEvent &event) -> bool {
+        if (event.type != InputTypes::Resize)
+            return false;
+        if (cam == nullptr)
+            return false;
+        // Camera aspect ratio uses window size (logical pixels), not the
+        // framebuffer size carried by the event payload.
+        int windowWidth = 0, windowHeight = 0;
+        glfwGetWindowSize(windowManager->window, &windowWidth, &windowHeight);
+        if (windowWidth > 0 && windowHeight > 0)
+        {
+            cam->SetPerspective(cam->fov, windowWidth, windowHeight);
+        }
+        // Don't consume the event — other handlers (e.g., HTMLRendererMT) need it too.
+        return false;
+    });
 
     LOG_INFO("Game initialization complete");
     return true;

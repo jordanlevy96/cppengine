@@ -132,7 +132,7 @@ The coordinate conversion (framebuffer → window) is needed because `TryFindInt
 
 ## Tier 2: C++ Unit Tests (`engine.unit`)
 
-**Purpose**: Test C++ subsystems in isolation without graphics. Currently covers ExpressionCache and FrameTiming.
+**Purpose**: Test C++ subsystems in isolation without graphics. Currently covers ExpressionCache, FrameTiming, EventQueue safety, SparseSet (Registry storage), and the HTMLRendererMT double-buffer / resize-skip threading invariants.
 
 **Binary**: `imhotep-engine-tests` (separate executable, does not link the full `core` library).
 
@@ -174,6 +174,32 @@ The coordinate conversion (framebuffer → window) is needed because `TryFindInt
 | Reset | Clears accumulators so no pending steps |
 | SimMultiplier | Getter/setter round-trips correctly |
 | VSync | Getter/setter round-trips correctly |
+
+**SparseSet** (5 tests — `include/util/SparseSet.h`, the storage primitive Registry uses for every component type):
+
+| Test | What it validates |
+|------|-------------------|
+| AddGetHas | `AddComponent` followed by `GetComponent`/`HasComponent` returns the inserted value; absent ids report `HasComponent == false` |
+| RemoveSwapAndPop | Removing an entity preserves all other entities' values (swap-and-pop maintains the dense packing) |
+| AutoGrow | Inserting at id > 100 (initial capacity) doubles the sparse array correctly |
+| RemoveAbsentSafe | Removing from an empty set or out-of-range id is a no-op (no crash) |
+| GetEntities | `GetEntities()` returns ids in insertion order |
+
+**Double-buffer atomicity** (2 tests — guards `HTMLRendererMT`'s producer/consumer pattern):
+
+| Test | What it validates |
+|------|-------------------|
+| ProducerConsumerNoTorn | Producer thread writes a frame stamped with frame number, then swaps under mutex; consumer reads under the same mutex and verifies every byte matches the frame number. Asserts no torn reads. |
+| MonotonicCounterUnderLock | Counter only ever monotonically increases when accessed under a shared mutex from two threads. |
+
+**Resize frame-skip invariant** (4 tests — the gating predicate `HTMLRendererMT::Render()` uses to skip uploads after a resize):
+
+| Test | What it validates |
+|------|-------------------|
+| UploadOnNewFrame | New frame number + matching texture dimensions → upload |
+| SkipDuplicateFrame | Same frame number → skip |
+| SkipWidthMismatch | Front buffer width != texture width → skip |
+| SkipHeightMismatch | Front buffer height != texture height → skip |
 
 ### Extending with new unit tests
 

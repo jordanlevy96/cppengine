@@ -383,16 +383,57 @@ GLFW Event → WindowManager callback
 
 **Critical**: Never touch `m_backBuffer` from main thread. Never OpenGL from render thread.
 
-**Pattern for texture upload**:
+##### Invariant 1 — Buffer mutex held across `glTexSubImage2D`
+
+The render thread swaps `m_frontBuffer` and `m_backBuffer` under `m_bufferMutex`
+(`std::swap` on `FrameBuffer` swaps the internal `std::vector` pointers). If the
+main thread releases the lock before consuming `m_frontBuffer.pixels`, the
+producer can re-target the storage mid-upload — corrupting the texture or
+crashing on resize. **The fix: hold `m_bufferMutex` for the entire duration of
+the texture upload.**
+
 ```cpp
+// HTMLRendererMT::Render() — correct pattern
 {
     std::lock_guard<std::mutex> lock(m_bufferMutex);
     if (m_frontBuffer.frameNumber != m_lastFrameNumber) {
-        glTexSubImage2D(..., m_frontBuffer.pixels.data());  // ✅ Safe
-        m_lastFrameNumber = m_frontBuffer.frameNumber;
+        // Size guard — see Invariant 2
+        if (front matches texture dimensions) {
+            glTexSubImage2D(..., m_frontBuffer.pixels.data());  // ✅ Safe
+            m_lastFrameNumber = m_frontBuffer.frameNumber;
+        }
     }
 }
 ```
+
+The upload finishes in <1ms for 1080p RGBA, so the render thread only stalls
+on swap (microseconds). Test: `tests/EngineUnitTests.cpp::RunDoubleBufferTests`
+exercises this with a producer/consumer pair and asserts no torn reads.
+
+##### Invariant 2 — Skip frames whose dimensions don't match the texture
+
+`HTMLRendererMT::Resize()` recreates the GL texture immediately with the new
+size, but the render thread may not have produced a new frame yet — the front
+buffer still holds the previous size. Uploading that mismatched frame would
+either show a stretched stale image or, on some drivers, undefined memory.
+`Render()` therefore skips uploads where
+`m_frontBuffer.{width,height} != m_{width,height}`. Test:
+`RunResizeFrameSkipTests` locks in the gating predicate.
+
+`Resize()` also pre-fills the new texture with transparent pixels so a single
+"skipped" frame is invisible rather than garbage.
+
+##### Invariant 3 — Resize callback decoupling
+
+GLFW's framebuffer resize callback (`WindowManager::resize_callback`) **does
+not** know about `Game` or `Editor`. It updates the GL viewport and broadcasts
+an `InputTypes::Resize` event through the registered handler chain. Any
+subsystem that needs to react (camera projection in Game, viewport sizing in
+Editor, HTMLRendererMT itself) registers a handler in its own `Initialize()`.
+
+The previous design cast `glfwGetWindowUserPointer()` to `Game*`, which
+crashed in the editor (no user pointer set) and during the splash window
+(set after `EngineCore::Initialize()` returned). The cast is gone.
 
 ---
 

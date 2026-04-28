@@ -62,13 +62,28 @@ PYBIND11_MODULE(engine, m)
     // ========================================================================
     // Registry - for accessing entities and components
     // ========================================================================
+    //
+    // Lifetime contract:
+    // - Registry is a Meyers singleton (function-local static) that lives
+    //   until process exit. py::return_value_policy::reference is safe here
+    //   because the C++ object outlives any Python reference to it.
+    // - GetTransform returns a reference into a Registry-owned SparseSet.
+    //   We use reference_internal so pybind11 keeps the parent Registry alive
+    //   for as long as the returned Transform Python object exists. This
+    //   prevents dangling references if the binding is later refactored to
+    //   use a non-singleton Registry, and documents the ownership intent.
+    //
+    // CAUTION: Mutating the returned Transform from Python bypasses any
+    // C++-side reactive systems (e.g. dirty-flag propagation). Treat the
+    // Python Transform as a read-mostly view; prefer engine-side mutation
+    // for gameplay logic.
 
-    py::class_<Registry>(m, "Registry")
+    py::class_<Registry, std::unique_ptr<Registry, py::nodelete>>(m, "Registry")
         .def_static("GetInstance", &Registry::GetInstance, py::return_value_policy::reference)
         .def("GetEntityByName", &Registry::GetEntityByName)
         .def("GetTransform", [](Registry &self, EntityID id) -> Transform& {
             return self.GetComponent<Transform>(id);
-        }, py::return_value_policy::reference);
+        }, py::return_value_policy::reference_internal);
 
     // ========================================================================
     // Path and Environment Utilities

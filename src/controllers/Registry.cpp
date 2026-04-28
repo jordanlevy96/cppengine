@@ -35,10 +35,22 @@
 
 void Registry::Shutdown()
 {
-    for (size_t i = 0; i < entityNames.size(); i++)
+    // Destroy all live entities (recursively destroys children via hierarchy).
+    // We snapshot the count up front so DestroyEntity() removing children
+    // mid-iteration doesn't cause us to skip later ids.
+    const size_t count = entityNames.size();
+    for (size_t id = 0; id < count; id++)
     {
-        DestroyEntity(i);
+        DestroyEntity(id);
     }
+
+    // Clear lookup table and reset the entity-id counter so a subsequent
+    // session (test runner, editor scene reload, repeated Initialize/Shutdown
+    // cycles) starts from id 0. Without this, fresh scenes would receive
+    // ever-growing ids and Scene YAML / SparseSet sparse-array growth would
+    // accumulate state from prior runs.
+    entityNames.clear();
+    i = 0;
 }
 
 EntityID Registry::RegisterEntity(EntityID parent)

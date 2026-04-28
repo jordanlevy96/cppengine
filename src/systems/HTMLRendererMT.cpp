@@ -994,14 +994,38 @@ void HTMLRendererMT::Render()
     if (!m_compositeShader)
         return;
 
-    // Check if new frame is ready
+    // Upload any new frame from the render thread.
+    //
+    // THREAD SAFETY: m_bufferMutex must remain held for the duration of the
+    // glTexSubImage2D call. The render thread swaps m_frontBuffer and
+    // m_backBuffer under the same mutex (see RenderThreadLoop:1202-1209). If we
+    // released the lock before uploading, std::swap would re-target the vectors
+    // and the pointer passed to glTexSubImage2D could refer to memory the
+    // render thread is concurrently writing — a data race that corrupts the
+    // texture or crashes on resize. The upload itself is bound by GPU PBO
+    // throughput (typically <1ms for 1080p RGBA), so holding the lock across
+    // it is acceptable; the render thread only contends on swap, which is
+    // microseconds.
     {
         std::lock_guard<std::mutex> lock(m_bufferMutex);
         if (m_frontBuffer.frameNumber != m_lastFrameNumber)
         {
-            LOG_TRACE_L2("[HTMLRendererMT] Uploading new frame {} (was {})", m_frontBuffer.frameNumber, m_lastFrameNumber);
-            UpdateTextureFromPixelBuffer();
-            m_lastFrameNumber = m_frontBuffer.frameNumber;
+            // Skip uploads whose dimensions don't match the current texture —
+            // can happen for a single frame after Resize() before the render
+            // thread produces a frame at the new size.
+            if (static_cast<int>(m_frontBuffer.width) == m_width &&
+                static_cast<int>(m_frontBuffer.height) == m_height)
+            {
+                LOG_TRACE_L2("[HTMLRendererMT] Uploading new frame {} (was {})", m_frontBuffer.frameNumber, m_lastFrameNumber);
+                UpdateTextureFromPixelBuffer();
+                m_lastFrameNumber = m_frontBuffer.frameNumber;
+            }
+            else
+            {
+                LOG_TRACE_L2("[HTMLRendererMT] Skipping frame {} (size {}x{} != texture {}x{})",
+                             m_frontBuffer.frameNumber, m_frontBuffer.width, m_frontBuffer.height,
+                             m_width, m_height);
+            }
         }
     }
 
@@ -1065,20 +1089,35 @@ void HTMLRendererMT::Resize(int width, int height)
     }
     m_cv.notify_one();
 
-    // Recreate texture
+    // Recreate texture.
+    // m_texture and the GL quad are owned exclusively by the main thread (no
+    // render-thread access), so no mutex is needed for the GL operations
+    // themselves. We initialise the new texture with transparent pixels so a
+    // resize does not flash garbage memory between Resize() and the next
+    // frame produced by the render thread (which Render() now skips until
+    // dimensions match — see Render() above).
     if (m_texture)
     {
         glDeleteTextures(1, &m_texture);
     }
 
+    std::vector<uint8_t> initialPixels(static_cast<size_t>(m_width) * m_height * 4, 0);
     glGenTextures(1, &m_texture);
     glBindTexture(GL_TEXTURE_2D, m_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, initialPixels.data());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Reset upload tracking so the next swapped frame at the new size is
+    // recognised as fresh even if its frameNumber hasn't advanced (it will,
+    // but make the invariant explicit).
+    {
+        std::lock_guard<std::mutex> lock(m_bufferMutex);
+        m_lastFrameNumber = m_frontBuffer.frameNumber;
+    }
 
     // Update quad vertices for new size
     float quadVertices[] = {
