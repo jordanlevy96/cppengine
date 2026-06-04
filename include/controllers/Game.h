@@ -9,7 +9,6 @@
 #include "controllers/WindowManager.h"
 #include "controllers/Registry.h"
 #include "controllers/EngineCore.h"
-#include "systems/UI.h"
 #include "systems/HTMLRendererMT.h"
 #include "util/Config.h"
 #include <memory>

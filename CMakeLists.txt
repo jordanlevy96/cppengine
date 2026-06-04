@@ -24,7 +24,6 @@ add_library(core SHARED
     "src/systems/RenderSystem.cpp"
     "src/systems/ScriptSystem.cpp"
     "src/systems/TweenSystem.cpp"
-    "src/systems/UI.cpp"
     "src/systems/HTMLRenderer.cpp"
     "src/systems/HTMLRendererMT.cpp"
     "src/systems/ReactiveUI.cpp"
@@ -101,22 +100,11 @@ elseif(WIN32)
 
 else() # Linux
     add_subdirectory(external/glad)
-    find_package(glfw3 REQUIRED) # may need to be installed with brew
-    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dl -ldl)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    find_package(glfw3 REQUIRED) # may need to be installed with brew or apt or something
+    message(STATUS "Set CMAKE_POSITION_INDEPENDENT_CODE to ${CMAKE_POSITION_INDEPENDENT_CODE}")
+    # target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE dl -ldl)
 endif()
-
-set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
-
-add_library(imgui
-	${IMGUI_DIR}/imgui.cpp
-	${IMGUI_DIR}/imgui_draw.cpp
-	${IMGUI_DIR}/imgui_tables.cpp
-	${IMGUI_DIR}/imgui_widgets.cpp
-	${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
-	${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-)
-target_include_directories(imgui PUBLIC ${IMGUI_DIR})
-target_link_libraries(imgui PUBLIC glfw)
 
 set(core_INCLUDE_DIRS
     include
@@ -126,13 +114,11 @@ set(core_INCLUDE_DIRS
     external/yaml-cpp/include
     external/litehtml/include
     ${GLFW_DIR}
-    ${IMGUI_DIR}
     ${FREETYPE_INCLUDE_DIRS}
 )
 
 set(core_LINKS
     glfw
-    imgui
     yaml-cpp::yaml-cpp
     litehtml
     quill::quill
